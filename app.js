@@ -154,8 +154,24 @@ createApp({
             if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
         };
 
-        const toggleFlightCard = () => { if (currentDay.value.flight) { } else { currentDay.value.flight = { type: 'arrival', startTime: '10:00', startAirport: 'TPE', number: '', endTime: '14:00', endAirport: 'DEST', arrivalOffset: 0 }; editingState.flight = true; } };
-        const removeFlight = () => {
+const toggleFlightCard = () => { 
+            if (currentDay.value.flight) { } 
+            else { 
+                currentDay.value.flight = { 
+                    type: 'arrival', 
+                    airline: '',
+                    number: '', 
+                    startAirport: '', 
+                    endAirport: '', 
+                    startTime: '', 
+                    endTime: '', 
+                    terminal: '', 
+                    duration: '',
+                    arrivalOffset: 0 
+                }; 
+                editingState.flight = true; 
+            } 
+        };        const removeFlight = () => {
             const day = days.value[currentDayIdx.value];
             if (!day || !day.flight) return;
             const removed = day.flight;
