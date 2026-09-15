@@ -1,81 +1,161 @@
-<template v-for="(item, idx) in currentDay.items" :key="item.id || idx">
-                            <div class="relative group">
-                                <!-- Timeline Node Dot -->
-                                <div
-                                    class="absolute -left-[31px] top-6 w-4 h-4 rounded-full bg-white border-4 border-primary-400 group-hover:border-primary-500 transition-colors shadow-sm">
-                                </div>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行程規劃</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-stone-50">
+    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col justify-between relative bg-stone-50 shadow-lg">
+        
+        <!-- Main Content -->
+        <main class="flex-1 p-4 pb-24">
+            <div class="relative pl-6 border-l-2 border-stone-200 space-y-4">
+                
+                <!-- Items List -->
+                <div v-for="(item, idx) in currentDay.items" :key="item.id || idx" class="relative group">
+                    <!-- Timeline Node Dot -->
+                    <div class="absolute -left-[31px] top-6 w-4 h-4 rounded-full bg-white border-4 border-amber-400 group-hover:border-amber-500 transition-colors shadow-sm"></div>
 
-                                <!-- Item Card -->
-                                <div
-                                    class="bg-white rounded-3xl p-5 shadow-soft border border-stone-100 hover:shadow-md transition-shadow relative overflow-hidden">
-                                    <div class="flex items-start justify-between gap-3 mb-2">
-                                        <div class="flex items-center gap-2">
-                                            <span
-                                                class="text-xs font-extrabold text-primary-600 bg-primary-50 px-2.5 py-1 rounded-lg">
-                                                {{ item.time || '--:--' }}
-                                            </span>
-                                            <h3 class="text-base font-bold text-stone-800">{{ item.location }}</h3>
-                                        </div>
-
-                                        <div class="flex items-center gap-1">
-                                            <button @click="openItemModal(item, idx)"
-                                                class="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition">
-                                                <i class="ph-bold ph-pencil-simple text-base"></i>
-                                            </button>
-                                            <button @click="removeItem(idx)"
-                                                class="w-8 h-8 rounded-full flex items-center justify-center text-stone-300 hover:text-red-500 hover:bg-red-50 transition">
-                                                <i class="ph-bold ph-trash text-base"></i>
-                                            </button>
-                                            <div class="loc-drag-handle cursor-grab active:cursor-grabbing w-8 h-8 rounded-full flex items-center justify-center text-stone-300 hover:text-stone-500">
-                                                <i class="ph-bold ph-dots-six-vertical text-lg"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <p v-if="item.note" class="text-sm text-stone-500 leading-relaxed mb-3">
-                                        {{ item.note }}
-                                    </p>
-
-                                    <div v-if="item.cost" class="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl w-fit">
-                                        <i class="ph-bold ph-currency-circle-dollar text-sm"></i>
-                                        <span>{{ setup.currency }} {{ item.cost }}</span>
-                                    </div>
-                                </div>
+                    <!-- Item Card -->
+                    <div class="bg-white rounded-3xl p-5 shadow-sm border border-stone-100 hover:shadow-md transition-shadow relative overflow-hidden">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-extrabold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg">
+                                    {{ item.time || '--:--' }}
+                                </span>
+                                <h3 class="text-base font-bold text-stone-800">{{ item.location }}</h3>
                             </div>
-                        </template>
 
-                        <!-- Add Item Button -->
-                        <button @click="openItemModal(null)"
-                            class="w-full py-4 border-2 border-dashed border-stone-200 rounded-3xl text-stone-400 hover:border-primary-300 hover:text-primary-500 hover:bg-white transition flex items-center justify-center gap-2 font-bold text-sm">
-                            <i class="ph-bold ph-plus"></i>
-                            <span>新增行程地點</span>
-                        </button>
+                            <div class="flex items-center gap-1">
+                                <button @click="openItemModal(item, idx)" class="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition">
+                                    <i class="ph-bold ph-pencil-simple text-base"></i>
+                                </button>
+                                <button @click="removeItem(idx)" class="w-8 h-8 rounded-full flex items-center justify-center text-stone-300 hover:text-red-500 hover:bg-red-50 transition">
+                                    <i class="ph-bold ph-trash text-base"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <p v-if="item.note" class="text-sm text-stone-500 leading-relaxed mb-3">
+                            {{ item.note }}
+                        </p>
+
+                        <div v-if="item.cost" class="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl w-fit">
+                            <i class="ph-bold ph-currency-circle-dollar text-sm"></i>
+                            <span>TWD {{ item.cost }}</span>
+                        </div>
                     </div>
                 </div>
-            </transition>
+
+                <!-- Add Item Button -->
+                <button @click="openItemModal(null)" class="w-full py-4 border-2 border-dashed border-stone-200 rounded-3xl text-stone-400 hover:border-amber-300 hover:text-amber-500 hover:bg-white transition flex items-center justify-center gap-2 font-bold text-sm">
+                    <i class="ph-bold ph-plus"></i>
+                    <span>新增行程地點</span>
+                </button>
+            </div>
         </main>
 
-        <!-- Bottom Navigation Bar -->
-        <nav class="bg-white border-t border-stone-100 px-6 py-2 pb-safe flex justify-around items-center z-20">
-            <button @click="viewMode = 'plan'"
-                class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition"
-                :class="viewMode === 'plan' ? 'text-primary-500 font-bold' : 'text-stone-400'">
-                <i class="ph-bold ph-calendar-blank text-2xl"></i>
-                <span class="text-xs">行程</span>
-            </button>
-            <button @click="viewMode = 'wallet'"
-                class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition"
-                :class="viewMode === 'wallet' ? 'text-primary-500 font-bold' : 'text-stone-400'">
-                <i class="ph-bold ph-wallet text-2xl"></i>
-                <span class="text-xs">記帳</span>
-            </button>
-            <button @click="viewMode = 'prep'"
-                class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition"
-                :class="viewMode === 'prep' ? 'text-primary-500 font-bold' : 'text-stone-400'">
-                <i class="ph-bold ph-check-square text-2xl"></i>
-                <span class="text-xs">準備</span>
-            </button>
-        </nav>
+        <!-- Edit / Create Modal -->
+        <div v-if="isModalOpen" class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-xl">
+                <h3 class="text-lg font-bold text-stone-800">{{ editingIndex === null ? '新增行程' : '編輯行程' }}</h3>
+                
+                <div>
+                    <label class="text-xs font-bold text-stone-400 block mb-1">時間</label>
+                    <input v-model="form.time" type="time" class="w-full border border-stone-200 rounded-xl p-2.5 text-sm outline-none focus:border-amber-400">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-stone-400 block mb-1">地點 / 名稱</label>
+                    <input v-model="form.location" type="text" placeholder="例如：19 Golf Lounge" class="w-full border border-stone-200 rounded-xl p-2.5 text-sm outline-none focus:border-amber-400">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-stone-400 block mb-1">備註</label>
+                    <textarea v-model="form.note" rows="2" class="w-full border border-stone-200 rounded-xl p-2.5 text-sm outline-none focus:border-amber-400"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-stone-400 block mb-1">預估費用</label>
+                    <input v-model.number="form.cost" type="number" placeholder="0" class="w-full border border-stone-200 rounded-xl p-2.5 text-sm outline-none focus:border-amber-400">
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button @click="closeModal" class="flex-1 py-3 text-stone-500 bg-stone-100 rounded-xl font-bold text-sm hover:bg-stone-200 transition">取消</button>
+                    <button @click="saveItem" class="flex-1 py-3 text-white bg-amber-500 rounded-xl font-bold text-sm hover:bg-amber-600 transition">儲存</button>
+                </div>
+            </div>
+        </div>
+
     </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                const currentDay = ref({
+                    items: [
+                        { id: 1, time: '10:00', location: '練習室集合', note: '確認裝備與學員名單', cost: 0 }
+                    ]
+                });
+
+                const isModalOpen = ref(false);
+                const editingIndex = ref(null);
+                const form = ref({ id: null, time: '', location: '', note: '', cost: null });
+
+                const openItemModal = (item, idx) => {
+                    if (item !== null && idx !== undefined) {
+                        editingIndex.value = idx;
+                        // 深拷貝：避免修改 Modal 時直接動到畫面資料
+                        form.value = JSON.parse(JSON.stringify(item));
+                    } else {
+                        editingIndex.value = null;
+                        form.value = { id: Date.now(), time: '', location: '', note: '', cost: null };
+                    }
+                    isModalOpen.value = true;
+                };
+
+                const saveItem = () => {
+                    if (!form.value.location) {
+                        alert('請輸入地點！');
+                        return;
+                    }
+
+                    if (editingIndex.value !== null) {
+                        // 關鍵點：使用 splice 強迫 Vue 3 觸發畫面響應更新
+                        currentDay.value.items.splice(editingIndex.value, 1, { ...form.value });
+                    } else {
+                        // 新增項目
+                        currentDay.value.items.push({ ...form.value });
+                    }
+
+                    closeModal();
+                };
+
+                const removeItem = (idx) => {
+                    currentDay.value.items.splice(idx, 1);
+                };
+
+                const closeModal = () => {
+                    isModalOpen.value = false;
+                    form.value = { id: null, time: '', location: '', note: '', cost: null };
+                    editingIndex.value = null;
+                };
+
+                return {
+                    currentDay,
+                    isModalOpen,
+                    editingIndex,
+                    form,
+                    openItemModal,
+                    saveItem,
+                    removeItem,
+                    closeModal
+                };
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
