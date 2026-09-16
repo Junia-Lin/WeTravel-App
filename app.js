@@ -1,4 +1,3 @@
-
 import { createApp, ref, computed, watch, onMounted, nextTick, reactive } from './vendor/vue-3.5.13.esm-browser.prod.js'
 
 // Firebase 設定改由外部檔案提供：自架者請編輯 firebase-config.js
@@ -8,6 +7,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { initializeFirestore, collection, doc, setDoc, onSnapshot, getDocs, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { CHECKLIST_CATEGORIES, LUGGAGE_META, CHECKLIST_TEMPLATE } from './checklist-data.js';
+import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from './expense-data.js';
 
 createApp({
     setup() {
@@ -58,7 +58,26 @@ createApp({
         const participants = ref([]);
         const participantsStr = ref('');
         const exchangeRate = ref(0.215);
-        const newExpense = ref({ item: '', amount: '', payer: '' });
+        const newExpense = ref({ item: '', amount: '', payer: '', category: 'other', paymentMethod: 'cash', splitWith: [] });
+        // 使用者自訂的記帳分類（此趟旅程專屬，跟著行程資料存 Firestore）
+        const customCategories = ref([]);
+        const allExpenseCategories = computed(() => [
+            ...EXPENSE_CATEGORIES,
+            ...customCategories.value.map(name => ({ slug: name, label: name, emoji: '🏷️' }))
+        ]);
+        const newCustomCategory = ref('');
+        const showCustomCategoryInput = ref(false);
+        const addCustomCategory = (targetDraftRefGetter) => {
+            const name = newCustomCategory.value.trim();
+            if (!name) { showCustomCategoryInput.value = false; return; }
+            if (!customCategories.value.includes(name) && !EXPENSE_CATEGORIES.some(c => c.slug === name)) {
+                customCategories.value.push(name);
+            }
+            const target = targetDraftRefGetter();
+            if (target) target.category = name;
+            newCustomCategory.value = '';
+            showCustomCategoryInput.value = false;
+        };
 
         const isRateLoading = ref(false);
         const weather = ref({ temp: null, icon: 'ph-sun', code: 0, location: '', daily: [] });
@@ -71,6 +90,60 @@ createApp({
             const map = {}; participants.value.forEach(p => map[p] = 0);
             expenses.value.forEach(e => { if (map[e.payer] === undefined) map[e.payer] = 0; map[e.payer] += e.amount; }); return map;
         });
+        // 這筆支出實際分攤給誰：沒填 splitWith（含舊資料）就視為全體成員均分
+        const effectiveSplitWith = (exp) => (exp.splitWith && exp.splitWith.length) ? exp.splitWith : participants.value;
+        // 每人「實際負擔」（均分後真正該花的錢，跟「誰墊付」是兩回事）
+        const owedByPerson = computed(() => {
+            const map = {}; participants.value.forEach(p => map[p] = 0);
+            expenses.value.forEach(e => {
+                const who = effectiveSplitWith(e);
+                if (!who.length) return;
+                const share = e.amount / who.length;
+                who.forEach(p => { if (map[p] === undefined) map[p] = 0; map[p] += share; });
+            });
+            return map;
+        });
+        // 依分類加總（其他/自訂分類等找不到定義的，歸到「其他」顯示）
+        const categoryTotals = computed(() => {
+            const map = {};
+            expenses.value.forEach(e => {
+                const key = e.category || 'other';
+                map[key] = (map[key] || 0) + e.amount;
+            });
+            return map;
+        });
+        const PIE_COLORS = ['#ff69b4', '#5eead4', '#fbbf24', '#818cf8', '#fb923c', '#34d399', '#f472b6', '#60a5fa'];
+        // 圓餅圖：依分類佔比切出 SVG 弧形 path（半徑 45、圓心 (50,50)）
+        const categoryPieSlices = computed(() => {
+            const total = totalExpense.value;
+            if (!total) return [];
+            const cx = 50, cy = 50, r = 45;
+            let startAngle = -Math.PI / 2; // 從 12 點鐘方向開始
+            const polar = (angle) => [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+            const entries = Object.entries(categoryTotals.value).filter(([, amt]) => amt > 0);
+            return entries.map(([slug, amt], idx) => {
+                const cat = allExpenseCategories.value.find(c => c.slug === slug) || { slug, label: slug, emoji: '💰' };
+                const pct = amt / total;
+                const endAngle = startAngle + pct * Math.PI * 2;
+                const [x1, y1] = polar(startAngle);
+                const [x2, y2] = polar(endAngle);
+                const largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
+                const path = pct >= 0.999
+                    ? `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} Z`
+                    : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                const slice = { slug, label: cat.label, emoji: cat.emoji, amount: amt, pct, path, color: PIE_COLORS[idx % PIE_COLORS.length] };
+                startAngle = endAngle;
+                return slice;
+            });
+        });
+        // 長條圖：每人實際負擔金額（依金額排序，方便一眼看出誰花最多）
+        const personBarData = computed(() => {
+            const data = participants.value.map(p => ({ name: p, amount: owedByPerson.value[p] || 0 }));
+            const max = Math.max(1, ...data.map(d => d.amount));
+            return data.sort((a, b) => b.amount - a.amount).map(d => ({ ...d, pct: d.amount / max }));
+        });
+        // 支出對應「第幾天」的顯示標籤（取代原本的日曆日期顯示）
+        const dayLabel = (idx) => (idx === null || idx === undefined || !days.value[idx]) ? '未指定' : `Day ${idx + 1}`;
         // 成員新增/刪除（直接同步 participantsStr 供存檔；participants 為顯示來源）
         const newParticipant = ref('');
         const addParticipant = () => {
@@ -79,12 +152,24 @@ createApp({
             participants.value.push(name);
             participantsStr.value = participants.value.join(', ');
             if (!newExpense.value.payer) newExpense.value.payer = name;
+            if (newExpense.value.splitWith && newExpense.value.splitWith.length) newExpense.value.splitWith.push(name);
             newParticipant.value = '';
         };
         const removeParticipant = (name) => {
             participants.value = participants.value.filter(p => p !== name);
             participantsStr.value = participants.value.join(', ');
             if (newExpense.value.payer === name) newExpense.value.payer = participants.value[0] || '';
+            if (newExpense.value.splitWith) newExpense.value.splitWith = newExpense.value.splitWith.filter(p => p !== name);
+        };
+        // 記帳表單裡「分攤成員」勾選切換（newExpense 快速新增 / expModal 編輯共用）
+        const toggleSplitMember = (draftLike, name) => {
+            if (!draftLike.splitWith || !draftLike.splitWith.length) draftLike.splitWith = [...participants.value];
+            const idx = draftLike.splitWith.indexOf(name);
+            if (idx === -1) draftLike.splitWith.push(name); else draftLike.splitWith.splice(idx, 1);
+        };
+        const isSplitChecked = (draftLike, name) => {
+            if (!draftLike.splitWith || !draftLike.splitWith.length) return true; // 未指定＝視為全選
+            return draftLike.splitWith.includes(name);
         };
         const currencyLabel = computed(() => setup.value.currency || '外幣');
         const currencySymbol = computed(() => { const map = { 'JPY': '¥', 'CNY': '¥', 'USD': '$', 'EUR': '€', 'KRW': '₩', 'GBP': '£', 'TWD': 'NT$', 'HKD': 'HK$', 'THB': '฿', 'VND': '₫' }; return map[setup.value.currency] || '$'; });
@@ -338,13 +423,23 @@ createApp({
         const addExpense = () => {
             if (!newExpense.value.item) { isItemInvalid.value = true; nextTick(() => { itemInputRef.value?.focus(); }); return; }
             if (!newExpense.value.amount) { isAmountInvalid.value = true; nextTick(() => { amountInputRef.value?.focus(); }); return; }
-            expenses.value.unshift({ ...newExpense.value, id: generateId(), date: localDateStr() });
+            expenses.value.unshift({
+                ...newExpense.value,
+                id: generateId(),
+                // 記到目前正在看的那一天（行程分頁切到 Day 3 時記帳，就存 Day 3）
+                dayIndex: currentDayIdx.value,
+                splitWith: (newExpense.value.splitWith && newExpense.value.splitWith.length) ? [...newExpense.value.splitWith] : []
+            });
             newExpense.value.item = ''; newExpense.value.amount = ''; isItemInvalid.value = false; isAmountInvalid.value = false;
         };
         const expModal = reactive({ show: false, targetId: null, draft: null });
         const openExpModal = (exp) => {
             expModal.targetId = exp.id;
             expModal.draft = JSON.parse(JSON.stringify(exp));
+            if (!expModal.draft.category) expModal.draft.category = 'other';
+            if (!expModal.draft.paymentMethod) expModal.draft.paymentMethod = 'cash';
+            if (expModal.draft.dayIndex === undefined || expModal.draft.dayIndex === null) expModal.draft.dayIndex = currentDayIdx.value;
+            if (!Array.isArray(expModal.draft.splitWith)) expModal.draft.splitWith = [];
             expModal.show = true;
         };
         const saveExpModal = () => {
@@ -446,6 +541,7 @@ createApp({
             participantsStr.value = '';
             participants.value = [];
             newExpense.value.payer = '';
+            customCategories.value = [];
             isRateLoading.value = false;
             nextTick(() => ignoreRemoteUpdate = false);
         };
@@ -579,6 +675,7 @@ createApp({
             days.value = newDays;
             expenses.value = [];
             savedLocations.value = [];
+            customCategories.value = [];
             checklist.value = seedChecklist();
             exchangeRate.value = setup.value.rate;
             // 成員已在 setup modal 收好（createNewTrip 開窗時已重置過），此處不可清空
@@ -689,8 +786,20 @@ createApp({
                     }
 
                     days.value = data.days || [];
-                    expenses.value = data.expenses || [];
-                    expenses.value.forEach(e => { if (e && !e.id) e.id = generateId(); });
+                    expenses.value = (data.expenses || []).filter(e => e);
+                    expenses.value.forEach(e => {
+                        if (!e.id) e.id = generateId();
+                        if (!e.category) e.category = 'other';
+                        if (!e.paymentMethod) e.paymentMethod = 'cash';
+                        if (!Array.isArray(e.splitWith)) e.splitWith = [];
+                        if (e.dayIndex === undefined || e.dayIndex === null) {
+                            // 舊資料是存日曆日期（date），換算成落在行程的第幾天；換算不到就先放 Day 1
+                            const idx = e.date ? days.value.findIndex(d => d.fullDate === e.date) : -1;
+                            e.dayIndex = idx !== -1 ? idx : 0;
+                        }
+                        delete e.date;
+                    });
+                    customCategories.value = data.customCategories || [];
                     savedLocations.value = (data.locations || []).filter(l => l);
 
                     // 舊旅程無 checklist → 空陣列（分頁顯示帶入模板的空狀態）；欄位缺漏防禦性補齊
@@ -793,6 +902,7 @@ createApp({
                         expenses: expenses.value,
                         locations: savedLocations.value,
                         checklist: JSON.parse(JSON.stringify(checklist.value)),
+                        customCategories: customCategories.value,
                         rate: exchangeRate.value,
                         users: participantsStr.value,
                         setup: setup.value,
@@ -812,7 +922,7 @@ createApp({
             }, 1000);
         };
 
-        watch([days, expenses, savedLocations, checklist, exchangeRate, participantsStr, setup], () => {
+        watch([days, expenses, savedLocations, checklist, customCategories, exchangeRate, participantsStr, setup], () => {
             if (!ignoreRemoteUpdate && !(showSetupModal.value && !isEditing.value)) debouncedSave();
         }, { deep: true });
 
@@ -914,7 +1024,10 @@ createApp({
             activeChecklistMember,
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
-            CHECKLIST_CATEGORIES, LUGGAGE_META
+            CHECKLIST_CATEGORIES, LUGGAGE_META,
+            PAYMENT_METHODS, allExpenseCategories, customCategories, newCustomCategory, showCustomCategoryInput, addCustomCategory,
+            effectiveSplitWith, owedByPerson, categoryTotals, categoryPieSlices, personBarData, dayLabel,
+            toggleSplitMember, isSplitChecked
         };
     }
 }).mount('#app')
