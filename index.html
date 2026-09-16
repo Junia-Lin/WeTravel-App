@@ -680,6 +680,7 @@
                                                 <span v-else-if="item.type==='food'">🍴</span>
                                                 <span v-else-if="item.type==='shop'">🛍️</span>
                                                 <span v-else-if="item.type==='transport'">🚇</span>
+                                                <span v-else-if="item.type==='accommodation'">🏨</span>
                                                 <span v-else>📍</span>
                                             </div>
                                         </div>
@@ -689,15 +690,19 @@
                                             <div class="font-bold text-stone-800 text-base pr-6">{{ item.activity ||
                                                 '未命名行程' }}</div>
 
-                                            <a v-if="item.link || item.location"
-                                                :href="getExternalMapLink(item.link || item.location)" target="_blank"
+                                            <div v-if="item.placeId" class="flex items-center gap-1.5 mt-2 px-1">
+                                                <i class="ph-fill ph-map-pin text-primary-400 text-xs"></i>
+                                                <span class="text-xs font-bold text-primary-600 truncate">{{ itemLocationLabel(item) }}</span>
+                                            </div>
+                                            <a v-if="itemNavTarget(item)"
+                                                :href="getExternalMapLink(itemNavTarget(item))" target="_blank"
                                                 @click.stop
                                                 class="relative z-10 flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all border group/btn w-full mt-2"
-                                                :class="isUrl(item.link || item.location) ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' : 'bg-primary-50 text-primary-700 border-primary-100 hover:bg-primary-100'">
+                                                :class="isUrl(itemNavTarget(item)) ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' : 'bg-primary-50 text-primary-700 border-primary-100 hover:bg-primary-100'">
                                                 <div class="flex items-center gap-2 truncate pr-2">
                                                     <i
-                                                        :class="isUrl(item.link || item.location) ? 'ph-bold ph-globe' : 'ph-bold ph-navigation-arrow'"></i>
-                                                    <span class="truncate">{{ isUrl(item.link || item.location)
+                                                        :class="isUrl(itemNavTarget(item)) ? 'ph-bold ph-globe' : 'ph-bold ph-navigation-arrow'"></i>
+                                                    <span class="truncate">{{ isUrl(itemNavTarget(item))
                                                         ? '開啟連結' :
                                                         '開啟導航' }}</span>
                                                 </div>
@@ -747,6 +752,7 @@
                                                 <span v-if="loc.type==='food'">🍴</span>
                                                 <span v-else-if="loc.type==='shop'">🛍️</span>
                                                 <span v-else-if="loc.type==='transport'">🚇</span>
+                                                <span v-else-if="loc.type==='accommodation'">🏨</span>
                                                 <span v-else>📍</span>
                                             </span>
                                             <div class="font-bold text-lg text-stone-800 truncate">{{ loc.name || '未命名地點' }}
@@ -1084,6 +1090,37 @@
                             <i class="ph-bold ph-plus"></i> 新增項目
                         </button>
                     </template>
+
+                    <!-- 事前準備：跟行李清單同一頁，簡單打勾清單，不分類 -->
+                    <div class="bg-white rounded-3xl border border-stone-100 shadow-soft p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-black text-stone-800 flex items-center gap-2">
+                                <i class="ph-bold ph-list-checks text-primary-500"></i> 事前準備
+                            </h3>
+                            <span v-if="prepTasks.length" class="text-xs font-bold text-stone-400 shrink-0">{{ prepTasks.filter(t => t.completed).length }}/{{ prepTasks.length }}</span>
+                        </div>
+                        <div v-if="!prepTasks.length" class="text-sm text-stone-400 py-1">還沒有要準備的事項，在下面新增一個吧</div>
+                        <div v-for="task in prepTasks" :key="task.id" class="flex items-center gap-3">
+                            <button @click="togglePrepTask(task)"
+                                class="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition active:scale-90"
+                                :class="task.completed ? 'bg-primary-500 border-primary-500 text-white' : 'border-stone-200 text-transparent'">
+                                <i class="ph-bold ph-check text-xs"></i>
+                            </button>
+                            <span class="flex-1 min-w-0 truncate text-sm font-bold text-stone-700"
+                                :class="task.completed ? 'line-through text-stone-300' : ''">{{ task.title }}</span>
+                            <button @click="deletePrepTask(task.id)" class="shrink-0 text-stone-300 hover:text-red-400 transition">
+                                <i class="ph-bold ph-x"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-2 pt-1">
+                            <input v-model="newPrepTask" @keyup.enter="addPrepTask" placeholder="例如：訂機票、辦簽證、換外幣"
+                                class="flex-1 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            <button @click="addPrepTask"
+                                class="px-4 bg-primary-500 text-white rounded-xl text-sm font-bold shadow-md shadow-primary-500/30 active:scale-95 transition shrink-0">
+                                <i class="ph-bold ph-plus"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div v-else-if="viewMode === 'translate'" key="translate"
@@ -1534,7 +1571,7 @@
                             <div>
                                 <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">類型</label>
                                 <div class="flex h-12 bg-stone-50 p-1 rounded-xl border border-stone-200 items-stretch">
-                                    <button v-for="type in ['spot', 'food', 'shop', 'transport']" :key="type"
+                                    <button v-for="type in ['spot', 'food', 'shop', 'transport', 'accommodation']" :key="type"
                                         @click="itemModal.draft.type = type"
                                         class="flex-1 rounded-lg flex items-center justify-center text-xl transition-colors"
                                         :class="itemModal.draft.type === type ? 'bg-white shadow-sm scale-100' : 'opacity-40 hover:opacity-100'">
@@ -1542,6 +1579,7 @@
                                         <span v-else-if="type==='food'">🍴</span>
                                         <span v-else-if="type==='shop'">🛍️</span>
                                         <span v-else-if="type==='transport'">🚇</span>
+                                        <span v-else-if="type==='accommodation'">🏨</span>
                                     </button>
                                 </div>
                             </div>
@@ -1551,16 +1589,31 @@
                             class="js-item-activity w-full text-lg font-bold text-stone-800 placeholder:text-stone-300 border-b-2 border-stone-100 focus:border-primary-400 bg-transparent py-1 focus:outline-none transition-colors"
                             placeholder="行程名稱...">
 
-                        <div
-                            class="flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2 border border-stone-100 focus-within:border-primary-200 focus-within:bg-white transition-colors">
-                            <i class="ph-bold ph-map-pin text-stone-500 shrink-0"></i>
-                            <div class="flex-1 min-w-0 flex flex-col">
-                                <input v-model="itemModal.draft.location"
-                                    class="text-sm font-medium bg-transparent focus:outline-none text-stone-700 w-full truncate"
-                                    placeholder="地點名稱">
-                                <input v-model="itemModal.draft.link"
-                                    class="text-[10px] text-stone-500 bg-transparent focus:outline-none w-full truncate font-mono"
-                                    placeholder="http://地圖連結...">
+                        <div v-if="itemModal.draft.placeId" class="flex items-center gap-2 bg-primary-50 rounded-xl px-3 py-2.5 border border-primary-100">
+                            <i class="ph-fill ph-map-pin text-primary-400 shrink-0"></i>
+                            <span class="flex-1 min-w-0 truncate text-sm font-bold text-primary-700">{{ (savedLocations.find(l => l.id === itemModal.draft.placeId) || {}).name || '已連結的口袋地點' }}</span>
+                            <button @click="itemModal.draft.placeId = null" class="shrink-0 text-xs font-bold text-primary-400 hover:text-primary-600">取消連結</button>
+                        </div>
+                        <div v-else class="space-y-2">
+                            <div
+                                class="flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2 border border-stone-100 focus-within:border-primary-200 focus-within:bg-white transition-colors">
+                                <i class="ph-bold ph-map-pin text-stone-500 shrink-0"></i>
+                                <div class="flex-1 min-w-0 flex flex-col">
+                                    <input v-model="itemModal.draft.location"
+                                        class="text-sm font-medium bg-transparent focus:outline-none text-stone-700 w-full truncate"
+                                        placeholder="地點名稱">
+                                    <input v-model="itemModal.draft.link"
+                                        class="text-[10px] text-stone-500 bg-transparent focus:outline-none w-full truncate font-mono"
+                                        placeholder="http://地圖連結...">
+                                </div>
+                            </div>
+                            <div v-if="savedLocations.length" class="flex flex-wrap items-center gap-1.5">
+                                <span class="text-[10px] text-stone-400">或從口袋名單選：</span>
+                                <button v-for="loc in savedLocations" :key="loc.id"
+                                    @click="itemModal.draft.placeId = loc.id; itemModal.draft.location = ''; itemModal.draft.link = ''"
+                                    class="px-2 py-1 rounded-lg text-xs font-bold bg-stone-50 border border-stone-100 text-stone-500 hover:border-primary-300 hover:text-primary-600 transition truncate max-w-[7rem]">
+                                    {{ loc.name }}
+                                </button>
                             </div>
                         </div>
 
@@ -1611,7 +1664,7 @@
                         <div>
                             <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">類型</label>
                             <div class="flex h-12 bg-stone-50 p-1 rounded-xl border border-stone-200 items-stretch">
-                                <button v-for="type in ['spot', 'food', 'shop', 'transport']" :key="type"
+                                <button v-for="type in ['spot', 'food', 'shop', 'transport', 'accommodation']" :key="type"
                                     @click="locModal.draft.type = type"
                                     class="flex-1 rounded-lg flex items-center justify-center text-xl transition-colors"
                                     :class="locModal.draft.type === type ? 'bg-white shadow-sm scale-100' : 'opacity-40 hover:opacity-100'">
@@ -1619,6 +1672,7 @@
                                     <span v-else-if="type==='food'">🍴</span>
                                     <span v-else-if="type==='shop'">🛍️</span>
                                     <span v-else-if="type==='transport'">🚇</span>
+                                    <span v-else-if="type==='accommodation'">🏨</span>
                                 </button>
                             </div>
                         </div>
