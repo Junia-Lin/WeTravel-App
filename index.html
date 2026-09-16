@@ -871,6 +871,94 @@
                                 <i class="ph-bold ph-plus text-xl"></i>
                             </button>
                         </div>
+
+                        <!-- 分類 -->
+                        <div class="mt-3">
+                            <div class="text-[10px] text-stone-500 mb-1 pl-1">分類</div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="cat in allExpenseCategories" :key="cat.slug"
+                                    @click="newExpense.category = cat.slug"
+                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1"
+                                    :class="newExpense.category === cat.slug ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">
+                                    <span>{{ cat.emoji }}</span>{{ cat.label }}
+                                </button>
+                                <button v-if="!showCustomCategoryInput" @click="showCustomCategoryInput = true"
+                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-dashed border-stone-300 text-stone-400">
+                                    ＋ 自訂
+                                </button>
+                                <div v-else class="flex items-center gap-1">
+                                    <input v-model="newCustomCategory" @keyup.enter="addCustomCategory(() => newExpense)"
+                                        placeholder="分類名稱"
+                                        class="w-24 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 py-1.5 px-2 focus:ring-2 focus:ring-primary-200">
+                                    <button @click="addCustomCategory(() => newExpense)"
+                                        class="text-primary-600"><i class="ph-bold ph-check"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 付款方式 -->
+                        <div class="mt-3">
+                            <div class="text-[10px] text-stone-500 mb-1 pl-1">付款方式</div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="pm in PAYMENT_METHODS" :key="pm.slug"
+                                    @click="newExpense.paymentMethod = pm.slug"
+                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1"
+                                    :class="newExpense.paymentMethod === pm.slug ? 'bg-stone-800 text-white border-stone-800' : 'bg-stone-50 text-stone-500 border-stone-100'">
+                                    <span>{{ pm.emoji }}</span>{{ pm.label }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 分攤成員（預設全選＝均分給所有人；取消勾選代表這筆不分他） -->
+                        <div v-if="participants.length > 1" class="mt-3">
+                            <div class="text-[10px] text-stone-500 mb-1 pl-1">均分給誰</div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="p in participants" :key="p"
+                                    @click="toggleSplitMember(newExpense, p)"
+                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors"
+                                    :class="isSplitChecked(newExpense, p) ? 'bg-primary-100 text-primary-700 border-primary-200' : 'bg-stone-50 text-stone-400 border-stone-100'">
+                                    {{ p }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 統計：分類佔比圓餅圖 + 每人實際負擔長條圖 -->
+                    <div v-if="expenses.length" class="bg-white p-4 rounded-3xl border border-stone-100 shadow-soft space-y-5">
+                        <div class="text-sm font-black text-stone-800 flex items-center gap-1.5">
+                            <i class="ph-bold ph-chart-pie text-primary-500"></i> 花費統計
+                        </div>
+
+                        <!-- 圓餅圖：分類佔比 -->
+                        <div class="flex items-center gap-4">
+                            <svg viewBox="0 0 100 100" class="w-28 h-28 shrink-0">
+                                <path v-for="slice in categoryPieSlices" :key="slice.slug" :d="slice.path" :fill="slice.color" />
+                            </svg>
+                            <div class="flex-1 min-w-0 space-y-1.5">
+                                <div v-for="slice in categoryPieSlices" :key="slice.slug"
+                                    class="flex items-center justify-between gap-2 text-xs">
+                                    <span class="flex items-center gap-1.5 min-w-0 text-stone-600 font-bold truncate">
+                                        <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: slice.color }"></span>
+                                        {{ slice.emoji }} {{ slice.label }}
+                                    </span>
+                                    <span class="shrink-0 font-mono font-bold text-stone-700">{{ Math.round(slice.pct * 100) }}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 長條圖：每人實際負擔（均分後真正該花的錢） -->
+                        <div v-if="participants.length > 1" class="space-y-2 pt-3 border-t border-stone-100">
+                            <div class="text-[10px] text-stone-500 uppercase tracking-wider font-bold">每人實際負擔</div>
+                            <div v-for="p in personBarData" :key="p.name" class="space-y-1">
+                                <div class="flex justify-between text-xs font-bold text-stone-600">
+                                    <span>{{ p.name }}</span>
+                                    <span class="font-mono">{{ currencySymbol }}{{ Math.round(p.amount).toLocaleString() }}</span>
+                                </div>
+                                <div class="h-2 bg-stone-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-primary-400 rounded-full" :style="{ width: (p.pct * 100) + '%' }"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="space-y-3">
@@ -881,18 +969,12 @@
                                 class="flex justify-between items-center p-4 cursor-pointer active:bg-stone-50">
                                 <div class="flex items-center gap-3 min-w-0">
                                     <div
-                                        class="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center border border-primary-100 overflow-hidden shrink-0">
-                                        <img v-if="exp.payer === '熊'" src="assets/icn_kitty.png"
-                                            style="width:2.5rem;height:2.5rem" class="object-contain" alt="熊">
-                                        <img v-else-if="exp.payer === '班'" src="assets/icn_danial.png"
-                                            style="width:2.5rem;height:2.5rem" class="object-contain" alt="班">
-                                        <span v-else class="text-sm font-black text-primary-600">{{ (exp.payer ||
-                                            '?').charAt(0) }}</span>
+                                        class="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center border border-primary-100 overflow-hidden shrink-0 text-lg">
+                                        {{ (allExpenseCategories.find(c => c.slug === exp.category) || {}).emoji || '💰' }}
                                     </div>
                                     <div class="min-w-0">
                                         <div class="font-bold text-stone-700 truncate">{{ exp.item }}</div>
-                                        <div class="text-xs text-stone-400">{{ exp.payer }}<span v-if="exp.date"> ・ {{
-                                            fmtExpDate(exp.date) }}</span></div>
+                                        <div class="text-xs text-stone-400 truncate">{{ exp.payer }} ・ {{ dayLabel(exp.dayIndex) }}</div>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0">
@@ -1596,8 +1678,61 @@
                                 :placeholder="currencySymbol"
                                 class="flex-1 bg-stone-50 border-none rounded-xl text-base font-black text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 text-right font-mono">
                         </div>
-                        <input v-model="expModal.draft.date" type="date"
-                            class="w-full bg-stone-50 border-none rounded-xl text-sm text-stone-600 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+
+                        <div>
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">哪一天</label>
+                            <select v-model.number="expModal.draft.dayIndex"
+                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
+                                <option v-for="(d, idx) in days" :key="idx" :value="idx">Day {{ idx + 1 }}（{{ d.shortDate }}）</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">分類</label>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="cat in allExpenseCategories" :key="cat.slug"
+                                    @click="expModal.draft.category = cat.slug"
+                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1"
+                                    :class="expModal.draft.category === cat.slug ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">
+                                    <span>{{ cat.emoji }}</span>{{ cat.label }}
+                                </button>
+                                <button v-if="!showCustomCategoryInput" @click="showCustomCategoryInput = true"
+                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-dashed border-stone-300 text-stone-400">
+                                    ＋ 自訂
+                                </button>
+                                <div v-else class="flex items-center gap-1">
+                                    <input v-model="newCustomCategory" @keyup.enter="addCustomCategory(() => expModal.draft)"
+                                        placeholder="分類名稱"
+                                        class="w-24 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 py-1.5 px-2 focus:ring-2 focus:ring-primary-200">
+                                    <button @click="addCustomCategory(() => expModal.draft)"
+                                        class="text-primary-600"><i class="ph-bold ph-check"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">付款方式</label>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="pm in PAYMENT_METHODS" :key="pm.slug"
+                                    @click="expModal.draft.paymentMethod = pm.slug"
+                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1"
+                                    :class="expModal.draft.paymentMethod === pm.slug ? 'bg-stone-800 text-white border-stone-800' : 'bg-stone-50 text-stone-500 border-stone-100'">
+                                    <span>{{ pm.emoji }}</span>{{ pm.label }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="participants.length > 1">
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">均分給誰</label>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="p in participants" :key="p"
+                                    @click="toggleSplitMember(expModal.draft, p)"
+                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors"
+                                    :class="isSplitChecked(expModal.draft, p) ? 'bg-primary-100 text-primary-700 border-primary-200' : 'bg-stone-50 text-stone-400 border-stone-100'">
+                                    {{ p }}
+                                </button>
+                            </div>
+                        </div>
 
                         <div class="flex items-center justify-between pt-2 border-t border-stone-50">
                             <button @click="deleteExpFromModal"
