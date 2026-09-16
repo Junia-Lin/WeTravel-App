@@ -54,6 +54,21 @@ createApp({
         const savedLocations = ref([]);
         const expenses = ref([]);
         const checklist = ref([]);
+        const prepTasks = ref([]);
+        const newPrepTask = ref('');
+        const addPrepTask = () => {
+            const title = newPrepTask.value.trim();
+            if (!title) return;
+            prepTasks.value.push({ id: generateId(), title, completed: false });
+            newPrepTask.value = '';
+        };
+        const togglePrepTask = (task) => { task.completed = !task.completed; };
+        const deletePrepTask = (id) => {
+            const idx = prepTasks.value.findIndex(t => t.id === id);
+            if (idx === -1) return;
+            const removed = prepTasks.value.splice(idx, 1)[0];
+            showToast('已刪除項目', { icon: 'ph-bold ph-trash', undo: () => { prepTasks.value.splice(Math.min(idx, prepTasks.value.length), 0, removed); } });
+        };
         const collapsedCats = reactive({});
         const participants = ref([]);
         const participantsStr = ref('');
@@ -248,9 +263,13 @@ createApp({
             editingState.flight = false;
             showToast('已移除航班資訊', { icon: 'ph-bold ph-trash', undo: () => { day.flight = removed; } });
         };
-        const getDotColor = (t) => { if (t === 'food') return 'bg-orange-400 border-orange-100 ring-2 ring-orange-50'; if (t === 'shop') return 'bg-pink-400 border-pink-100 ring-2 ring-pink-50'; if (t === 'transport' || t === 'flight') return 'bg-blue-500 border-blue-100 ring-2 ring-blue-50'; return 'bg-primary-500 border-primary-100 ring-2 ring-primary-50'; };
+        const getDotColor = (t) => { if (t === 'food') return 'bg-orange-400 border-orange-100 ring-2 ring-orange-50'; if (t === 'shop') return 'bg-pink-400 border-pink-100 ring-2 ring-pink-50'; if (t === 'transport' || t === 'flight') return 'bg-blue-500 border-blue-100 ring-2 ring-blue-50'; if (t === 'accommodation') return 'bg-purple-400 border-purple-100 ring-2 ring-purple-50'; return 'bg-primary-500 border-primary-100 ring-2 ring-primary-50'; };
         const updateParticipants = () => { participants.value = participantsStr.value.split(',').map(s => s.trim()).filter(s => s); };
         const isUrl = (str) => { if (!str) return false; try { new URL(str); return true; } catch { return /^https?:\/\//i.test(str); } };
+        // 行程項目的地點：優先看有沒有連結口袋名單（placeId），沒有才用自己手打的 location/link
+        const linkedPlace = (item) => item.placeId ? savedLocations.value.find(l => l.id === item.placeId) : null;
+        const itemNavTarget = (item) => { const p = linkedPlace(item); return p ? (p.link || p.name) : (item.link || item.location); };
+        const itemLocationLabel = (item) => { const p = linkedPlace(item); return p ? p.name : (item.location || item.link); };
 
         // ---- 新增/編輯統一走底部彈窗（draft 草稿制：儲存才寫回，取消不留痕）----
         const sortItemsByTime = (items) => items.sort((a, b) => {
@@ -268,7 +287,7 @@ createApp({
                 itemModal.draft = JSON.parse(JSON.stringify(item));
             } else {
                 itemModal.mode = 'add'; itemModal.targetId = null;
-                itemModal.draft = { id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', note: '' };
+                itemModal.draft = { id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', placeId: null, note: '' };
             }
             itemModal.show = true;
             if (!item) nextTick(() => { document.querySelector('.js-item-activity')?.focus(); });
@@ -542,6 +561,7 @@ createApp({
             participants.value = [];
             newExpense.value.payer = '';
             customCategories.value = [];
+            prepTasks.value = [];
             isRateLoading.value = false;
             nextTick(() => ignoreRemoteUpdate = false);
         };
@@ -676,6 +696,7 @@ createApp({
             expenses.value = [];
             savedLocations.value = [];
             customCategories.value = [];
+            prepTasks.value = [];
             checklist.value = seedChecklist();
             exchangeRate.value = setup.value.rate;
             // 成員已在 setup modal 收好（createNewTrip 開窗時已重置過），此處不可清空
@@ -800,6 +821,8 @@ createApp({
                         delete e.date;
                     });
                     customCategories.value = data.customCategories || [];
+                    prepTasks.value = (data.prepTasks || []).filter(t => t);
+                    prepTasks.value.forEach(t => { if (!t.id) t.id = generateId(); });
                     savedLocations.value = (data.locations || []).filter(l => l);
 
                     // 舊旅程無 checklist → 空陣列（分頁顯示帶入模板的空狀態）；欄位缺漏防禦性補齊
@@ -903,6 +926,7 @@ createApp({
                         locations: savedLocations.value,
                         checklist: JSON.parse(JSON.stringify(checklist.value)),
                         customCategories: customCategories.value,
+                        prepTasks: prepTasks.value,
                         rate: exchangeRate.value,
                         users: participantsStr.value,
                         setup: setup.value,
@@ -922,7 +946,7 @@ createApp({
             }, 1000);
         };
 
-        watch([days, expenses, savedLocations, checklist, customCategories, exchangeRate, participantsStr, setup], () => {
+        watch([days, expenses, savedLocations, checklist, customCategories, prepTasks, exchangeRate, participantsStr, setup], () => {
             if (!ignoreRemoteUpdate && !(showSetupModal.value && !isEditing.value)) debouncedSave();
         }, { deep: true });
 
@@ -1027,7 +1051,9 @@ createApp({
             CHECKLIST_CATEGORIES, LUGGAGE_META,
             PAYMENT_METHODS, allExpenseCategories, customCategories, newCustomCategory, showCustomCategoryInput, addCustomCategory,
             effectiveSplitWith, owedByPerson, categoryTotals, categoryPieSlices, personBarData, dayLabel,
-            toggleSplitMember, isSplitChecked
+            toggleSplitMember, isSplitChecked,
+            linkedPlace, itemNavTarget, itemLocationLabel,
+            prepTasks, newPrepTask, addPrepTask, togglePrepTask, deletePrepTask
         };
     }
 }).mount('#app')
