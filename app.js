@@ -73,7 +73,7 @@ createApp({
         const participants = ref([]);
         const participantsStr = ref('');
         const exchangeRate = ref(0.215);
-        const newExpense = ref({ item: '', amount: '', payer: '', category: 'other', paymentMethod: 'cash', splitWith: [] });
+        const newExpense = ref({ item: '', amount: '', payer: '', category: 'other', paymentMethod: 'cash', splitWith: [], currency: 'foreign' });
         // 使用者自訂的記帳分類（此趟旅程專屬，跟著行程資料存 Firestore）
         const customCategories = ref([]);
         const allExpenseCategories = computed(() => [
@@ -100,37 +100,41 @@ createApp({
         const setup = ref({ destination: '', startDate: new Date().toISOString().split('T')[0], days: 5, rate: 1, currency: 'TWD', langCode: 'zh-TW', langName: '中文', mapProvider: 'google' });
 
         const currentDay = computed(() => days.value[currentDayIdx.value] || { items: [], flight: null, date: '', title: '' });
-        const totalExpense = computed(() => expenses.value.reduce((sum, item) => sum + item.amount, 0));
+        // 有些費用是出發前先在台灣用台幣付的（例如機票、簽證），跟現地外幣分開記，兩者換算成台幣後才能加總比較
+        const expAmountTWD = (exp) => exp.currency === 'TWD' ? exp.amount : exp.amount * exchangeRate.value;
+        const totalExpenseForeign = computed(() => expenses.value.filter(e => e.currency !== 'TWD').reduce((sum, e) => sum + e.amount, 0));
+        const totalExpenseTWD = computed(() => expenses.value.reduce((sum, e) => sum + expAmountTWD(e), 0));
+        const totalExpense = totalExpenseForeign; // 保留舊名稱給既有畫面用（現地外幣小計）
         const paidByPerson = computed(() => {
             const map = {}; participants.value.forEach(p => map[p] = 0);
-            expenses.value.forEach(e => { if (map[e.payer] === undefined) map[e.payer] = 0; map[e.payer] += e.amount; }); return map;
+            expenses.value.forEach(e => { if (map[e.payer] === undefined) map[e.payer] = 0; map[e.payer] += expAmountTWD(e); }); return map;
         });
         // 這筆支出實際分攤給誰：沒填 splitWith（含舊資料）就視為全體成員均分
         const effectiveSplitWith = (exp) => (exp.splitWith && exp.splitWith.length) ? exp.splitWith : participants.value;
-        // 每人「實際負擔」（均分後真正該花的錢，跟「誰墊付」是兩回事）
+        // 每人「實際負擔」（均分後真正該花的錢，跟「誰墊付」是兩回事；統一換算成台幣才能跟台幣付款的支出加在一起）
         const owedByPerson = computed(() => {
             const map = {}; participants.value.forEach(p => map[p] = 0);
             expenses.value.forEach(e => {
                 const who = effectiveSplitWith(e);
                 if (!who.length) return;
-                const share = e.amount / who.length;
+                const share = expAmountTWD(e) / who.length;
                 who.forEach(p => { if (map[p] === undefined) map[p] = 0; map[p] += share; });
             });
             return map;
         });
-        // 依分類加總（其他/自訂分類等找不到定義的，歸到「其他」顯示）
+        // 依分類加總（其他/自訂分類等找不到定義的，歸到「其他」顯示）；統一用台幣等值加總
         const categoryTotals = computed(() => {
             const map = {};
             expenses.value.forEach(e => {
                 const key = e.category || 'other';
-                map[key] = (map[key] || 0) + e.amount;
+                map[key] = (map[key] || 0) + expAmountTWD(e);
             });
             return map;
         });
         const PIE_COLORS = ['#ff69b4', '#5eead4', '#fbbf24', '#818cf8', '#fb923c', '#34d399', '#f472b6', '#60a5fa'];
         // 圓餅圖：依分類佔比切出 SVG 弧形 path（半徑 45、圓心 (50,50)）
         const categoryPieSlices = computed(() => {
-            const total = totalExpense.value;
+            const total = totalExpenseTWD.value;
             if (!total) return [];
             const cx = 50, cy = 50, r = 45;
             let startAngle = -Math.PI / 2; // 從 12 點鐘方向開始
@@ -161,6 +165,7 @@ createApp({
         const dayLabel = (idx) => (idx === null || idx === undefined || !days.value[idx]) ? '未指定' : `Day ${idx + 1}`;
         // 成員新增/刪除（直接同步 participantsStr 供存檔；participants 為顯示來源）
         const newParticipant = ref('');
+        const showAddParticipantInput = ref(false);
         const addParticipant = () => {
             const name = newParticipant.value.trim();
             if (!name || participants.value.includes(name)) { newParticipant.value = ''; return; }
@@ -266,12 +271,17 @@ createApp({
         const getDotColor = (t) => { if (t === 'food') return 'bg-orange-400 border-orange-100 ring-2 ring-orange-50'; if (t === 'shop') return 'bg-pink-400 border-pink-100 ring-2 ring-pink-50'; if (t === 'transport' || t === 'flight') return 'bg-blue-500 border-blue-100 ring-2 ring-blue-50'; if (t === 'accommodation') return 'bg-purple-400 border-purple-100 ring-2 ring-purple-50'; return 'bg-primary-500 border-primary-100 ring-2 ring-primary-50'; };
         const typeAccent = (t) => { if (t === 'food') return 'border-orange-300'; if (t === 'shop') return 'border-pink-300'; if (t === 'transport' || t === 'flight') return 'border-blue-300'; if (t === 'accommodation') return 'border-purple-300'; return 'border-primary-300'; };
         const COMMUTE_MODES = [
-            { slug: 'walk', label: '步行', icon: 'ph-bold ph-person-simple-walk' },
-            { slug: 'transit', label: '大眾運輸', icon: 'ph-bold ph-train' },
-            { slug: 'drive', label: '開車/打車', icon: 'ph-bold ph-car' },
-            { slug: 'other', label: '其他', icon: 'ph-bold ph-arrows-clockwise' },
+            { slug: 'walk', label: '步行', emoji: '🚶' },
+            { slug: 'bus', label: '公車', emoji: '🚌' },
+            { slug: 'subway', label: '地鐵', emoji: '🚇' },
+            { slug: 'train', label: '火車', emoji: '🚆' },
+            { slug: 'taxi', label: '計程車/開車', emoji: '🚗' },
+            { slug: 'other', label: '其他', emoji: '🔀' },
         ];
         const commuteMeta = (mode) => COMMUTE_MODES.find(m => m.slug === mode) || null;
+        // 24 小時制的時間選擇器用：從 "HH:MM" 字串取出/寫入時或分
+        const timePart = (obj, field, part) => { const [h, m] = (obj[field] || '00:00').split(':'); return part === 'h' ? (h || '00') : (m || '00'); };
+        const setTimePart = (obj, field, part, value) => { const [h, m] = (obj[field] || '00:00').split(':'); obj[field] = part === 'h' ? `${value}:${m || '00'}` : `${h || '00'}:${value}`; };
         const updateParticipants = () => { participants.value = participantsStr.value.split(',').map(s => s.trim()).filter(s => s); };
         const isUrl = (str) => { if (!str) return false; try { new URL(str); return true; } catch { return /^https?:\/\//i.test(str); } };
         // 行程項目的地點：優先看有沒有連結口袋名單（placeId），沒有才用自己手打的 location/link
@@ -295,7 +305,7 @@ createApp({
                 itemModal.draft = JSON.parse(JSON.stringify(item));
             } else {
                 itemModal.mode = 'add'; itemModal.targetId = null;
-                itemModal.draft = { id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', placeId: null, note: '', reserved: false, commuteMode: '', commuteMinutes: '' };
+                itemModal.draft = { id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', placeId: null, note: '', reserved: false, commuteMode: '', commuteMinutes: '', commuteNote: '' };
             }
             itemModal.show = true;
             if (!item) nextTick(() => { document.querySelector('.js-item-activity')?.focus(); });
@@ -465,6 +475,7 @@ createApp({
             expModal.draft = JSON.parse(JSON.stringify(exp));
             if (!expModal.draft.category) expModal.draft.category = 'other';
             if (!expModal.draft.paymentMethod) expModal.draft.paymentMethod = 'cash';
+            if (!expModal.draft.currency) expModal.draft.currency = 'foreign';
             if (expModal.draft.dayIndex === undefined || expModal.draft.dayIndex === null) expModal.draft.dayIndex = currentDayIdx.value;
             if (!Array.isArray(expModal.draft.splitWith)) expModal.draft.splitWith = [];
             expModal.show = true;
@@ -820,6 +831,7 @@ createApp({
                         if (!e.id) e.id = generateId();
                         if (!e.category) e.category = 'other';
                         if (!e.paymentMethod) e.paymentMethod = 'cash';
+                        if (!e.currency) e.currency = 'foreign';
                         if (!Array.isArray(e.splitWith)) e.splitWith = [];
                         if (e.dayIndex === undefined || e.dayIndex === null) {
                             // 舊資料是存日曆日期（date），換算成落在行程的第幾天；換算不到就先放 Day 1
@@ -1062,7 +1074,9 @@ createApp({
             toggleSplitMember, isSplitChecked,
             linkedPlace, itemNavTarget, itemLocationLabel,
             prepTasks, newPrepTask, addPrepTask, togglePrepTask, deletePrepTask,
-            COMMUTE_MODES, commuteMeta, typeAccent
+            COMMUTE_MODES, commuteMeta, typeAccent,
+            timePart, setTimePart, showAddParticipantInput,
+            totalExpenseForeign, totalExpenseTWD, expAmountTWD
         };
     }
 }).mount('#app')
