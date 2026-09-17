@@ -56,6 +56,7 @@ createApp({
         const checklist = ref([]);
         const prepTasks = ref([]);
         const newPrepTask = ref('');
+        
         const addPrepTask = () => {
             const title = newPrepTask.value.trim();
             if (!title) return;
@@ -69,18 +70,18 @@ createApp({
             const removed = prepTasks.value.splice(idx, 1)[0];
             showToast('已刪除項目', { icon: 'ph-bold ph-trash', undo: () => { prepTasks.value.splice(Math.min(idx, prepTasks.value.length), 0, removed); } });
         };
+        
         const collapsedCats = reactive({});
         const participants = ref([]);
         const participantsStr = ref('');
         const exchangeRate = ref(0.215);
 
-        // 分類新增「機票」
+        // 記帳分類：包含機票
         const BASE_EXPENSE_CATEGORIES = [
             { slug: 'flight', label: '機票', emoji: '✈️' },
             ...EXPENSE_CATEGORIES
         ];
 
-        // 記帳 draft 加入幣別
         const newExpense = ref({ 
             item: '', 
             amount: '', 
@@ -98,6 +99,7 @@ createApp({
         ]);
         const newCustomCategory = ref('');
         const showCustomCategoryInput = ref(false);
+        
         const addCustomCategory = (targetDraftRefGetter) => {
             const name = newCustomCategory.value.trim();
             if (!name) { showCustomCategoryInput.value = false; return; }
@@ -117,7 +119,6 @@ createApp({
 
         const currentDay = computed(() => days.value[currentDayIdx.value] || { items: [], flight: null, date: '', title: '' });
 
-        // 計算外幣與台幣金額
         const getExpenseInForeign = (e) => {
             const amt = Number(e.amount || 0);
             if (e.currency === 'TWD') {
@@ -171,7 +172,7 @@ createApp({
             const polar = (angle) => [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
             const entries = Object.entries(categoryTotals.value).filter(([, amt]) => amt > 0);
             return entries.map(([slug, amt], idx) => {
-                const cat = allExpenseCategories.value.find(c => c.slug === slug) || { slug, label: slug, emoji: '💰' };
+                const cat = allExpenseCategories.value.find(c => c.slug === slug) || { slug, label: slug, emoji: catEmoji(slug) };
                 const pct = amt / total;
                 const endAngle = startAngle + pct * Math.PI * 2;
                 const [x1, y1] = polar(startAngle);
@@ -250,7 +251,6 @@ createApp({
         const fmtExpDate = (s) => { if (!s) return ''; const p = String(s).split('-'); return p.length === 3 ? `${p[1]}/${p[2]}` : s; };
         const getWeatherIcon = (c) => { if (c === 0) return 'ph-sun'; if (c < 4) return 'ph-cloud-sun'; if (c < 50) return 'ph-cloud-fog'; if (c < 70) return 'ph-cloud-rain'; return 'ph-cloud'; };
 
-        // 純 24 小時制
         const getTimePeriod = (t) => t || '';
 
         const dialog = reactive({ show: false, title: '', message: '', confirmText: '確定', cancelText: '取消', danger: false, showCancel: true, link: '' });
@@ -298,7 +298,6 @@ createApp({
             return 'border-primary-300';
         };
 
-        // 交通工具細分
         const COMMUTE_MODES = [
             { slug: 'walk', label: '步行', icon: 'ph-bold ph-person-simple-walk' },
             { slug: 'transit_metro', label: '地鐵/捷運', icon: 'ph-bold ph-train-regional' },
@@ -553,11 +552,61 @@ createApp({
 
         const fetchWeather = async (locName) => { try { weather.value.location = locName; const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locName)}&limit=1`); const geoData = await geoRes.json(); if (geoData?.[0]) { const { lat, lon } = geoData[0]; const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`); const wData = await wRes.json(); weather.value.temp = Math.round(wData.current_weather.temperature); weather.value.icon = getWeatherIcon(wData.current_weather.weathercode); if (wData.daily) weather.value.daily = wData.daily; } } catch (e) { weather.value.temp = '--'; } };
 
+        // 輔助函式：類別圖示
+        const catEmoji = (slug) => {
+            const map = { food: '🍱', shop: '🛍️', transport: '🚌', accommodation: '🏨', flight: '✈️', ticket: '🎟️', other: '💰' };
+            return map[slug] || '💰';
+        };
+
+        const catLabel = (slug) => {
+            const found = allExpenseCategories.value.find(c => c.slug === slug);
+            return found ? found.label : slug;
+        };
+
         const initSortable = () => { const el = document.getElementById('saved-locations-list'); if (!el) return false; if (typeof Sortable !== 'undefined' && Sortable.get && Sortable.get(el)) return true; if (typeof Sortable !== 'undefined') { Sortable.create(el, { animation: 150, handle: '.loc-drag-handle', ghostClass: 'sortable-ghost', dragClass: 'sortable-drag', onEnd: (evt) => { const item = savedLocations.value.splice(evt.oldIndex, 1)[0]; savedLocations.value.splice(evt.newIndex, 0, item); } }); return true; } return false; };
+
+        // 載入資料綁定
+        const loadTripData = (data) => {
+            if (!data) return;
+            if (data.setup) Object.assign(setup.value, data.setup);
+            if (Array.isArray(data.days)) days.value = data.days;
+            if (Array.isArray(data.savedLocations)) savedLocations.value = data.savedLocations;
+            if (Array.isArray(data.expenses)) expenses.value = data.expenses;
+            if (Array.isArray(data.checklist)) checklist.value = data.checklist;
+            if (Array.isArray(data.prepTasks)) prepTasks.value = data.prepTasks;
+            if (Array.isArray(data.participants)) {
+                participants.value = data.participants;
+                participantsStr.value = data.participants.join(', ');
+            }
+        };
 
         onMounted(() => {
             const timer = setInterval(() => { if (initSortable()) clearInterval(timer); }, 500);
+            
+            // 從 LocalStorage 自動備份還原
+            try {
+                const localData = localStorage.getItem('wetravel_current_trip');
+                if (localData) {
+                    loadTripData(JSON.parse(localData));
+                }
+            } catch (e) { console.error('Failed to load local data', e); }
         });
+
+        // 自動儲存至 LocalStorage
+        watch([setup, days, savedLocations, expenses, checklist, prepTasks, participants], () => {
+            try {
+                const dataToSave = {
+                    setup: setup.value,
+                    days: days.value,
+                    savedLocations: savedLocations.value,
+                    expenses: expenses.value,
+                    checklist: checklist.value,
+                    prepTasks: prepTasks.value,
+                    participants: participants.value
+                };
+                localStorage.setItem('wetravel_current_trip', JSON.stringify(dataToSave));
+            } catch (e) { }
+        }, { deep: true });
 
         return {
             viewMode, currentDayIdx, amountInputRef, isAmountInvalid, weatherInputRef,
@@ -579,7 +628,8 @@ createApp({
             checklistMembers, memberLabel, activeChecklistMember, toggleCheck, checklistProgress,
             checklistByCategory, toggleCat, resetChecklist, checkModal, openCheckModal, saveCheckModal,
             deleteCheckFromModal, addExpense, expModal, openExpModal, saveExpModal, deleteExpFromModal,
-            updateExchangeRate, getExternalMapLink, PAYMENT_METHODS
+            updateExchangeRate, getExternalMapLink, PAYMENT_METHODS, CHECKLIST_CATEGORIES, LUGGAGE_META,
+            catEmoji, catLabel
         };
     }
 }).mount('#app');
