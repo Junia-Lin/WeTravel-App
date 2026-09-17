@@ -264,6 +264,7 @@ createApp({
             showToast('已移除航班資訊', { icon: 'ph-bold ph-trash', undo: () => { day.flight = removed; } });
         };
         const getDotColor = (t) => { if (t === 'food') return 'bg-orange-400 border-orange-100 ring-2 ring-orange-50'; if (t === 'shop') return 'bg-pink-400 border-pink-100 ring-2 ring-pink-50'; if (t === 'transport' || t === 'flight') return 'bg-blue-500 border-blue-100 ring-2 ring-blue-50'; if (t === 'accommodation') return 'bg-purple-400 border-purple-100 ring-2 ring-purple-50'; return 'bg-primary-500 border-primary-100 ring-2 ring-primary-50'; };
+        const typeAccent = (t) => { if (t === 'food') return 'border-orange-300'; if (t === 'shop') return 'border-pink-300'; if (t === 'transport' || t === 'flight') return 'border-blue-300'; if (t === 'accommodation') return 'border-purple-300'; return 'border-primary-300'; };
         const COMMUTE_MODES = [
             { slug: 'walk', label: '步行', icon: 'ph-bold ph-person-simple-walk' },
             { slug: 'transit', label: '大眾運輸', icon: 'ph-bold ph-train' },
@@ -1061,7 +1062,7 @@ createApp({
             toggleSplitMember, isSplitChecked,
             linkedPlace, itemNavTarget, itemLocationLabel,
             prepTasks, newPrepTask, addPrepTask, togglePrepTask, deletePrepTask,
-            COMMUTE_MODES, commuteMeta
+            COMMUTE_MODES, commuteMeta, typeAccent
         };
     }
 }).mount('#app')
