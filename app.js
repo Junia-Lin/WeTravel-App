@@ -254,7 +254,7 @@ createApp({
             if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
         };
 
-        const toggleFlightCard = () => { if (currentDay.value.flight) { } else { currentDay.value.flight = { type: 'arrival', startTime: '10:00', startAirport: 'TPE', number: '', endTime: '14:00', endAirport: 'DEST', arrivalOffset: 0 }; editingState.flight = true; } };
+        const toggleFlightCard = () => { if (currentDay.value.flight) { } else { currentDay.value.flight = { type: 'arrival', startTime: '10:00', startAirport: 'TPE', startTerminal: '', number: '', endTime: '14:00', endAirport: 'DEST', endTerminal: '', gate: '', seat: '', arrivalOffset: 0 }; editingState.flight = true; } };
         const removeFlight = () => {
             const day = days.value[currentDayIdx.value];
             if (!day || !day.flight) return;
@@ -264,6 +264,13 @@ createApp({
             showToast('已移除航班資訊', { icon: 'ph-bold ph-trash', undo: () => { day.flight = removed; } });
         };
         const getDotColor = (t) => { if (t === 'food') return 'bg-orange-400 border-orange-100 ring-2 ring-orange-50'; if (t === 'shop') return 'bg-pink-400 border-pink-100 ring-2 ring-pink-50'; if (t === 'transport' || t === 'flight') return 'bg-blue-500 border-blue-100 ring-2 ring-blue-50'; if (t === 'accommodation') return 'bg-purple-400 border-purple-100 ring-2 ring-purple-50'; return 'bg-primary-500 border-primary-100 ring-2 ring-primary-50'; };
+        const COMMUTE_MODES = [
+            { slug: 'walk', label: '步行', icon: 'ph-bold ph-person-simple-walk' },
+            { slug: 'transit', label: '大眾運輸', icon: 'ph-bold ph-train' },
+            { slug: 'drive', label: '開車/打車', icon: 'ph-bold ph-car' },
+            { slug: 'other', label: '其他', icon: 'ph-bold ph-arrows-clockwise' },
+        ];
+        const commuteMeta = (mode) => COMMUTE_MODES.find(m => m.slug === mode) || null;
         const updateParticipants = () => { participants.value = participantsStr.value.split(',').map(s => s.trim()).filter(s => s); };
         const isUrl = (str) => { if (!str) return false; try { new URL(str); return true; } catch { return /^https?:\/\//i.test(str); } };
         // 行程項目的地點：優先看有沒有連結口袋名單（placeId），沒有才用自己手打的 location/link
@@ -287,7 +294,7 @@ createApp({
                 itemModal.draft = JSON.parse(JSON.stringify(item));
             } else {
                 itemModal.mode = 'add'; itemModal.targetId = null;
-                itemModal.draft = { id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', placeId: null, note: '' };
+                itemModal.draft = { id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', placeId: null, note: '', reserved: false, commuteMode: '', commuteMinutes: '' };
             }
             itemModal.show = true;
             if (!item) nextTick(() => { document.querySelector('.js-item-activity')?.focus(); });
@@ -1053,7 +1060,8 @@ createApp({
             effectiveSplitWith, owedByPerson, categoryTotals, categoryPieSlices, personBarData, dayLabel,
             toggleSplitMember, isSplitChecked,
             linkedPlace, itemNavTarget, itemLocationLabel,
-            prepTasks, newPrepTask, addPrepTask, togglePrepTask, deletePrepTask
+            prepTasks, newPrepTask, addPrepTask, togglePrepTask, deletePrepTask,
+            COMMUTE_MODES, commuteMeta
         };
     }
 }).mount('#app')
