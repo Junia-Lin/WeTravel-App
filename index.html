@@ -212,56 +212,77 @@
         setTimeout(() => window.__hideSplash(), 1000);
     </script>
 
-    <div id="app" v-cloak class="flex flex-col h-full w-full bg-white shadow-2xl relative sm:max-w-md sm:mx-auto sm:rounded-[2rem] sm:my-4 sm:h-[95vh] sm:border-[6px] sm:border-stone-200 overflow-hidden ring-1 ring-stone-900/5">
+    <div id="app" v-cloak
+        class="flex flex-col h-full w-full bg-white shadow-2xl relative sm:max-w-md sm:mx-auto sm:rounded-[2rem] sm:my-4 sm:h-[95vh] sm:border-[6px] sm:border-stone-200 overflow-hidden ring-1 ring-stone-900/5">
 
         <!-- DB Error Alert -->
         <transition name="fade">
-            <div v-if="dbError" class="absolute top-16 left-4 right-4 bg-red-500 text-white p-4 rounded-2xl shadow-2xl z-[100]">
+            <div v-if="dbError"
+                class="absolute top-16 left-4 right-4 bg-red-500 text-white p-4 rounded-2xl shadow-2xl z-[100]">
                 <div class="font-bold flex items-center gap-2 mb-1"><i class="ph-bold ph-warning-octagon text-xl"></i>連線發生錯誤</div>
                 <div class="text-xs opacity-90 leading-relaxed mb-3 font-mono">{{ dbErrorMessage }}</div>
             </div>
         </transition>
 
-        <!-- Header -->
+        <!-- Header (完整還原你原本漂亮的 Header 與 Hello Kitty 造型) -->
         <header class="bg-white/80 backdrop-blur-md z-20 sticky top-0 border-b border-stone-100 pt-safe-top">
             <div class="px-5 py-3 flex justify-between items-center bg-white/50 backdrop-blur-sm z-30 relative">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
-                    <button @click="showTripMenu = true" class="w-11 h-11 rounded-full flex items-center justify-center text-stone-500 hover:scale-105 transition active:scale-95 shrink-0 border-2 border-white/50 shadow-sm">
+                    <button @click="showTripMenu = true"
+                        class="w-11 h-11 rounded-full flex items-center justify-center text-stone-500 hover:scale-105 transition active:scale-95 shrink-0 border-2 border-white/50 shadow-sm">
                         <img src="assets/icn_home.png" class="w-9 h-9 object-contain" alt="Home">
                     </button>
 
                     <div class="overflow-hidden min-w-0 flex-1">
-                        <div class="flex items-center gap-2 cursor-pointer group">
+                        <div class="flex items-center gap-2 cursor-pointer group" @click="openEditModal">
                             <h1 class="text-xl font-black tracking-tight truncate text-stone-800 group-hover:text-primary-600 transition-colors">
                                 {{ setup.destination || '旅遊計畫' }}
                             </h1>
-                            <span v-if="setup.destination" class="text-[10px] bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide shrink-0">
+                            <span v-if="setup.destination"
+                                class="text-[10px] bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide shrink-0">
                                 {{ setup.currency }}
                             </span>
+                            <div class="flex items-center gap-1 ml-1" :title="syncStatus">
+                                <i v-if="syncStatus === 'synced'" class="ph-fill ph-cloud-check text-green-500 text-lg"></i>
+                                <i v-else-if="syncStatus === 'syncing'" class="ph-bold ph-arrows-clockwise text-amber-500 animate-spin text-lg"></i>
+                                <i v-else-if="syncStatus === 'offline'" class="ph-bold ph-cloud-slash text-red-400 text-lg"></i>
+                            </div>
                         </div>
 
                         <!-- Weather Widget -->
                         <div class="flex items-center gap-2 text-xs text-stone-500 font-medium tracking-wide truncate mt-0.5">
-                            <div @click="toggleWeatherEdit" class="flex items-center gap-1 hover:text-primary-500 cursor-pointer transition-colors px-1 -ml-1 rounded-lg hover:bg-primary-50">
+                            <div @click="toggleWeatherEdit"
+                                class="flex items-center gap-1 hover:text-primary-500 cursor-pointer transition-colors px-1 -ml-1 rounded-lg hover:bg-primary-50">
                                 <i :class="weatherDisplay.icon" class="text-amber-500 text-sm"></i>
                                 <span v-if="!isWeatherEditing">{{ weatherDisplay.label }}: {{ weatherDisplay.temp }}</span>
                                 <div v-else class="flex items-center gap-1" @click.stop>
-                                    <input ref="weatherInputRef" v-model="weather.location" @blur="updateWeatherLocation" @keydown.enter="updateWeatherLocation" class="w-20 bg-white border border-primary-200 rounded px-1 py-0.5 text-xs text-stone-700 focus:outline-none" placeholder="城市名稱">
+                                    <input ref="weatherInputRef" v-model="weather.location"
+                                        @blur="updateWeatherLocation" @keydown.enter="updateWeatherLocation"
+                                        class="w-20 bg-white border border-primary-200 rounded px-1 py-0.5 text-xs text-stone-700 focus:outline-none"
+                                        placeholder="城市名稱">
                                     <button @click="updateWeatherLocation" class="text-primary-600"><i class="ph-bold ph-check"></i></button>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <button @click="shareTrip"
+                        class="w-12 h-12 rounded-full flex items-center justify-center text-stone-500 hover:bg-white hover:shadow-sm hover:text-stone-800 transition active:scale-95 shrink-0">
+                        <img src="assets/icn_share.png" class="w-12 h-12 object-contain" alt="Share">
+                    </button>
                 </div>
             </div>
 
-            <!-- Days Scroller -->
-            <div v-if="viewMode === 'plan'" class="flex overflow-x-auto hide-scroll px-4 pb-3 pt-3 space-x-2.5 snap-x border-b border-stone-50 w-full">
-                <div v-for="(day, index) in days" :key="index" @click="currentDayIdx = index"
+            <!-- Days Scroller (完全還原你原本漂亮的橫向滑動 Days) -->
+            <div v-if="viewMode === 'plan'"
+                class="flex overflow-x-auto hide-scroll px-4 pb-3 pt-3 space-x-2.5 snap-x border-b border-stone-50 w-full touch-pan-x overscroll-contain">
+                <div v-for="(day, index) in days" :key="index" @click="currentDayIdx = index" :data-day-idx="index"
                     class="snap-center shrink-0 flex flex-col items-start justify-center w-[6.5rem] h-[4rem] px-3 rounded-[1rem] cursor-pointer transition-all border-0 relative"
                     :class="currentDayIdx === index ? 'bg-primary-300 text-white shadow-glow scale-105 with-bow' : 'bg-primary-50 text-stone-500 hover:bg-primary-100'">
-                    <span class="text-xs font-black tracking-tight" :class="currentDayIdx === index ? 'text-white' : 'text-stone-700'">D{{ index + 1 }} ・ {{ day.shortDate }}</span>
-                    <span class="text-[10px] font-bold mt-0.5 truncate w-full text-left" :class="currentDayIdx === index ? 'text-white/85' : 'text-stone-400'">{{ day.title || '未設定主題' }}</span>
+                    <span class="text-xs font-black tracking-tight"
+                        :class="currentDayIdx === index ? 'text-white' : 'text-stone-700'">D{{ index + 1 }} ・ {{ day.shortDate }}</span>
+                    <span class="text-[10px] font-bold mt-0.5 truncate w-full text-left"
+                        :class="currentDayIdx === index ? 'text-white/85' : 'text-stone-400'">{{ day.title || '未設定主題' }}</span>
                 </div>
             </div>
         </header>
@@ -269,35 +290,33 @@
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto bg-stone-50/50 relative hide-scroll">
 
-            <!-- 行程頁面 (Plan) -->
+            <!-- 行程分頁 (Plan) -->
             <transition name="fade" mode="out-in">
                 <div v-if="viewMode === 'plan'" key="plan" class="view-pane p-5 pb-32 space-y-4 w-full">
 
-                    <!-- 💡 0. 今日主題整合於日期旁邊 (點擊編輯) -->
-                    <div class="flex items-center justify-between border-b border-stone-100 pb-2 text-left">
-                        <div class="flex items-center gap-2 min-w-0 flex-1">
-                            <span class="bg-stone-800 text-white px-2 py-0.5 rounded-lg text-xs font-black shrink-0">
+                    <!-- 💡 0. 配合圖一：簡化今日主題為單行列 (Day 1 + 主題輸入 + 新增行程鈕) -->
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 flex-1 min-w-0 bg-primary-50/60 p-1.5 px-3 rounded-2xl border border-primary-100/50">
+                            <span class="bg-stone-800 text-white px-2.5 py-0.5 rounded-lg text-xs font-black shrink-0">
                                 Day {{ currentDayIdx + 1 }}
                             </span>
-                            <span class="text-sm font-bold text-stone-500 shrink-0">{{ currentDay.date || '' }}</span>
-                            
-                            <!-- 今日主題內聯編輯 -->
+
                             <div v-if="editingState.dayTitle" class="flex gap-1 flex-1 min-w-0">
                                 <input v-model="currentDay.title" class="bg-white border rounded px-2 py-0.5 text-xs font-bold w-full text-stone-800" placeholder="設定主題">
-                                <button @click="editingState.dayTitle = false" class="bg-primary-500 text-white px-2 py-0.5 rounded text-xs font-bold shrink-0">完成</button>
+                                <button @click="editingState.dayTitle = false" class="bg-primary-500 text-white px-2 py-0.5 rounded text-xs font-bold shrink-0">OK</button>
                             </div>
-                            <div v-else @click="editingState.dayTitle = true" class="text-xs font-bold text-stone-700 truncate cursor-pointer hover:text-primary-500 flex items-center gap-1 min-w-0 flex-1 bg-stone-100/60 px-2 py-1 rounded-lg">
+                            <div v-else @click="editingState.dayTitle = true" class="text-xs font-bold text-stone-700 truncate cursor-pointer hover:text-primary-500 flex items-center gap-1 min-w-0 flex-1">
                                 <span class="truncate">{{ currentDay.title || '點此編輯今日主題' }}</span>
                                 <i class="ph-bold ph-pencil-simple text-stone-400 shrink-0"></i>
                             </div>
                         </div>
 
-                        <button @click="openItemModal()" class="bg-primary-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-md hover:bg-primary-600 transition shrink-0 ml-2">
+                        <button @click="openItemModal()" class="bg-primary-500 text-white px-3.5 py-2 rounded-2xl text-xs font-bold shadow-md hover:bg-primary-600 transition shrink-0">
                             + 行程
                         </button>
                     </div>
 
-                    <!-- Flight Card -->
+                    <!-- Flight Card (原本的航班卡片) -->
                     <div v-if="currentDay.flight" class="bg-gradient-to-br from-primary-50 to-white rounded-2xl p-4 shadow-sm border border-white text-left">
                         <div class="flex justify-between items-center text-xs font-bold text-primary-600 mb-1">
                             <span>✈️ 航班：{{ currentDay.flight.number }}</span>
@@ -310,18 +329,17 @@
                         </div>
                     </div>
 
-                    <!-- 行程列表 (💡 1, 3, 4：24小時時間、靠左對齊、藍框路線標籤) -->
+                    <!-- 行程項目列表 (💡 1, 3, 4：24小時時間、圖二靠左對齊修正、藍框路線備註) -->
                     <div class="space-y-3">
-                        <div v-for="item in currentDay.items" :key="item.id" class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 text-left space-y-1.5">
+                        <div v-for="item in currentDay.items" :key="item.id" class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 text-left space-y-2 relative">
                             
-                            <!-- 第一列：時間與行程名稱 (圖二修正：文字靠左) -->
+                            <!-- 第一列：時間(24h) 與 活動名稱 -->
                             <div class="flex justify-between items-start">
                                 <div class="flex items-center gap-2 min-w-0 flex-1">
-                                    <!-- 💡 1. 24 小時制時間 -->
+                                    <!-- 💡 1. 24小時制時間 (無上下午) -->
                                     <span class="text-xs font-black text-primary-500 bg-primary-50 px-2 py-0.5 rounded-md shrink-0">
                                         {{ item.time || '全天' }}
                                     </span>
-                                    <!-- 💡 4. 文字靠左對齊 -->
                                     <h3 class="text-sm font-bold text-stone-800 truncate text-left">{{ item.activity }}</h3>
                                 </div>
                                 <button @click="openItemModal(item)" class="text-stone-300 hover:text-primary-500 shrink-0 ml-2">
@@ -329,20 +347,21 @@
                                 </button>
                             </div>
 
-                            <!-- 💡 4. 圖二紅框修正：地點與導航按鈕(藍框)靠左排版 -->
-                            <div v-if="itemLocationLabel(item)" class="flex items-center justify-between text-xs text-stone-500 bg-stone-50/50 p-1.5 rounded-xl border border-stone-100/80">
-                                <div class="flex items-center gap-1 min-w-0 text-left flex-1">
-                                    <i class="ph-bold ph-map-pin text-primary-400 shrink-0"></i>
-                                    <span class="truncate text-stone-700 font-bold">{{ itemLocationLabel(item) }}</span>
+                            <!-- 💡 4. 圖二紅框修正：地點名稱與導航按鈕(藍框)靠左排版 -->
+                            <div v-if="itemLocationLabel(item)" class="flex items-center justify-between text-xs text-stone-600 bg-stone-50/70 p-2 rounded-xl border border-stone-100">
+                                <div class="flex items-center gap-1.5 min-w-0 text-left flex-1">
+                                    <i class="ph-bold ph-map-pin text-primary-500 shrink-0"></i>
+                                    <span class="truncate font-bold text-stone-700">{{ itemLocationLabel(item) }}</span>
                                 </div>
-                                <a :href="getExternalMapLink(itemNavTarget(item))" target="_blank" class="text-primary-500 hover:text-primary-600 p-1 shrink-0 ml-2">
-                                    <i class="ph-bold ph-navigation-arrow text-base"></i>
+                                <!-- 藍框導航按鈕靠右固定 -->
+                                <a :href="getExternalMapLink(itemNavTarget(item))" target="_blank" class="w-7 h-7 flex items-center justify-center bg-white text-primary-500 hover:bg-primary-50 rounded-lg shadow-sm border border-stone-100 shrink-0 ml-2">
+                                    <i class="ph-bold ph-navigation-arrow text-sm"></i>
                                 </a>
                             </div>
 
                             <!-- 💡 3. 圖二紅框修正：路線 / 月台 / 方向標籤靠左展示 -->
-                            <div v-if="item.routeNote" class="text-xs text-blue-600 bg-blue-50/80 px-2.5 py-1 rounded-lg font-medium inline-flex items-center gap-1 border border-blue-100 text-left">
-                                <i class="ph-bold ph-subway shrink-0"></i>
+                            <div v-if="item.routeNote" class="text-xs text-blue-700 bg-blue-50/80 px-2.5 py-1 rounded-lg font-medium inline-flex items-center gap-1.5 border border-blue-100 text-left">
+                                <i class="ph-bold ph-subway shrink-0 text-blue-500"></i>
                                 <span>{{ item.routeNote }}</span>
                             </div>
 
@@ -356,46 +375,38 @@
                 </div>
             </transition>
 
-            <!-- 記帳與拆帳頁面 (Expense) (💡 5 & 6) -->
+            <!-- 記帳分頁 (Expense) (💡 5 & 6) -->
             <transition name="fade" mode="out-in">
                 <div v-if="viewMode === 'expense'" key="expense" class="view-pane p-5 pb-32 space-y-4 w-full text-left">
                     
-                    <!-- 頂部總覽與成員卡片 (💡 5. 參考圖四排版，成員設定精簡為小按鈕) -->
-                    <div class="bg-gradient-to-br from-primary-400 to-primary-600 text-white p-5 rounded-3xl shadow-lg flex justify-between items-center">
-                        <div>
-                            <div class="text-xs opacity-80 font-bold uppercase tracking-wider">本趟總花費估算</div>
-                            <div class="text-3xl font-black mt-1">{{ currencySymbol }} {{ Math.round(totalExpense) }}</div>
+                    <!-- 💡 5. 圖三記帳成員精簡化：保留原本圖三卡片，但調整為簡潔精緻高度 -->
+                    <div class="bg-white p-4 rounded-3xl border border-stone-100 shadow-sm space-y-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="text-xs font-black text-stone-800">👥 成員與分攤</span>
+                            <button @click="editingState.participants = !editingState.participants" class="text-xs text-primary-500 font-bold hover:underline">
+                                {{ editingState.participants ? '收起' : '管理成員' }}
+                            </button>
                         </div>
-                        
-                        <!-- 點擊彈出小成員管理框 -->
-                        <button @click="editingState.participants = !editingState.participants" class="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-2xl text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm border border-white/30 transition shrink-0">
-                            <i class="ph-bold ph-users-three text-lg"></i>
-                            <span>成員 ({{ participants?.length || 0 }})</span>
-                        </button>
-                    </div>
 
-                    <!-- 成員設定彈窗面板 -->
-                    <div v-if="editingState.participants" class="bg-white p-4 rounded-2xl border border-stone-200 shadow-md space-y-3">
-                        <div class="text-xs font-bold text-stone-700 border-b pb-2 flex justify-between items-center">
-                            <span>👥 編輯同行成員</span>
-                            <button @click="editingState.participants = false" class="text-stone-400"><i class="ph-bold ph-x"></i></button>
-                        </div>
+                        <!-- 成員列表展示 (圖三風格精簡版) -->
                         <div class="flex flex-wrap gap-2">
                             <span v-for="p in participants" :key="p" class="bg-primary-50 text-primary-700 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1">
                                 {{ p }}
-                                <button @click="removeParticipant(p)" class="text-primary-400 hover:text-red-500 font-bold">×</button>
+                                <button v-if="editingState.participants" @click="removeParticipant(p)" class="text-primary-400 hover:text-red-500 font-bold ml-1">×</button>
                             </span>
                         </div>
-                        <div class="flex gap-2">
+
+                        <!-- 新增成員欄位 (點擊管理成員才展開) -->
+                        <div v-if="editingState.participants" class="flex gap-2 pt-1">
                             <input v-model="newParticipant" placeholder="輸入成員名字" class="flex-1 bg-stone-50 border rounded-xl px-3 py-1.5 text-xs">
-                            <button @click="addParticipant" class="bg-primary-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">+ 新增</button>
+                            <button @click="addParticipant" class="bg-primary-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">+ 加人</button>
                         </div>
                     </div>
 
                     <!-- 💡 5 & 6. 新增支出表單（圖四風格：下拉選單、台幣/外幣切換、含機票） -->
-                    <div class="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm space-y-3">
+                    <div class="bg-white p-4 rounded-3xl border border-stone-100 shadow-sm space-y-3">
                         <div class="flex justify-between items-center">
-                            <span class="text-xs font-black text-stone-800">+ 快速記一筆</span>
+                            <span class="text-xs font-black text-stone-800">+ 新增支出</span>
                             
                             <!-- 💡 6. 幣別切換鈕 [ 當地幣 | NT$ 台幣 ] -->
                             <div class="flex bg-stone-100 p-0.5 rounded-xl text-xs font-bold">
@@ -423,7 +434,7 @@
                             </div>
 
                             <div>
-                                <label class="text-[10px] text-stone-400 font-bold block mb-1">付款人</label>
+                                <label class="text-[10px] text-stone-400 font-bold block mb-1">誰付款</label>
                                 <select v-model="newExpense.payer" class="w-full bg-stone-50 text-xs font-bold p-2 rounded-xl border-0 text-stone-700">
                                     <option value="" disabled>選擇</option>
                                     <option v-for="p in participants" :key="p" :value="p">{{ p }}</option>
@@ -431,7 +442,7 @@
                             </div>
 
                             <div>
-                                <label class="text-[10px] text-stone-400 font-bold block mb-1">支付方式</label>
+                                <label class="text-[10px] text-stone-400 font-bold block mb-1">付款方式</label>
                                 <select v-model="newExpense.paymentMethod" class="w-full bg-stone-50 text-xs font-bold p-2 rounded-xl border-0 text-stone-700">
                                     <option v-for="m in PAYMENT_METHODS" :key="m.slug" :value="m.slug">{{ m.label }}</option>
                                 </select>
@@ -443,7 +454,7 @@
                         </button>
                     </div>
 
-                    <!-- 支出清單 (顯示預付台幣標記) -->
+                    <!-- 支出項目明細 -->
                     <div class="space-y-2">
                         <div v-for="exp in expenses" :key="exp.id" @click="openExpModal(exp)" class="bg-white p-3.5 rounded-xl border border-stone-100 shadow-sm flex justify-between items-center cursor-pointer hover:border-primary-200 transition">
                             <div>
@@ -464,19 +475,19 @@
 
         </main>
 
-        <!-- 💡 2 & 3. 新增/編輯行程 Modal (自由行交通工具與乘車路線備註) -->
+        <!-- 💡 2 & 3. 新增/編輯行程 Modal (支援純 24h 時間與轉乘路線備註) -->
         <div v-if="itemModal.show" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 text-left shadow-2xl">
                 <div class="flex justify-between items-center border-b pb-2">
-                    <h3 class="text-sm font-black text-stone-800">{{ itemModal.mode === 'add' ? '新增行程項目' : '編輯行程項目' }}</h3>
+                    <h3 class="text-sm font-black text-stone-800">{{ itemModal.mode === 'add' ? '新增行程' : '編輯行程' }}</h3>
                     <button @click="itemModal.show = false" class="text-stone-400"><i class="ph-bold ph-x"></i></button>
                 </div>
 
                 <div class="space-y-3">
                     <div class="flex gap-2">
-                        <!-- 💡 1. 24小時制時間選擇 -->
+                        <!-- 💡 1. 24 小時制時間輸入 -->
                         <div class="w-1/3">
-                            <label class="text-[10px] font-bold text-stone-400 block mb-1">時間 (24小時)</label>
+                            <label class="text-[10px] font-bold text-stone-400 block mb-1">時間 (24h)</label>
                             <input v-model="itemModal.draft.time" type="time" class="w-full bg-stone-50 rounded-xl p-2 text-xs font-bold border-0 text-stone-800">
                         </div>
                         <div class="flex-1">
@@ -497,7 +508,7 @@
                     <!-- 💡 3. 路線 / 月台 / 方向備註 -->
                     <div>
                         <label class="text-[10px] font-bold text-blue-500 block mb-1">乘車/路線重要備註 (月台/方向/線路)</label>
-                        <input v-model="itemModal.draft.routeNote" class="w-full bg-blue-50/50 border border-blue-100 rounded-xl p-2 text-xs font-bold text-blue-800 placeholder:text-blue-300" placeholder="例: 2號月台 / 銀座線 (往澀谷方向)">
+                        <input v-model="itemModal.draft.routeNote" class="w-full bg-blue-50/50 border border-blue-100 rounded-xl p-2 text-xs font-bold text-blue-800 placeholder:text-blue-300" placeholder="例: 地鐵【2號線】到【世紀大道】">
                     </div>
 
                     <div>
@@ -518,15 +529,27 @@
             </div>
         </div>
 
-        <!-- Bottom Navigation -->
-        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 backdrop-blur-md border-t border-stone-100 px-4 py-2 flex justify-around items-center z-40 pb-safe">
+        <!-- 💡 100% 完全還原你原本的 5 大 Tabs 底部導覽列 (行程, 口袋, 記帳, 清單, 小幫手) -->
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 backdrop-blur-md border-t border-stone-100 px-2 py-2 flex justify-around items-center z-40 pb-safe">
             <button @click="viewMode = 'plan'" :class="viewMode === 'plan' ? 'text-primary-500' : 'text-stone-400'" class="flex flex-col items-center gap-0.5">
                 <i class="ph-bold ph-calendar-check text-xl"></i>
                 <span class="text-[10px] font-bold">行程</span>
             </button>
+            <button @click="viewMode = 'saved'" :class="viewMode === 'saved' ? 'text-primary-500' : 'text-stone-400'" class="flex flex-col items-center gap-0.5">
+                <i class="ph-bold ph-bookmark-simple text-xl"></i>
+                <span class="text-[10px] font-bold">口袋</span>
+            </button>
             <button @click="viewMode = 'expense'" :class="viewMode === 'expense' ? 'text-primary-500' : 'text-stone-400'" class="flex flex-col items-center gap-0.5">
                 <i class="ph-bold ph-receipt text-xl"></i>
                 <span class="text-[10px] font-bold">記帳</span>
+            </button>
+            <button @click="viewMode = 'checklist'" :class="viewMode === 'checklist' ? 'text-primary-500' : 'text-stone-400'" class="flex flex-col items-center gap-0.5">
+                <i class="ph-bold ph-checks text-xl"></i>
+                <span class="text-[10px] font-bold">清單</span>
+            </button>
+            <button @click="viewMode = 'assistant'" :class="viewMode === 'assistant' ? 'text-primary-500' : 'text-stone-400'" class="flex flex-col items-center gap-0.5">
+                <i class="ph-bold ph-sparkle text-xl"></i>
+                <span class="text-[10px] font-bold">小幫手</span>
             </button>
         </nav>
 
