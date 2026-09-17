@@ -48,7 +48,7 @@ createApp({
         let unsubscribeTripData = null;
         let ignoreRemoteUpdate = false;
 
-        const editingState = reactive({ dayTitle: false, flight: false, participants: false });
+        const editingState = reactive({ dayTitle: false, flight: false });
 
         const days = ref([]);
         const savedLocations = ref([]);
@@ -56,7 +56,6 @@ createApp({
         const checklist = ref([]);
         const prepTasks = ref([]);
         const newPrepTask = ref('');
-        
         const addPrepTask = () => {
             const title = newPrepTask.value.trim();
             if (!title) return;
@@ -70,40 +69,30 @@ createApp({
             const removed = prepTasks.value.splice(idx, 1)[0];
             showToast('已刪除項目', { icon: 'ph-bold ph-trash', undo: () => { prepTasks.value.splice(Math.min(idx, prepTasks.value.length), 0, removed); } });
         };
-        
         const collapsedCats = reactive({});
         const participants = ref([]);
         const participantsStr = ref('');
         const exchangeRate = ref(0.215);
 
-        // 記帳分類：包含機票
-        const BASE_EXPENSE_CATEGORIES = [
+        // 6. 新增台幣 (TWD) 預付標記支援
+        const newExpense = ref({ item: '', amount: '', payer: '', category: 'other', paymentMethod: 'cash', splitWith: [], isTWD: false });
+        
+        // 5. 擴充分類選單（包含 ✈️ 機票）與自訂分類
+        const customCategories = ref([]);
+        const baseCategories = [
             { slug: 'flight', label: '機票', emoji: '✈️' },
             ...EXPENSE_CATEGORIES
         ];
-
-        const newExpense = ref({ 
-            item: '', 
-            amount: '', 
-            currency: 'FOREIGN', 
-            payer: '', 
-            category: 'other', 
-            paymentMethod: 'cash', 
-            splitWith: [] 
-        });
-
-        const customCategories = ref([]);
         const allExpenseCategories = computed(() => [
-            ...BASE_EXPENSE_CATEGORIES,
+            ...baseCategories,
             ...customCategories.value.map(name => ({ slug: name, label: name, emoji: '🏷️' }))
         ]);
         const newCustomCategory = ref('');
         const showCustomCategoryInput = ref(false);
-        
         const addCustomCategory = (targetDraftRefGetter) => {
             const name = newCustomCategory.value.trim();
             if (!name) { showCustomCategoryInput.value = false; return; }
-            if (!customCategories.value.includes(name) && !BASE_EXPENSE_CATEGORIES.some(c => c.slug === name)) {
+            if (!customCategories.value.includes(name) && !allExpenseCategories.value.some(c => c.slug === name)) {
                 customCategories.value.push(name);
             }
             const target = targetDraftRefGetter();
@@ -118,37 +107,19 @@ createApp({
         const setup = ref({ destination: '', startDate: new Date().toISOString().split('T')[0], days: 5, rate: 1, currency: 'TWD', langCode: 'zh-TW', langName: '中文', mapProvider: 'google' });
 
         const currentDay = computed(() => days.value[currentDayIdx.value] || { items: [], flight: null, date: '', title: '' });
-
-        const getExpenseInForeign = (e) => {
-            const amt = Number(e.amount || 0);
-            if (e.currency === 'TWD') {
-                const rate = setup.value.rate || 1;
-                return rate > 0 ? amt / rate : amt;
-            }
-            return amt;
-        };
-
-        const totalExpense = computed(() => expenses.value.reduce((sum, item) => sum + getExpenseInForeign(item), 0));
-
+        const totalExpense = computed(() => expenses.value.reduce((sum, item) => sum + (item.amount || 0), 0));
         const paidByPerson = computed(() => {
             const map = {}; participants.value.forEach(p => map[p] = 0);
-            expenses.value.forEach(e => { 
-                const amt = getExpenseInForeign(e);
-                if (map[e.payer] === undefined) map[e.payer] = 0; 
-                map[e.payer] += amt; 
-            }); 
-            return map;
+            expenses.value.forEach(e => { if (map[e.payer] === undefined) map[e.payer] = 0; map[e.payer] += (e.amount || 0); }); return map;
         });
 
         const effectiveSplitWith = (exp) => (exp.splitWith && exp.splitWith.length) ? exp.splitWith : participants.value;
-
         const owedByPerson = computed(() => {
             const map = {}; participants.value.forEach(p => map[p] = 0);
             expenses.value.forEach(e => {
-                const amt = getExpenseInForeign(e);
                 const who = effectiveSplitWith(e);
                 if (!who.length) return;
-                const share = amt / who.length;
+                const share = (e.amount || 0) / who.length;
                 who.forEach(p => { if (map[p] === undefined) map[p] = 0; map[p] += share; });
             });
             return map;
@@ -158,11 +129,10 @@ createApp({
             const map = {};
             expenses.value.forEach(e => {
                 const key = e.category || 'other';
-                map[key] = (map[key] || 0) + getExpenseInForeign(e);
+                map[key] = (map[key] || 0) + (e.amount || 0);
             });
             return map;
         });
-
         const PIE_COLORS = ['#ff69b4', '#5eead4', '#fbbf24', '#818cf8', '#fb923c', '#34d399', '#f472b6', '#60a5fa'];
         const categoryPieSlices = computed(() => {
             const total = totalExpense.value;
@@ -172,7 +142,7 @@ createApp({
             const polar = (angle) => [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
             const entries = Object.entries(categoryTotals.value).filter(([, amt]) => amt > 0);
             return entries.map(([slug, amt], idx) => {
-                const cat = allExpenseCategories.value.find(c => c.slug === slug) || { slug, label: slug, emoji: catEmoji(slug) };
+                const cat = allExpenseCategories.value.find(c => c.slug === slug) || { slug, label: slug, emoji: '💰' };
                 const pct = amt / total;
                 const endAngle = startAngle + pct * Math.PI * 2;
                 const [x1, y1] = polar(startAngle);
@@ -195,6 +165,7 @@ createApp({
 
         const dayLabel = (idx) => (idx === null || idx === undefined || !days.value[idx]) ? '未指定' : `Day ${idx + 1}`;
 
+        // 5. 成員精簡管理邏輯
         const newParticipant = ref('');
         const addParticipant = () => {
             const name = newParticipant.value.trim();
@@ -205,7 +176,6 @@ createApp({
             if (newExpense.value.splitWith && newExpense.value.splitWith.length) newExpense.value.splitWith.push(name);
             newParticipant.value = '';
         };
-
         const removeParticipant = (name) => {
             participants.value = participants.value.filter(p => p !== name);
             participantsStr.value = participants.value.join(', ');
@@ -218,7 +188,6 @@ createApp({
             const idx = draftLike.splitWith.indexOf(name);
             if (idx === -1) draftLike.splitWith.push(name); else draftLike.splitWith.splice(idx, 1);
         };
-
         const isSplitChecked = (draftLike, name) => {
             if (!draftLike.splitWith || !draftLike.splitWith.length) return true;
             return draftLike.splitWith.includes(name);
@@ -251,12 +220,22 @@ createApp({
         const fmtExpDate = (s) => { if (!s) return ''; const p = String(s).split('-'); return p.length === 3 ? `${p[1]}/${p[2]}` : s; };
         const getWeatherIcon = (c) => { if (c === 0) return 'ph-sun'; if (c < 4) return 'ph-cloud-sun'; if (c < 50) return 'ph-cloud-fog'; if (c < 70) return 'ph-cloud-rain'; return 'ph-cloud'; };
 
-        const getTimePeriod = (t) => t || '';
+        // 1. 純 24 小時制時間邏輯（移除「上午/下午」字樣）
+        const getTimePeriod = (t) => { if (!t) return '24h'; return t; };
 
+        // App 內回饋與對話框系統
         const dialog = reactive({ show: false, title: '', message: '', confirmText: '確定', cancelText: '取消', danger: false, showCancel: true, link: '' });
         let dialogResolve = null;
         const appConfirm = (message, opts = {}) => new Promise((resolve) => {
-            dialog.title = opts.title || ''; dialog.message = message; dialog.confirmText = opts.confirmText || '確定'; dialog.cancelText = opts.cancelText || '取消'; dialog.danger = !!opts.danger; dialog.showCancel = opts.showCancel !== false; dialog.link = opts.link || ''; dialogResolve = resolve; dialog.show = true;
+            dialog.title = opts.title || '';
+            dialog.message = message;
+            dialog.confirmText = opts.confirmText || '確定';
+            dialog.cancelText = opts.cancelText || '取消';
+            dialog.danger = !!opts.danger;
+            dialog.showCancel = opts.showCancel !== false;
+            dialog.link = opts.link || '';
+            dialogResolve = resolve;
+            dialog.show = true;
         });
         const dialogAnswer = (ok) => {
             dialog.show = false;
@@ -264,12 +243,22 @@ createApp({
         };
 
         const toast = reactive({ show: false, message: '', icon: '', hasUndo: false });
-        let toastUndoFn = null, toastTimer = null;
+        let toastUndoFn = null;
+        let toastTimer = null;
         const showToast = (message, opts = {}) => {
-            if (toastTimer) clearTimeout(toastTimer); toast.message = message; toast.icon = opts.icon || 'ph-bold ph-check-circle'; toastUndoFn = opts.undo || null; toast.hasUndo = !!toastUndoFn; toast.show = true; toastTimer = setTimeout(() => { toast.show = false; toastUndoFn = null; }, opts.duration || (toastUndoFn ? 5000 : 2200));
+            if (toastTimer) clearTimeout(toastTimer);
+            toast.message = message;
+            toast.icon = opts.icon || 'ph-bold ph-check-circle';
+            toastUndoFn = opts.undo || null;
+            toast.hasUndo = !!toastUndoFn;
+            toast.show = true;
+            toastTimer = setTimeout(() => { toast.show = false; toastUndoFn = null; }, opts.duration || (toastUndoFn ? 5000 : 2200));
         };
         const undoToast = () => {
-            if (toastUndoFn) toastUndoFn(); toastUndoFn = null; toast.show = false; if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+            if (toastUndoFn) toastUndoFn();
+            toastUndoFn = null;
+            toast.show = false;
+            if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
         };
 
         const toggleFlightCard = () => { if (currentDay.value.flight) { } else { currentDay.value.flight = { type: 'arrival', startTime: '10:00', startAirport: 'TPE', startTerminal: '', number: '', endTime: '14:00', endAirport: 'DEST', endTerminal: '', gate: '', seat: '', arrivalOffset: 0 }; editingState.flight = true; } };
@@ -282,32 +271,16 @@ createApp({
             showToast('已移除航班資訊', { icon: 'ph-bold ph-trash', undo: () => { day.flight = removed; } });
         };
 
-        const getDotColor = (t) => {
-            if (t === 'food') return 'bg-orange-400 border-orange-100 ring-2 ring-orange-50';
-            if (t === 'shop') return 'bg-pink-400 border-pink-100 ring-2 ring-pink-50';
-            if (['transit_metro', 'transit_bus', 'transit_train', 'transit_taxi', 'transport', 'flight'].includes(t)) return 'bg-blue-500 border-blue-100 ring-2 ring-blue-50';
-            if (t === 'accommodation') return 'bg-purple-400 border-purple-100 ring-2 ring-purple-50';
-            return 'bg-primary-500 border-primary-100 ring-2 ring-primary-50';
-        };
-
-        const typeAccent = (t) => {
-            if (t === 'food') return 'border-orange-300';
-            if (t === 'shop') return 'border-pink-300';
-            if (['transit_metro', 'transit_bus', 'transit_train', 'transit_taxi', 'transport', 'flight'].includes(t)) return 'border-blue-300';
-            if (t === 'accommodation') return 'border-purple-300';
-            return 'border-primary-300';
-        };
-
+        // 2. 自由行交通詳細選項定義
         const COMMUTE_MODES = [
             { slug: 'walk', label: '步行', icon: 'ph-bold ph-person-simple-walk' },
-            { slug: 'transit_metro', label: '地鐵/捷運', icon: 'ph-bold ph-train-regional' },
-            { slug: 'transit_bus', label: '市公車/巴士', icon: 'ph-bold ph-bus' },
-            { slug: 'transit_train', label: '火車/新幹線', icon: 'ph-bold ph-train-simple' },
-            { slug: 'transit_taxi', label: '計程車/Uber', icon: 'ph-bold ph-taxi' },
+            { slug: 'subway', label: '地鐵/捷運', icon: 'ph-bold ph-subway' },
+            { slug: 'bus', label: '市公車/巴士', icon: 'ph-bold ph-bus' },
+            { slug: 'train', label: '火車/高鐵', icon: 'ph-bold ph-train' },
+            { slug: 'taxi', label: '計程車', icon: 'ph-bold ph-taxi' },
             { slug: 'other', label: '其他', icon: 'ph-bold ph-arrows-clockwise' },
         ];
         const commuteMeta = (mode) => COMMUTE_MODES.find(m => m.slug === mode) || null;
-
         const updateParticipants = () => { participants.value = participantsStr.value.split(',').map(s => s.trim()).filter(s => s); };
         const isUrl = (str) => { if (!str) return false; try { new URL(str); return true; } catch { return /^https?:\/\//i.test(str); } };
 
@@ -322,6 +295,7 @@ createApp({
             return a.time.localeCompare(b.time);
         });
 
+        // 3. 行程項目彈窗（包含路線與乘車備註 routeNote）
         const itemModal = reactive({ show: false, mode: 'add', targetId: null, draft: null });
         const openItemModal = (item = null) => {
             if (item) {
@@ -329,25 +303,11 @@ createApp({
                 itemModal.draft = JSON.parse(JSON.stringify(item));
             } else {
                 itemModal.mode = 'add'; itemModal.targetId = null;
-                itemModal.draft = { 
-                    id: generateId(), 
-                    time: '', 
-                    type: 'spot', 
-                    activity: '', 
-                    location: '', 
-                    link: '', 
-                    placeId: null, 
-                    note: '', 
-                    routeNote: '', 
-                    reserved: false, 
-                    commuteMode: '', 
-                    commuteMinutes: '' 
-                };
+                itemModal.draft = { id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', placeId: null, routeNote: '', note: '', reserved: false, commuteMode: '', commuteMinutes: '' };
             }
             itemModal.show = true;
             if (!item) nextTick(() => { document.querySelector('.js-item-activity')?.focus(); });
         };
-
         const saveItemModal = () => {
             const day = days.value[currentDayIdx.value];
             if (!day) { itemModal.show = false; return; }
@@ -360,7 +320,6 @@ createApp({
             sortItemsByTime(day.items);
             itemModal.show = false;
         };
-
         const deleteItemFromModal = () => {
             const day = days.value[currentDayIdx.value];
             itemModal.show = false;
@@ -373,6 +332,7 @@ createApp({
 
         const addDay = () => days.value.push({ date: `Day ${days.value.length + 1}`, title: '', items: [] });
 
+        // 口袋名單彈窗
         const locModal = reactive({ show: false, mode: 'add', targetId: null, draft: null });
         const openLocModal = (loc = null) => {
             if (loc) {
@@ -386,7 +346,6 @@ createApp({
             locModal.show = true;
             if (!loc) nextTick(() => { document.querySelector('.js-loc-name')?.focus(); });
         };
-
         const saveLocModal = () => {
             if (locModal.mode === 'edit') {
                 const target = savedLocations.value.find(l => l.id === locModal.targetId);
@@ -396,7 +355,6 @@ createApp({
             }
             locModal.show = false;
         };
-
         const deleteLocFromModal = () => {
             locModal.show = false;
             const idx = savedLocations.value.findIndex(l => l.id === locModal.targetId);
@@ -405,6 +363,7 @@ createApp({
             showToast('已刪除地點', { icon: 'ph-bold ph-trash', undo: () => { savedLocations.value.splice(Math.min(idx, savedLocations.value.length), 0, removed); } });
         };
 
+        // 清單與角色邏輯
         const seedChecklist = () => CHECKLIST_TEMPLATE.map(t => ({ ...t, id: generateId(), checkedBy: {} }));
         const seedDefaultChecklist = () => {
             checklist.value = seedChecklist();
@@ -417,43 +376,10 @@ createApp({
             if (!ms.includes(activeChecklistMember.value)) activeChecklistMember.value = ms[0];
         }, { immediate: true });
         watch(activeChecklistMember, (v) => { if (v) localStorage.setItem('wetravel_active_checklist_member', v); });
+        
         const toggleCheck = (item, member) => {
             if (!item.checkedBy) item.checkedBy = {};
             item.checkedBy[member] = !item.checkedBy[member];
-        };
-
-        const checklistProgress = computed(() => checklistMembers.value.map(m => ({
-            member: m,
-            done: checklist.value.filter(i => i.checkedBy && i.checkedBy[m]).length,
-            total: checklist.value.length
-        })));
-
-        const checklistByCategory = computed(() => CHECKLIST_CATEGORIES
-            .map(cat => {
-                const items = checklist.value.filter(i => i.category === cat.slug);
-                return { ...cat, items, done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length };
-            })
-            .filter(cat => cat.items.length));
-
-        const toggleCat = (slug) => { collapsedCats[slug] = !collapsedCats[slug]; };
-
-        watch(viewMode, () => {
-            setTimeout(() => {
-                document.querySelectorAll('.view-pane').forEach(el => {
-                    if (getComputedStyle(el).opacity !== '1' && !/fade-(enter|leave)/.test(el.className)) {
-                        el.getAnimations().forEach(a => a.cancel());
-                    }
-                });
-            }, 400);
-        });
-
-        const resetChecklist = async () => {
-            const m = activeChecklistMember.value;
-            const who = memberLabel(m) ? `${memberLabel(m)} 的` : '你的';
-            const ok = await appConfirm(`只會清空${who}勾選，項目保留，其他成員不受影響。`, { title: '重設勾選', danger: true, confirmText: '重設' });
-            if (!ok) return;
-            checklist.value.forEach(i => { if (i.checkedBy) delete i.checkedBy[m]; });
-            showToast(`已重設${who}勾選`);
         };
 
         const isCheckNameInvalid = ref(false);
@@ -470,7 +396,6 @@ createApp({
             checkModal.show = true;
             if (!item) nextTick(() => { document.querySelector('.js-check-name')?.focus(); });
         };
-
         const saveCheckModal = () => {
             if (!checkModal.draft.name.trim()) {
                 isCheckNameInvalid.value = true;
@@ -486,23 +411,14 @@ createApp({
             checkModal.show = false;
         };
 
-        const deleteCheckFromModal = () => {
-            checkModal.show = false;
-            const idx = checklist.value.findIndex(i => i.id === checkModal.targetId);
-            if (idx === -1) return;
-            const removed = checklist.value.splice(idx, 1)[0];
-            showToast('已刪除項目', { icon: 'ph-bold ph-trash', undo: () => { checklist.value.splice(Math.min(idx, checklist.value.length), 0, removed); } });
-        };
-
+        // 6. 記帳新增 (含台幣標記與日單對應)
         const itemInputRef = ref(null);
         const isItemInvalid = ref(false);
-
         const addExpense = () => {
             if (!newExpense.value.item) { isItemInvalid.value = true; nextTick(() => { itemInputRef.value?.focus(); }); return; }
             if (!newExpense.value.amount) { isAmountInvalid.value = true; nextTick(() => { amountInputRef.value?.focus(); }); return; }
             expenses.value.unshift({
                 ...newExpense.value,
-                amount: Number(newExpense.value.amount),
                 id: generateId(),
                 dayIndex: currentDayIdx.value,
                 splitWith: (newExpense.value.splitWith && newExpense.value.splitWith.length) ? [...newExpense.value.splitWith] : []
@@ -515,19 +431,16 @@ createApp({
             expModal.targetId = exp.id;
             expModal.draft = JSON.parse(JSON.stringify(exp));
             if (!expModal.draft.category) expModal.draft.category = 'other';
-            if (!expModal.draft.currency) expModal.draft.currency = 'FOREIGN';
             if (!expModal.draft.paymentMethod) expModal.draft.paymentMethod = 'cash';
             if (expModal.draft.dayIndex === undefined || expModal.draft.dayIndex === null) expModal.draft.dayIndex = currentDayIdx.value;
             if (!Array.isArray(expModal.draft.splitWith)) expModal.draft.splitWith = [];
             expModal.show = true;
         };
-
         const saveExpModal = () => {
             const target = expenses.value.find(e => e.id === expModal.targetId);
-            if (target) { expModal.draft.amount = Number(expModal.draft.amount); Object.assign(target, expModal.draft); }
+            if (target) Object.assign(target, expModal.draft);
             expModal.show = false;
         };
-
         const deleteExpFromModal = () => {
             expModal.show = false;
             const idx = expenses.value.findIndex(e => e.id === expModal.targetId);
@@ -536,100 +449,89 @@ createApp({
             showToast('已刪除支出', { icon: 'ph-bold ph-trash', undo: () => { expenses.value.splice(Math.min(idx, expenses.value.length), 0, removed); } });
         };
 
-        const updateExchangeRate = () => { if (setup.value) setup.value.rate = exchangeRate.value; };
-
         const getExternalMapLink = (loc) => { if (!loc) return '#'; if (isUrl(loc)) return loc; const encodedLoc = encodeURIComponent(loc); if (setup.value.mapProvider === 'naver') return `https://map.naver.com/v5/search/${encodedLoc}`; else if (setup.value.mapProvider === 'amap') return `https://www.amap.com/search?query=${encodedLoc}`; else return `https://www.google.com/maps/search/?api=1&query=${encodedLoc}`; };
-
         const countryInfoMap = { 'jp': { c: 'JPY', l: 'ja', n: '日文', m: 'google' }, 'kr': { c: 'KRW', l: 'ko', n: '韓文', m: 'naver' }, 'us': { c: 'USD', l: 'en', n: '英文', m: 'google' }, 'cn': { c: 'CNY', l: 'zh-CN', n: '簡中', m: 'amap' }, 'th': { c: 'THB', l: 'th', n: '泰文', m: 'google' }, 'tw': { c: 'TWD', l: 'zh-TW', n: '中文', m: 'google' } };
 
-        const updateRateByCurrency = async () => { const currency = setup.value.currency; if (!currency) return; isRateLoading.value = true; try { if (currency === 'TWD') { setup.value.rate = 1; } else { const rRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${currency}`); const rData = await rRes.json(); if (rData?.rates?.TWD) setup.value.rate = rData.rates.TWD; } } catch (e) { console.error('Fetch rate failed', e); } finally { isRateLoading.value = false; } };
-
-        const detectRate = async () => { if (!setup.value.destination) return; isRateLoading.value = true; try { const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(setup.value.destination)}&limit=1&addressdetails=1`); const geoData = await geoRes.json(); if (geoData?.[0]?.address?.country_code) { const code = geoData[0].address.country_code.toLowerCase(); const info = countryInfoMap[code] || { c: 'USD', l: 'en', n: '英文', m: 'google' }; setup.value.currency = info.c; setup.value.langCode = info.l; setup.value.langName = info.n; setup.value.mapProvider = info.m || 'google'; if (!weather.value.location) weather.value.location = setup.value.destination; if (info.c === 'TWD') setup.value.rate = 1; else { const rRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${info.c}`); const rData = await rRes.json(); if (rData?.rates?.TWD) setup.value.rate = rData.rates.TWD; } } } catch (e) { } finally { isRateLoading.value = false; } };
-
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
-
         const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
-
-        const fetchWeather = async (locName) => { try { weather.value.location = locName; const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locName)}&limit=1`); const geoData = await geoRes.json(); if (geoData?.[0]) { const { lat, lon } = geoData[0]; const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`); const wData = await wRes.json(); weather.value.temp = Math.round(wData.current_weather.temperature); weather.value.icon = getWeatherIcon(wData.current_weather.weathercode); if (wData.daily) weather.value.daily = wData.daily; } } catch (e) { weather.value.temp = '--'; } };
-
-        // 輔助函式：類別圖示
-        const catEmoji = (slug) => {
-            const map = { food: '🍱', shop: '🛍️', transport: '🚌', accommodation: '🏨', flight: '✈️', ticket: '🎟️', other: '💰' };
-            return map[slug] || '💰';
+        const fetchWeather = async (locName) => {
+            try {
+                weather.value.location = locName;
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locName)}&limit=1`);
+                const geoData = await geoRes.json();
+                if (geoData?.[0]) {
+                    const { lat, lon } = geoData[0];
+                    const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`);
+                    const wData = await wRes.json();
+                    weather.value.temp = Math.round(wData.current_weather.temperature);
+                    weather.value.icon = getWeatherIcon(wData.current_weather.weathercode);
+                    if (wData.daily) weather.value.daily = wData.daily;
+                }
+            } catch (e) { weather.value.temp = '--'; }
         };
 
-        const catLabel = (slug) => {
-            const found = allExpenseCategories.value.find(c => c.slug === slug);
-            return found ? found.label : slug;
+        const initSortable = () => {
+            const el = document.getElementById('saved-locations-list');
+            if (!el) return false;
+            if (Sortable.get && Sortable.get(el)) return true;
+            Sortable.create(el, {
+                animation: 150, handle: '.loc-drag-handle', ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+                onEnd: (evt) => {
+                    const item = savedLocations.value.splice(evt.oldIndex, 1)[0];
+                    savedLocations.value.splice(evt.newIndex, 0, item);
+                }
+            });
+            return true;
         };
 
-        const initSortable = () => { const el = document.getElementById('saved-locations-list'); if (!el) return false; if (typeof Sortable !== 'undefined' && Sortable.get && Sortable.get(el)) return true; if (typeof Sortable !== 'undefined') { Sortable.create(el, { animation: 150, handle: '.loc-drag-handle', ghostClass: 'sortable-ghost', dragClass: 'sortable-drag', onEnd: (evt) => { const item = savedLocations.value.splice(evt.oldIndex, 1)[0]; savedLocations.value.splice(evt.newIndex, 0, item); } }); return true; } return false; };
-
-        // 載入資料綁定
-        const loadTripData = (data) => {
-            if (!data) return;
-            if (data.setup) Object.assign(setup.value, data.setup);
-            if (Array.isArray(data.days)) days.value = data.days;
-            if (Array.isArray(data.savedLocations)) savedLocations.value = data.savedLocations;
-            if (Array.isArray(data.expenses)) expenses.value = data.expenses;
-            if (Array.isArray(data.checklist)) checklist.value = data.checklist;
-            if (Array.isArray(data.prepTasks)) prepTasks.value = data.prepTasks;
-            if (Array.isArray(data.participants)) {
-                participants.value = data.participants;
-                participantsStr.value = data.participants.join(', ');
-            }
+        const initSortableWhenReady = () => {
+            let attempts = 0;
+            const timer = setInterval(() => {
+                attempts++;
+                if (initSortable() || attempts > 20) clearInterval(timer);
+            }, 100);
         };
+
+        watch(viewMode, (v) => { if (v === 'saved') initSortableWhenReady(); });
 
         onMounted(() => {
-            const timer = setInterval(() => { if (initSortable()) clearInterval(timer); }, 500);
-            
-            // 從 LocalStorage 自動備份還原
-            try {
-                const localData = localStorage.getItem('wetravel_current_trip');
-                if (localData) {
-                    loadTripData(JSON.parse(localData));
-                }
-            } catch (e) { console.error('Failed to load local data', e); }
+            if (window.__hideSplash) window.__hideSplash();
+            // 預設建立一組空資料
+            if (days.value.length === 0) {
+                days.value = Array.from({ length: 5 }, (_, i) => ({
+                    date: `Day ${i + 1}`,
+                    shortDate: `D${i + 1}`,
+                    title: i === 0 ? '出發與景點' : '行程規劃',
+                    items: [],
+                    flight: i === 0 ? { startAirport: 'TPE', startTime: '10:00', endAirport: 'NRT', endTime: '14:00', number: 'BR198' } : null
+                }));
+            }
+            if (participants.value.length === 0) {
+                participants.value = ['我'];
+                participantsStr.value = '我';
+                newExpense.value.payer = '我';
+            }
         });
-
-        // 自動儲存至 LocalStorage
-        watch([setup, days, savedLocations, expenses, checklist, prepTasks, participants], () => {
-            try {
-                const dataToSave = {
-                    setup: setup.value,
-                    days: days.value,
-                    savedLocations: savedLocations.value,
-                    expenses: expenses.value,
-                    checklist: checklist.value,
-                    prepTasks: prepTasks.value,
-                    participants: participants.value
-                };
-                localStorage.setItem('wetravel_current_trip', JSON.stringify(dataToSave));
-            } catch (e) { }
-        }, { deep: true });
 
         return {
             viewMode, currentDayIdx, amountInputRef, isAmountInvalid, weatherInputRef,
-            showTripMenu, tripList, currentTripId, showSetupModal, isEditing, isDataLoading,
-            isLoggedIn, dbError, dbErrorMessage, syncStatus, shareUrl, showShareModal,
-            showJoinInput, joinTripUrl, editingState, days, savedLocations, expenses,
-            checklist, prepTasks, newPrepTask, addPrepTask, togglePrepTask, deletePrepTask,
-            collapsedCats, participants, participantsStr, exchangeRate, newExpense,
-            customCategories, allExpenseCategories, newCustomCategory, showCustomCategoryInput,
-            addCustomCategory, isRateLoading, weather, isWeatherEditing, setup, currentDay,
-            totalExpense, paidByPerson, effectiveSplitWith, owedByPerson,
-            categoryTotals, categoryPieSlices, personBarData, dayLabel, newParticipant,
-            addParticipant, removeParticipant, toggleSplitMember, isSplitChecked, currencyLabel,
-            currencySymbol, mapProviderLabel, weatherDisplay, dialog, appConfirm, dialogAnswer,
-            toast, showToast, undoToast, toggleFlightCard, removeFlight, getDotColor, typeAccent,
-            COMMUTE_MODES, commuteMeta, updateParticipants, isUrl, linkedPlace, itemNavTarget,
-            itemLocationLabel, itemModal, openItemModal, saveItemModal, deleteItemFromModal,
-            addDay, locModal, openLocModal, saveLocModal, deleteLocFromModal, seedDefaultChecklist,
-            checklistMembers, memberLabel, activeChecklistMember, toggleCheck, checklistProgress,
-            checklistByCategory, toggleCat, resetChecklist, checkModal, openCheckModal, saveCheckModal,
-            deleteCheckFromModal, addExpense, expModal, openExpModal, saveExpModal, deleteExpFromModal,
-            updateExchangeRate, getExternalMapLink, PAYMENT_METHODS, CHECKLIST_CATEGORIES, LUGGAGE_META,
-            catEmoji, catLabel
+            showTripMenu, tripList, currentTripId, showSetupModal, isEditing, isDataLoading, isLoggedIn,
+            dbError, dbErrorMessage, syncStatus, shareUrl, showShareModal, showJoinInput, joinTripUrl,
+            editingState, days, savedLocations, expenses, checklist, prepTasks, newPrepTask,
+            addPrepTask, togglePrepTask, deletePrepTask, collapsedCats, participants, participantsStr,
+            exchangeRate, newExpense, customCategories, allExpenseCategories, newCustomCategory,
+            showCustomCategoryInput, addCustomCategory, isRateLoading, weather, isWeatherEditing, setup,
+            currentDay, totalExpense, paidByPerson, effectiveSplitWith, owedByPerson, categoryTotals,
+            categoryPieSlices, personBarData, dayLabel, newParticipant, addParticipant, removeParticipant,
+            toggleSplitMember, isSplitChecked, currencyLabel, currencySymbol, mapProviderLabel, weatherDisplay,
+            generateId, localDateStr, fmtExpDate, getWeatherIcon, getTimePeriod, dialog, appConfirm, dialogAnswer,
+            toast, showToast, undoToast, toggleFlightCard, removeFlight, COMMUTE_MODES, commuteMeta,
+            updateParticipants, isUrl, linkedPlace, itemNavTarget, itemLocationLabel, itemModal, openItemModal,
+            saveItemModal, deleteItemFromModal, addDay, locModal, openLocModal, saveLocModal, deleteLocFromModal,
+            seedChecklist, seedDefaultChecklist, checklistMembers, memberLabel, activeChecklistMember,
+            toggleCheck, isCheckNameInvalid, checkModal, openCheckModal, saveCheckModal, itemInputRef,
+            isItemInvalid, addExpense, expModal, openExpModal, saveExpModal, deleteExpFromModal,
+            getExternalMapLink, toggleWeatherEdit, updateWeatherLocation
         };
     }
 }).mount('#app');
