@@ -672,10 +672,8 @@
                             </div>
 
                             <button v-else @click="toggleFlightCard"
-                                class="w-full py-6 border-4 border-dashed border-primary-100 rounded-[2rem] text-primary-300 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 transition flex flex-col items-center justify-center gap-2 group bg-white/50">
-                                <i
-                                    class="ph-duotone ph-airplane-tilt text-4xl mb-1 group-hover:-rotate-12 transition-transform duration-300"></i>
-                                <span class="text-sm font-bold tracking-wide">新增航班資訊</span>
+                                class="inline-flex items-center gap-1.5 text-xs font-bold text-primary-300 hover:text-primary-500 transition py-1 px-1">
+                                <i class="ph-bold ph-airplane-tilt"></i> 新增航班資訊
                             </button>
                         </transition>
                     </div>
@@ -684,7 +682,7 @@
                     <div class="relative pl-6 border-l-2 border-dashed border-stone-200 space-y-6">
                         <template v-for="(item, idx) in currentDay.items" :key="item && item.id || idx">
                             <!-- 通勤區塊：從上一站到這一站的交通方式與時間 -->
-                            <div v-if="item && idx > 0 && item.commuteMode && item.commuteMinutes"
+                            <div v-if="item && item.commuteMode && item.commuteMinutes"
                                 class="relative -my-2 flex items-center gap-1.5 text-stone-400">
                                 <div class="absolute -left-[25px] w-2 h-2 rounded-full bg-stone-300"></div>
                                 <i :class="(commuteMeta(item.commuteMode) || {}).icon" class="text-xs"></i>
@@ -696,35 +694,29 @@
 
                                 <!-- 行程卡（點卡片開彈窗編輯） -->
                                 <div @click="openItemModal(item)"
-                                    class="bg-white rounded-2xl shadow-soft border border-stone-100 transition-all duration-300 overflow-hidden relative cursor-pointer active:bg-stone-50 hover:shadow-lg"
-                                    style="background-image: url('assets/kitty_face_pink.png'); background-repeat: no-repeat; background-position: center; background-size: cover;">
+                                    class="bg-white rounded-2xl shadow-sm border border-stone-100 border-l-4 transition-all duration-200 relative cursor-pointer active:bg-stone-50 hover:shadow-md"
+                                    :class="typeAccent(item.type)">
 
-                                    <i
-                                        class="ph-bold ph-pencil-simple text-stone-300 absolute top-3 right-3 z-20 pointer-events-none"></i>
+                                    <div class="flex gap-3 p-3.5 items-start">
+                                        <!-- Time -->
+                                        <div class="w-12 shrink-0 text-center pt-0.5">
+                                            <div class="text-base font-black text-stone-700 font-mono leading-none">{{ item.time || '--:--' }}</div>
+                                            <div class="text-[9px] text-stone-400 font-medium mt-1">{{ getTimePeriod(item.time) }}</div>
+                                        </div>
 
-                                    <div class="flex gap-3 p-1 pr-3 items-start relative">
-                                        <!-- Time & Type -->
-                                        <div
-                                            class="bg-stone-50 rounded-xl p-2 w-20 flex flex-col items-center justify-center gap-1 shrink-0 border border-stone-100 group-hover:border-primary-100 transition-colors self-start h-20">
-                                            <div class="text-center">
-                                                <div class="text-[9px] text-stone-500 font-medium">{{
-                                                    getTimePeriod(item.time) }}</div>
-                                                <div class="text-lg font-black text-stone-700 font-mono leading-none">
-                                                    {{ item.time || '--:--' }}</div>
-                                            </div>
-                                            <div class="text-xl mt-1">
-                                                <span v-if="item.type==='spot'">📍</span>
-                                                <span v-else-if="item.type==='food'">🍴</span>
-                                                <span v-else-if="item.type==='shop'">🛍️</span>
-                                                <span v-else-if="item.type==='transport'">🚇</span>
-                                                <span v-else-if="item.type==='accommodation'">🏨</span>
-                                                <span v-else>📍</span>
-                                            </div>
+                                        <!-- Type icon -->
+                                        <div class="text-lg shrink-0 pt-0.5 leading-none">
+                                            <span v-if="item.type==='spot'">📍</span>
+                                            <span v-else-if="item.type==='food'">🍴</span>
+                                            <span v-else-if="item.type==='shop'">🛍️</span>
+                                            <span v-else-if="item.type==='transport'">🚇</span>
+                                            <span v-else-if="item.type==='accommodation'">🏨</span>
+                                            <span v-else>📍</span>
                                         </div>
 
                                         <!-- Content -->
-                                        <div class="flex-1 py-2 min-w-0 flex flex-col justify-center pr-1">
-                                            <div class="flex items-center gap-1.5 pr-6">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-1.5">
                                                 <span class="font-bold text-stone-800 text-base truncate">{{ item.activity || '未命名行程' }}</span>
                                                 <span v-if="item.reserved"
                                                     class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-0.5">
@@ -733,7 +725,7 @@
                                             </div>
 
                                             <div v-if="itemLocationLabel(item) || itemNavTarget(item)"
-                                                class="flex items-center gap-1.5 mt-2">
+                                                class="flex items-center gap-1.5 mt-1.5">
                                                 <i class="text-xs shrink-0"
                                                     :class="item.placeId ? 'ph-fill ph-map-pin text-primary-400' : 'ph-bold ph-map-pin text-stone-300'"></i>
                                                 <span class="flex-1 min-w-0 truncate text-xs font-bold"
@@ -747,12 +739,14 @@
                                                 </a>
                                             </div>
 
-                                            <div v-if="item.note" class="flex items-start gap-2 mt-2 pt-1">
-                                                <i class="ph-bold ph-notebook text-stone-300 text-sm mt-0.5"></i>
-                                                <div class="flex-1 text-sm text-stone-600 leading-relaxed whitespace-pre-wrap">
+                                            <div v-if="item.note" class="flex items-start gap-1.5 mt-1.5">
+                                                <i class="ph-bold ph-notebook text-stone-300 text-xs mt-0.5 shrink-0"></i>
+                                                <div class="flex-1 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">
                                                     {{ item.note }}</div>
                                             </div>
                                         </div>
+
+                                        <i class="ph-bold ph-pencil-simple text-stone-200 shrink-0 mt-1 text-sm"></i>
                                     </div>
                                 </div>
                             </div>
