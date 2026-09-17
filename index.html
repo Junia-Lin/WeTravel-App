@@ -461,13 +461,14 @@
 
             <!-- Days Scroller -->
             <div v-if="viewMode === 'plan'"
-                class="flex overflow-x-auto hide-scroll px-4 pb-3 pt-3 space-x-3 snap-x border-b border-stone-50 w-full touch-pan-x overscroll-contain">
+                class="flex overflow-x-auto hide-scroll px-4 pb-3 pt-3 space-x-2.5 snap-x border-b border-stone-50 w-full touch-pan-x overscroll-contain">
                 <div v-for="(day, index) in days" :key="index" @click="currentDayIdx = index" :data-day-idx="index"
-                    class="snap-center shrink-0 flex flex-col items-center justify-center w-[4.5rem] h-[5rem] rounded-[1rem] cursor-pointer transition-all border-0 relative"
+                    class="snap-center shrink-0 flex flex-col items-start justify-center w-[6.5rem] h-[4rem] px-3 rounded-[1rem] cursor-pointer transition-all border-0 relative"
                     :class="currentDayIdx === index ? 'bg-primary-300 text-white shadow-glow scale-105 with-bow' : 'bg-primary-50 text-stone-500 hover:bg-primary-100'">
-                    <span class="text-[10px] font-bold opacity-90">{{ day.shortDate }}</span>
-                    <span class="text-2xl font-black tracking-tight"
-                        :class="currentDayIdx === index ? 'text-white' : 'text-stone-700'">D{{ index + 1 }}</span>
+                    <span class="text-xs font-black tracking-tight"
+                        :class="currentDayIdx === index ? 'text-white' : 'text-stone-700'">D{{ index + 1 }} ・ {{ day.shortDate }}</span>
+                    <span class="text-[10px] font-bold mt-0.5 truncate w-full"
+                        :class="currentDayIdx === index ? 'text-white/85' : 'text-stone-400'">{{ day.title || '未設定主題' }}</span>
                 </div>
             </div>
         </header>
@@ -575,6 +576,9 @@
                                                     placeholder="TPE">
                                                 <input v-model="currentDay.flight.startTime" type="time"
                                                     class="text-sm font-bold text-stone-600 bg-stone-50 border border-stone-200 rounded-lg p-2 w-full text-center">
+                                                <input v-model="currentDay.flight.startTerminal"
+                                                    class="text-xs font-bold text-stone-500 bg-stone-50 border border-stone-200 rounded-lg p-1.5 w-full text-center placeholder:text-stone-300"
+                                                    placeholder="航廈 T1">
                                             </div>
                                             <div v-else>
                                                 <div class="text-3xl font-black text-stone-800 uppercase">{{
@@ -582,6 +586,7 @@
                                                 <div class="text-sm font-bold text-stone-500">{{
                                                     currentDay.flight.startTime
                                                     || '--:--' }}</div>
+                                                <div v-if="currentDay.flight.startTerminal" class="text-[10px] font-bold text-stone-400 mt-0.5">{{ currentDay.flight.startTerminal }}</div>
                                             </div>
                                         </div>
 
@@ -615,6 +620,9 @@
                                                     placeholder="NRT">
                                                 <input v-model="currentDay.flight.endTime" type="time"
                                                     class="text-sm font-bold text-stone-600 bg-stone-50 border border-stone-200 rounded-lg p-2 w-full text-center">
+                                                <input v-model="currentDay.flight.endTerminal"
+                                                    class="text-xs font-bold text-stone-500 bg-stone-50 border border-stone-200 rounded-lg p-1.5 w-full text-center placeholder:text-stone-300"
+                                                    placeholder="航廈 T2">
                                                 <div class="flex justify-end">
                                                     <select v-model="currentDay.flight.arrivalOffset"
                                                         class="bg-stone-100 text-xs rounded p-1 border-none focus:ring-0 text-stone-500 font-bold">
@@ -630,12 +638,34 @@
                                                 <div class="text-sm font-bold text-stone-500">{{
                                                     currentDay.flight.endTime
                                                     || '--:--' }}</div>
+                                                <div v-if="currentDay.flight.endTerminal" class="text-[10px] font-bold text-stone-400 mt-0.5">{{ currentDay.flight.endTerminal }}</div>
                                             </div>
 
                                             <div v-if="!editingState.flight && currentDay.flight.arrivalOffset != 0"
                                                 class="absolute -top-2 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md pointer-events-none z-0">
                                                 {{ currentDay.flight.arrivalOffset > 0 ? '+1' : '-1' }}
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 登機門 / 座位 -->
+                                    <div v-if="editingState.flight" class="flex gap-2 mt-4 pt-4 border-t border-primary-100/60">
+                                        <input v-model="currentDay.flight.gate"
+                                            class="flex-1 text-xs font-bold text-stone-600 bg-white/70 border border-stone-200 rounded-lg p-2 text-center placeholder:text-stone-300"
+                                            placeholder="登機門 (例如 A12)">
+                                        <input v-model="currentDay.flight.seat"
+                                            class="flex-1 text-xs font-bold text-stone-600 bg-white/70 border border-stone-200 rounded-lg p-2 text-center placeholder:text-stone-300"
+                                            placeholder="座位號碼 (例如 32A)">
+                                    </div>
+                                    <div v-else-if="currentDay.flight.gate || currentDay.flight.seat"
+                                        class="flex gap-2 mt-4 pt-4 border-t border-primary-100/60">
+                                        <div v-if="currentDay.flight.gate" class="flex-1 bg-white/60 rounded-xl py-2 text-center">
+                                            <div class="text-[9px] font-bold text-stone-400 uppercase tracking-wider">登機門</div>
+                                            <div class="text-sm font-black text-stone-700">{{ currentDay.flight.gate }}</div>
+                                        </div>
+                                        <div v-if="currentDay.flight.seat" class="flex-1 bg-white/60 rounded-xl py-2 text-center">
+                                            <div class="text-[9px] font-bold text-stone-400 uppercase tracking-wider">座位</div>
+                                            <div class="text-sm font-black text-stone-700">{{ currentDay.flight.seat }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -653,6 +683,13 @@
                     <!-- Timeline Items -->
                     <div class="relative pl-6 border-l-2 border-dashed border-stone-200 space-y-6">
                         <template v-for="(item, idx) in currentDay.items" :key="item && item.id || idx">
+                            <!-- 通勤區塊：從上一站到這一站的交通方式與時間 -->
+                            <div v-if="item && idx > 0 && item.commuteMode && item.commuteMinutes"
+                                class="relative -my-2 flex items-center gap-1.5 text-stone-400">
+                                <div class="absolute -left-[25px] w-2 h-2 rounded-full bg-stone-300"></div>
+                                <i :class="(commuteMeta(item.commuteMode) || {}).icon" class="text-xs"></i>
+                                <span class="text-[11px] font-bold">{{ (commuteMeta(item.commuteMode) || {}).label }}・約 {{ item.commuteMinutes }} 分</span>
+                            </div>
                             <div v-if="item" class="relative group">
                                 <div class="absolute -left-[31px] top-5 w-4 h-4 rounded-full border-[3px] border-stone-50 shadow-sm z-10 transition-colors duration-300"
                                     :class="getDotColor(item.type)"></div>
@@ -687,27 +724,28 @@
 
                                         <!-- Content -->
                                         <div class="flex-1 py-2 min-w-0 flex flex-col justify-center pr-1">
-                                            <div class="font-bold text-stone-800 text-base pr-6">{{ item.activity ||
-                                                '未命名行程' }}</div>
-
-                                            <div v-if="item.placeId" class="flex items-center gap-1.5 mt-2 px-1">
-                                                <i class="ph-fill ph-map-pin text-primary-400 text-xs"></i>
-                                                <span class="text-xs font-bold text-primary-600 truncate">{{ itemLocationLabel(item) }}</span>
+                                            <div class="flex items-center gap-1.5 pr-6">
+                                                <span class="font-bold text-stone-800 text-base truncate">{{ item.activity || '未命名行程' }}</span>
+                                                <span v-if="item.reserved"
+                                                    class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-0.5">
+                                                    <i class="ph-fill ph-check-circle"></i>已預約
+                                                </span>
                                             </div>
-                                            <a v-if="itemNavTarget(item)"
-                                                :href="getExternalMapLink(itemNavTarget(item))" target="_blank"
-                                                @click.stop
-                                                class="relative z-10 flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all border group/btn w-full mt-2"
-                                                :class="isUrl(itemNavTarget(item)) ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' : 'bg-primary-50 text-primary-700 border-primary-100 hover:bg-primary-100'">
-                                                <div class="flex items-center gap-2 truncate pr-2">
-                                                    <i
-                                                        :class="isUrl(itemNavTarget(item)) ? 'ph-bold ph-globe' : 'ph-bold ph-navigation-arrow'"></i>
-                                                    <span class="truncate">{{ isUrl(itemNavTarget(item))
-                                                        ? '開啟連結' :
-                                                        '開啟導航' }}</span>
-                                                </div>
-                                                <i class="ph-bold ph-arrow-right"></i>
-                                            </a>
+
+                                            <div v-if="itemLocationLabel(item) || itemNavTarget(item)"
+                                                class="flex items-center gap-1.5 mt-2">
+                                                <i class="text-xs shrink-0"
+                                                    :class="item.placeId ? 'ph-fill ph-map-pin text-primary-400' : 'ph-bold ph-map-pin text-stone-300'"></i>
+                                                <span class="flex-1 min-w-0 truncate text-xs font-bold"
+                                                    :class="item.placeId ? 'text-primary-600' : 'text-stone-500'">{{ itemLocationLabel(item) }}</span>
+                                                <a v-if="itemNavTarget(item)" :href="getExternalMapLink(itemNavTarget(item))"
+                                                    target="_blank" @click.stop
+                                                    class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                                                    :class="isUrl(itemNavTarget(item)) ? 'bg-indigo-50 text-indigo-500 hover:bg-indigo-100' : 'bg-primary-50 text-primary-500 hover:bg-primary-100'"
+                                                    :title="isUrl(itemNavTarget(item)) ? '開啟連結' : '開啟導航'">
+                                                    <i :class="isUrl(itemNavTarget(item)) ? 'ph-bold ph-globe' : 'ph-bold ph-navigation-arrow'" class="text-xs"></i>
+                                                </a>
+                                            </div>
 
                                             <div v-if="item.note" class="flex items-start gap-2 mt-2 pt-1">
                                                 <i class="ph-bold ph-notebook text-stone-300 text-sm mt-0.5"></i>
@@ -1623,6 +1661,34 @@
                                 class="w-full bg-stone-50 rounded-xl py-2 pl-9 pr-3 text-sm text-stone-600 focus:outline-none focus:ring-2 focus:ring-primary-100 resize-none min-h-[60px]"
                                 placeholder="備註 (票卷/訂位編號...)"></textarea>
                         </div>
+
+                        <!-- 從上一個行程過來的交通方式/時間（顯示在時間軸上的通勤區塊） -->
+                        <div>
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">從上一站怎麼過來（選填）</label>
+                            <div class="flex gap-2">
+                                <div class="flex h-11 flex-1 bg-stone-50 p-1 rounded-xl border border-stone-200 items-stretch">
+                                    <button v-for="m in COMMUTE_MODES" :key="m.slug"
+                                        @click="itemModal.draft.commuteMode = (itemModal.draft.commuteMode === m.slug ? '' : m.slug)"
+                                        class="flex-1 rounded-lg flex items-center justify-center text-base transition-colors"
+                                        :class="itemModal.draft.commuteMode === m.slug ? 'bg-white shadow-sm text-primary-600' : 'opacity-40 text-stone-500 hover:opacity-100'"
+                                        :title="m.label">
+                                        <i :class="m.icon"></i>
+                                    </button>
+                                </div>
+                                <input v-model="itemModal.draft.commuteMinutes" type="number" inputmode="numeric" placeholder="分鐘"
+                                    class="w-20 shrink-0 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-700 py-2 px-2 text-center focus:ring-2 focus:ring-primary-200">
+                            </div>
+                        </div>
+
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <button type="button" @click="itemModal.draft.reserved = !itemModal.draft.reserved"
+                                class="w-10 h-6 rounded-full transition-colors relative shrink-0"
+                                :class="itemModal.draft.reserved ? 'bg-primary-500' : 'bg-stone-200'">
+                                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+                                    :class="itemModal.draft.reserved ? 'left-[1.125rem]' : 'left-0.5'"></span>
+                            </button>
+                            <span class="text-sm font-bold text-stone-600">已預約</span>
+                        </label>
 
                         <div class="flex items-center justify-between pt-2 border-t border-stone-50">
                             <button v-if="itemModal.mode === 'edit'" @click="deleteItemFromModal"
