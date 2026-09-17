@@ -74,13 +74,13 @@ createApp({
         const participantsStr = ref('');
         const exchangeRate = ref(0.215);
 
-        // 💡 5. 擴充分類：加入「機票」
+        // 分類新增「機票」
         const BASE_EXPENSE_CATEGORIES = [
             { slug: 'flight', label: '機票', emoji: '✈️' },
             ...EXPENSE_CATEGORIES
         ];
 
-        // 💡 6. 記帳支援幣別 ('FOREIGN' 外幣 / 'TWD' 台幣)
+        // 記帳 draft 加入幣別
         const newExpense = ref({ 
             item: '', 
             amount: '', 
@@ -117,7 +117,7 @@ createApp({
 
         const currentDay = computed(() => days.value[currentDayIdx.value] || { items: [], flight: null, date: '', title: '' });
 
-        // 💡 6. 換算外幣與台幣總金額
+        // 計算外幣與台幣金額
         const getExpenseInForeign = (e) => {
             const amt = Number(e.amount || 0);
             if (e.currency === 'TWD') {
@@ -250,7 +250,7 @@ createApp({
         const fmtExpDate = (s) => { if (!s) return ''; const p = String(s).split('-'); return p.length === 3 ? `${p[1]}/${p[2]}` : s; };
         const getWeatherIcon = (c) => { if (c === 0) return 'ph-sun'; if (c < 4) return 'ph-cloud-sun'; if (c < 50) return 'ph-cloud-fog'; if (c < 70) return 'ph-cloud-rain'; return 'ph-cloud'; };
 
-        // 💡 1. 移除「上午/下午/晚上」
+        // 純 24 小時制
         const getTimePeriod = (t) => t || '';
 
         const dialog = reactive({ show: false, title: '', message: '', confirmText: '確定', cancelText: '取消', danger: false, showCancel: true, link: '' });
@@ -298,7 +298,7 @@ createApp({
             return 'border-primary-300';
         };
 
-        // 💡 2. 交通工具選項細分
+        // 交通工具細分
         const COMMUTE_MODES = [
             { slug: 'walk', label: '步行', icon: 'ph-bold ph-person-simple-walk' },
             { slug: 'transit_metro', label: '地鐵/捷運', icon: 'ph-bold ph-train-regional' },
@@ -330,7 +330,6 @@ createApp({
                 itemModal.draft = JSON.parse(JSON.stringify(item));
             } else {
                 itemModal.mode = 'add'; itemModal.targetId = null;
-                // 💡 3. 新增 routeNote (路線/月台/方向備註)
                 itemModal.draft = { 
                     id: generateId(), 
                     time: '', 
