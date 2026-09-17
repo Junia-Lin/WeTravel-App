@@ -224,7 +224,7 @@
             </div>
         </transition>
 
-        <!-- Header (完整還原你原本漂亮的 Header 與 Hello Kitty 造型) -->
+        <!-- Header -->
         <header class="bg-white/80 backdrop-blur-md z-20 sticky top-0 border-b border-stone-100 pt-safe-top">
             <div class="px-5 py-3 flex justify-between items-center bg-white/50 backdrop-blur-sm z-30 relative">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
@@ -273,7 +273,7 @@
                 </div>
             </div>
 
-            <!-- Days Scroller (完全還原你原本漂亮的橫向滑動 Days) -->
+            <!-- Days Scroller -->
             <div v-if="viewMode === 'plan'"
                 class="flex overflow-x-auto hide-scroll px-4 pb-3 pt-3 space-x-2.5 snap-x border-b border-stone-50 w-full touch-pan-x overscroll-contain">
                 <div v-for="(day, index) in days" :key="index" @click="currentDayIdx = index" :data-day-idx="index"
@@ -294,7 +294,7 @@
             <transition name="fade" mode="out-in">
                 <div v-if="viewMode === 'plan'" key="plan" class="view-pane p-5 pb-32 space-y-4 w-full">
 
-                    <!-- 💡 0. 配合圖一：簡化今日主題為單行列 (Day 1 + 主題輸入 + 新增行程鈕) -->
+                    <!-- 今日主題 (Day 1 + 主題 + 新增行程鈕) -->
                     <div class="flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2 flex-1 min-w-0 bg-primary-50/60 p-1.5 px-3 rounded-2xl border border-primary-100/50">
                             <span class="bg-stone-800 text-white px-2.5 py-0.5 rounded-lg text-xs font-black shrink-0">
@@ -316,7 +316,7 @@
                         </button>
                     </div>
 
-                    <!-- Flight Card (原本的航班卡片) -->
+                    <!-- Flight Card -->
                     <div v-if="currentDay.flight" class="bg-gradient-to-br from-primary-50 to-white rounded-2xl p-4 shadow-sm border border-white text-left">
                         <div class="flex justify-between items-center text-xs font-bold text-primary-600 mb-1">
                             <span>✈️ 航班：{{ currentDay.flight.number }}</span>
@@ -329,14 +329,12 @@
                         </div>
                     </div>
 
-                    <!-- 行程項目列表 (💡 1, 3, 4：24小時時間、圖二靠左對齊修正、藍框路線備註) -->
+                    <!-- 行程項目列表 (24h時間、靠左對齊、藍框路線備註) -->
                     <div class="space-y-3">
                         <div v-for="item in currentDay.items" :key="item.id" class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 text-left space-y-2 relative">
                             
-                            <!-- 第一列：時間(24h) 與 活動名稱 -->
                             <div class="flex justify-between items-start">
                                 <div class="flex items-center gap-2 min-w-0 flex-1">
-                                    <!-- 💡 1. 24小時制時間 (無上下午) -->
                                     <span class="text-xs font-black text-primary-500 bg-primary-50 px-2 py-0.5 rounded-md shrink-0">
                                         {{ item.time || '全天' }}
                                     </span>
@@ -347,25 +345,21 @@
                                 </button>
                             </div>
 
-                            <!-- 💡 4. 圖二紅框修正：地點名稱與導航按鈕(藍框)靠左排版 -->
                             <div v-if="itemLocationLabel(item)" class="flex items-center justify-between text-xs text-stone-600 bg-stone-50/70 p-2 rounded-xl border border-stone-100">
                                 <div class="flex items-center gap-1.5 min-w-0 text-left flex-1">
                                     <i class="ph-bold ph-map-pin text-primary-500 shrink-0"></i>
                                     <span class="truncate font-bold text-stone-700">{{ itemLocationLabel(item) }}</span>
                                 </div>
-                                <!-- 藍框導航按鈕靠右固定 -->
                                 <a :href="getExternalMapLink(itemNavTarget(item))" target="_blank" class="w-7 h-7 flex items-center justify-center bg-white text-primary-500 hover:bg-primary-50 rounded-lg shadow-sm border border-stone-100 shrink-0 ml-2">
                                     <i class="ph-bold ph-navigation-arrow text-sm"></i>
                                 </a>
                             </div>
 
-                            <!-- 💡 3. 圖二紅框修正：路線 / 月台 / 方向標籤靠左展示 -->
                             <div v-if="item.routeNote" class="text-xs text-blue-700 bg-blue-50/80 px-2.5 py-1 rounded-lg font-medium inline-flex items-center gap-1.5 border border-blue-100 text-left">
                                 <i class="ph-bold ph-subway shrink-0 text-blue-500"></i>
                                 <span>{{ item.routeNote }}</span>
                             </div>
 
-                            <!-- 詳細備註 -->
                             <div v-if="item.note" class="text-xs text-stone-500 bg-stone-50 p-2 rounded-lg leading-relaxed text-left border border-stone-100">
                                 {{ item.note }}
                             </div>
@@ -375,11 +369,11 @@
                 </div>
             </transition>
 
-            <!-- 記帳分頁 (Expense) (💡 5 & 6) -->
+            <!-- 記帳分頁 (Expense) -->
             <transition name="fade" mode="out-in">
                 <div v-if="viewMode === 'expense'" key="expense" class="view-pane p-5 pb-32 space-y-4 w-full text-left">
                     
-                    <!-- 💡 5. 圖三記帳成員精簡化：保留原本圖三卡片，但調整為簡潔精緻高度 -->
+                    <!-- 成員與分攤 -->
                     <div class="bg-white p-4 rounded-3xl border border-stone-100 shadow-sm space-y-3">
                         <div class="flex justify-between items-center border-b pb-2">
                             <span class="text-xs font-black text-stone-800">👥 成員與分攤</span>
@@ -388,7 +382,6 @@
                             </button>
                         </div>
 
-                        <!-- 成員列表展示 (圖三風格精簡版) -->
                         <div class="flex flex-wrap gap-2">
                             <span v-for="p in participants" :key="p" class="bg-primary-50 text-primary-700 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1">
                                 {{ p }}
@@ -396,19 +389,17 @@
                             </span>
                         </div>
 
-                        <!-- 新增成員欄位 (點擊管理成員才展開) -->
                         <div v-if="editingState.participants" class="flex gap-2 pt-1">
                             <input v-model="newParticipant" placeholder="輸入成員名字" class="flex-1 bg-stone-50 border rounded-xl px-3 py-1.5 text-xs">
                             <button @click="addParticipant" class="bg-primary-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">+ 加人</button>
                         </div>
                     </div>
 
-                    <!-- 💡 5 & 6. 新增支出表單（圖四風格：下拉選單、台幣/外幣切換、含機票） -->
+                    <!-- 新增支出表單 -->
                     <div class="bg-white p-4 rounded-3xl border border-stone-100 shadow-sm space-y-3">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-black text-stone-800">+ 新增支出</span>
                             
-                            <!-- 💡 6. 幣別切換鈕 [ 當地幣 | NT$ 台幣 ] -->
                             <div class="flex bg-stone-100 p-0.5 rounded-xl text-xs font-bold">
                                 <button @click="newExpense.currency = 'FOREIGN'" :class="newExpense.currency === 'FOREIGN' ? 'bg-primary-500 text-white shadow-sm' : 'text-stone-500'" class="px-2.5 py-1 rounded-lg transition">
                                     {{ currencySymbol }} 當地幣
@@ -424,7 +415,6 @@
                             <input v-model="newExpense.amount" ref="amountInputRef" type="number" placeholder="金額" class="w-28 bg-stone-50 border-0 rounded-xl p-2.5 text-xs font-bold text-stone-800">
                         </div>
 
-                        <!-- 💡 5. 圖四風格：下拉式選單 (分類 / 付款人 / 支付方式) -->
                         <div class="grid grid-cols-3 gap-2">
                             <div>
                                 <label class="text-[10px] text-stone-400 font-bold block mb-1">分類</label>
@@ -475,7 +465,7 @@
 
         </main>
 
-        <!-- 💡 2 & 3. 新增/編輯行程 Modal (支援純 24h 時間與轉乘路線備註) -->
+        <!-- 新增/編輯行程 Modal -->
         <div v-if="itemModal.show" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 text-left shadow-2xl">
                 <div class="flex justify-between items-center border-b pb-2">
@@ -485,7 +475,6 @@
 
                 <div class="space-y-3">
                     <div class="flex gap-2">
-                        <!-- 💡 1. 24 小時制時間輸入 -->
                         <div class="w-1/3">
                             <label class="text-[10px] font-bold text-stone-400 block mb-1">時間 (24h)</label>
                             <input v-model="itemModal.draft.time" type="time" class="w-full bg-stone-50 rounded-xl p-2 text-xs font-bold border-0 text-stone-800">
@@ -496,7 +485,6 @@
                         </div>
                     </div>
 
-                    <!-- 💡 2. 自由行交通方式選單 -->
                     <div>
                         <label class="text-[10px] font-bold text-stone-400 block mb-1">移動方式</label>
                         <select v-model="itemModal.draft.commuteMode" class="w-full bg-stone-50 rounded-xl p-2 text-xs font-bold border-0 text-stone-700">
@@ -505,7 +493,6 @@
                         </select>
                     </div>
 
-                    <!-- 💡 3. 路線 / 月台 / 方向備註 -->
                     <div>
                         <label class="text-[10px] font-bold text-blue-500 block mb-1">乘車/路線重要備註 (月台/方向/線路)</label>
                         <input v-model="itemModal.draft.routeNote" class="w-full bg-blue-50/50 border border-blue-100 rounded-xl p-2 text-xs font-bold text-blue-800 placeholder:text-blue-300" placeholder="例: 地鐵【2號線】到【世紀大道】">
@@ -529,7 +516,7 @@
             </div>
         </div>
 
-        <!-- 💡 100% 完全還原你原本的 5 大 Tabs 底部導覽列 (行程, 口袋, 記帳, 清單, 小幫手) -->
+        <!-- 5 大 Tabs 底部導覽列 (行程, 口袋, 記帳, 清單, 小幫手) -->
         <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 backdrop-blur-md border-t border-stone-100 px-2 py-2 flex justify-around items-center z-40 pb-safe">
             <button @click="viewMode = 'plan'" :class="viewMode === 'plan' ? 'text-primary-500' : 'text-stone-400'" class="flex flex-col items-center gap-0.5">
                 <i class="ph-bold ph-calendar-check text-xl"></i>
