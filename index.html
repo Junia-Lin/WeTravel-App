@@ -36,16 +36,6 @@
             padding-top: env(safe-area-inset-top);
         }
     </style>
-    <script>
-        window.__errLogs = [];
-        window.onerror = function (msg, url, line, col, error) {
-            window.__errLogs.push(`[Error] ${msg} (${url}:${line})`);
-            return false;
-        };
-        window.onunhandledrejection = function (event) {
-            window.__errLogs.push(`[Promise] ${event.reason}`);
-        };
-    </script>
 
     <script>
         tailwind.config = {
@@ -114,46 +104,6 @@
             pointer-events: none;
         }
 
-        .kitty-logo {
-            position: relative;
-        }
-
-        .kitty-logo::after {
-            content: '';
-            position: absolute;
-            top: -5px;
-            right: -8px;
-            width: 28px;
-            height: 28px;
-            background-image: url('assets/bow_red.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            z-index: 20;
-            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.15));
-            pointer-events: none;
-        }
-
-        .kitty-bg {
-            position: relative;
-        }
-
-        .kitty-bg::before {
-            content: '';
-            position: absolute;
-            bottom: -10%;
-            right: -5%;
-            width: 50%;
-            height: 80%;
-            background-image: url('assets/kitty_face_pink.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: bottom right;
-            opacity: 0.15;
-            pointer-events: none;
-            z-index: 0;
-        }
-
         .hide-scroll::-webkit-scrollbar {
             display: none;
         }
@@ -172,57 +122,13 @@
         .fade-leave-to {
             opacity: 0;
         }
-
-        input[type="date"] {
-            -webkit-appearance: none;
-            appearance: none;
-            min-height: 2.75rem;
-            background-color: transparent;
-        }
     </style>
 </head>
 
 <body class="text-stone-600 h-[100dvh] flex flex-col overflow-hidden bg-stone-50">
 
-    <!-- Loading Splash Screen -->
-    <div id="loading-screen" style="position: fixed; inset: 0; z-index: 99999; background-color: #fff0f5; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; transition: opacity 0.5s ease, visibility 0.5s ease;">
-        <img src="assets/BG_Loading.png" alt="Loading" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;">
-        <p style="position: relative; z-index: 1; color: #b88a8e; font-size: 13px; font-family: 'Inter', 'Noto Sans TC', sans-serif; letter-spacing: 0.5px; margin-bottom: 1.5rem;">© 2024 Sanrio Co., Ltd.</p>
-        <div style="position: relative; z-index: 1; width: 60%; max-width: 260px; height: 22px; border-radius: 999px; border: 2.5px solid #ff1493; background: white; overflow: hidden; padding: 3px; margin-bottom: 3rem;">
-            <div id="loading-bar" style="height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #ff69b4, #ff1493); transition: width 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);"></div>
-        </div>
-    </div>
-
-    <script>
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                const bar = document.getElementById('loading-bar');
-                if (bar) bar.style.width = '100%';
-            });
-        });
-        window.__hideSplash = () => {
-            const screen = document.getElementById('loading-screen');
-            if (screen && !screen.dataset.hidden) {
-                screen.dataset.hidden = '1';
-                screen.style.opacity = '0';
-                screen.style.visibility = 'hidden';
-                setTimeout(() => screen.remove(), 400);
-            }
-        };
-        setTimeout(() => window.__hideSplash(), 1000);
-    </script>
-
     <div id="app" v-cloak
         class="flex flex-col h-full w-full bg-white shadow-2xl relative sm:max-w-md sm:mx-auto sm:rounded-[2rem] sm:my-4 sm:h-[95vh] sm:border-[6px] sm:border-stone-200 overflow-hidden ring-1 ring-stone-900/5">
-
-        <!-- DB Error Alert -->
-        <transition name="fade">
-            <div v-if="dbError"
-                class="absolute top-16 left-4 right-4 bg-red-500 text-white p-4 rounded-2xl shadow-2xl z-[100]">
-                <div class="font-bold flex items-center gap-2 mb-1"><i class="ph-bold ph-warning-octagon text-xl"></i>連線發生錯誤</div>
-                <div class="text-xs opacity-90 leading-relaxed mb-3 font-mono">{{ dbErrorMessage }}</div>
-            </div>
-        </transition>
 
         <!-- Header -->
         <header class="bg-white/80 backdrop-blur-md z-20 sticky top-0 border-b border-stone-100 pt-safe-top">
@@ -234,7 +140,7 @@
                     </button>
 
                     <div class="overflow-hidden min-w-0 flex-1">
-                        <div class="flex items-center gap-2 cursor-pointer group" @click="openEditModal">
+                        <div class="flex items-center gap-2 cursor-pointer group">
                             <h1 class="text-xl font-black tracking-tight truncate text-stone-800 group-hover:text-primary-600 transition-colors">
                                 {{ setup.destination || '旅遊計畫' }}
                             </h1>
@@ -242,11 +148,6 @@
                                 class="text-[10px] bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide shrink-0">
                                 {{ setup.currency }}
                             </span>
-                            <div class="flex items-center gap-1 ml-1" :title="syncStatus">
-                                <i v-if="syncStatus === 'synced'" class="ph-fill ph-cloud-check text-green-500 text-lg"></i>
-                                <i v-else-if="syncStatus === 'syncing'" class="ph-bold ph-arrows-clockwise text-amber-500 animate-spin text-lg"></i>
-                                <i v-else-if="syncStatus === 'offline'" class="ph-bold ph-cloud-slash text-red-400 text-lg"></i>
-                            </div>
                         </div>
 
                         <!-- Weather Widget -->
@@ -265,36 +166,29 @@
                             </div>
                         </div>
                     </div>
-
-                    <button @click="shareTrip"
-                        class="w-12 h-12 rounded-full flex items-center justify-center text-stone-500 hover:bg-white hover:shadow-sm hover:text-stone-800 transition active:scale-95 shrink-0">
-                        <img src="assets/icn_share.png" class="w-12 h-12 object-contain" alt="Share">
-                    </button>
                 </div>
             </div>
 
             <!-- Days Scroller -->
             <div v-if="viewMode === 'plan'"
-                class="flex overflow-x-auto hide-scroll px-4 pb-3 pt-3 space-x-2.5 snap-x border-b border-stone-50 w-full touch-pan-x overscroll-contain">
-                <div v-for="(day, index) in days" :key="index" @click="currentDayIdx = index" :data-day-idx="index"
-                    class="snap-center shrink-0 flex flex-col items-start justify-center w-[6.5rem] h-[4rem] px-3 rounded-[1rem] cursor-pointer transition-all border-0 relative"
+                class="flex overflow-x-auto hide-scroll px-4 pb-3 pt-3 space-x-2.5 snap-x border-b border-stone-50 w-full touch-pan-x">
+                <div v-for="(day, index) in days" :key="index" @click="currentDayIdx = index"
+                    class="snap-center shrink-0 flex flex-col items-start justify-center w-[6.5rem] h-[4rem] px-3 rounded-[1rem] cursor-pointer transition-all relative"
                     :class="currentDayIdx === index ? 'bg-primary-300 text-white shadow-glow scale-105 with-bow' : 'bg-primary-50 text-stone-500 hover:bg-primary-100'">
-                    <span class="text-xs font-black tracking-tight"
-                        :class="currentDayIdx === index ? 'text-white' : 'text-stone-700'">D{{ index + 1 }} ・ {{ day.shortDate }}</span>
-                    <span class="text-[10px] font-bold mt-0.5 truncate w-full text-left"
-                        :class="currentDayIdx === index ? 'text-white/85' : 'text-stone-400'">{{ day.title || '未設定主題' }}</span>
+                    <span class="text-xs font-black tracking-tight" :class="currentDayIdx === index ? 'text-white' : 'text-stone-700'">D{{ index + 1 }} ・ {{ day.shortDate || '' }}</span>
+                    <span class="text-[10px] font-bold mt-0.5 truncate w-full text-left" :class="currentDayIdx === index ? 'text-white/85' : 'text-stone-400'">{{ day.title || '未設定主題' }}</span>
                 </div>
             </div>
         </header>
 
-        <!-- Main Content -->
+        <!-- Main Content Area -->
         <main class="flex-1 overflow-y-auto bg-stone-50/50 relative hide-scroll">
 
-            <!-- 行程分頁 (Plan) -->
+            <!-- 1. 行程分頁 (Plan) -->
             <transition name="fade" mode="out-in">
                 <div v-if="viewMode === 'plan'" key="plan" class="view-pane p-5 pb-32 space-y-4 w-full">
 
-                    <!-- 今日主題 (Day 1 + 主題 + 新增行程鈕) -->
+                    <!-- 今日主題 (Day 1 + 編輯主題 + +行程鈕) -->
                     <div class="flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2 flex-1 min-w-0 bg-primary-50/60 p-1.5 px-3 rounded-2xl border border-primary-100/50">
                             <span class="bg-stone-800 text-white px-2.5 py-0.5 rounded-lg text-xs font-black shrink-0">
@@ -316,20 +210,7 @@
                         </button>
                     </div>
 
-                    <!-- Flight Card -->
-                    <div v-if="currentDay.flight" class="bg-gradient-to-br from-primary-50 to-white rounded-2xl p-4 shadow-sm border border-white text-left">
-                        <div class="flex justify-between items-center text-xs font-bold text-primary-600 mb-1">
-                            <span>✈️ 航班：{{ currentDay.flight.number }}</span>
-                            <button @click="editingState.flight = !editingState.flight" class="text-stone-400"><i class="ph-bold ph-pencil-simple"></i></button>
-                        </div>
-                        <div class="flex justify-between items-center text-sm font-black text-stone-800">
-                            <div>{{ currentDay.flight.startAirport }} ({{ currentDay.flight.startTime }})</div>
-                            <i class="ph-bold ph-arrow-right text-stone-400"></i>
-                            <div>{{ currentDay.flight.endAirport }} ({{ currentDay.flight.endTime }})</div>
-                        </div>
-                    </div>
-
-                    <!-- 行程項目列表 (24h時間、靠左對齊、藍框路線備註) -->
+                    <!-- 行程列表 (24h時間、靠左對齊、藍框路線備註) -->
                     <div class="space-y-3">
                         <div v-for="item in currentDay.items" :key="item.id" class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 text-left space-y-2 relative">
                             
@@ -369,11 +250,30 @@
                 </div>
             </transition>
 
-            <!-- 記帳分頁 (Expense) -->
+            <!-- 2. 口袋分頁 (Saved Locations) -->
+            <transition name="fade" mode="out-in">
+                <div v-if="viewMode === 'saved'" key="saved" class="view-pane p-5 pb-32 space-y-4 w-full text-left">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h2 class="text-sm font-black text-stone-800">🔖 景點美食口袋名單</h2>
+                        <button @click="openLocModal()" class="bg-primary-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">+ 地點</button>
+                    </div>
+
+                    <div id="saved-locations-list" class="space-y-2">
+                        <div v-for="loc in savedLocations" :key="loc.id" class="bg-white p-3.5 rounded-2xl border border-stone-100 shadow-sm flex justify-between items-center">
+                            <div>
+                                <div class="text-xs font-bold text-stone-800">{{ loc.name }}</div>
+                                <div v-if="loc.note" class="text-[10px] text-stone-400">{{ loc.note }}</div>
+                            </div>
+                            <button @click="openLocModal(loc)" class="text-stone-300 hover:text-primary-500"><i class="ph-bold ph-pencil-simple"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
+            <!-- 3. 記帳分頁 (Expense) -->
             <transition name="fade" mode="out-in">
                 <div v-if="viewMode === 'expense'" key="expense" class="view-pane p-5 pb-32 space-y-4 w-full text-left">
                     
-                    <!-- 成員與分攤 -->
                     <div class="bg-white p-4 rounded-3xl border border-stone-100 shadow-sm space-y-3">
                         <div class="flex justify-between items-center border-b pb-2">
                             <span class="text-xs font-black text-stone-800">👥 成員與分攤</span>
@@ -390,12 +290,11 @@
                         </div>
 
                         <div v-if="editingState.participants" class="flex gap-2 pt-1">
-                            <input v-model="newParticipant" placeholder="輸入成員名字" class="flex-1 bg-stone-50 border rounded-xl px-3 py-1.5 text-xs">
+                            <input v-model="newParticipant" placeholder="成員名字" class="flex-1 bg-stone-50 border rounded-xl px-3 py-1.5 text-xs">
                             <button @click="addParticipant" class="bg-primary-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">+ 加人</button>
                         </div>
                     </div>
 
-                    <!-- 新增支出表單 -->
                     <div class="bg-white p-4 rounded-3xl border border-stone-100 shadow-sm space-y-3">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-black text-stone-800">+ 新增支出</span>
@@ -444,7 +343,6 @@
                         </button>
                     </div>
 
-                    <!-- 支出項目明細 -->
                     <div class="space-y-2">
                         <div v-for="exp in expenses" :key="exp.id" @click="openExpModal(exp)" class="bg-white p-3.5 rounded-xl border border-stone-100 shadow-sm flex justify-between items-center cursor-pointer hover:border-primary-200 transition">
                             <div>
@@ -460,6 +358,53 @@
                         </div>
                     </div>
 
+                </div>
+            </transition>
+
+            <!-- 4. 行前準備/清單分頁 (Checklist) -->
+            <transition name="fade" mode="out-in">
+                <div v-if="viewMode === 'checklist'" key="checklist" class="view-pane p-5 pb-32 space-y-4 w-full text-left">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h2 class="text-sm font-black text-stone-800">📋 行前準備與行李清單</h2>
+                        <div class="flex gap-2">
+                            <button @click="seedDefaultChecklist" class="bg-stone-100 text-stone-600 px-2.5 py-1 rounded-xl text-xs font-bold">帶入預設</button>
+                            <button @click="openCheckModal()" class="bg-primary-500 text-white px-3 py-1 rounded-xl text-xs font-bold">+ 項目</button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div v-for="cat in checklistByCategory" :key="cat.slug" class="bg-white rounded-2xl p-4 border border-stone-100 shadow-sm space-y-2">
+                            <div class="flex justify-between items-center cursor-pointer" @click="toggleCat(cat.slug)">
+                                <span class="text-xs font-black text-stone-800">{{ cat.title }} ({{ cat.done }}/{{ cat.items.length }})</span>
+                                <i :class="collapsedCats[cat.slug] ? 'ph-bold ph-caret-down' : 'ph-bold ph-caret-up'" class="text-stone-400"></i>
+                            </div>
+
+                            <div v-if="!collapsedCats[cat.slug]" class="space-y-1.5 pt-1">
+                                <div v-for="item in cat.items" :key="item.id" class="flex justify-between items-center text-xs py-1 border-b border-stone-50 last:border-0">
+                                    <div class="flex items-center gap-2 cursor-pointer" @click="toggleCheck(item, activeChecklistMember)">
+                                        <i :class="item.checkedBy && item.checkedBy[activeChecklistMember] ? 'ph-fill ph-check-circle text-primary-500' : 'ph-bold ph-circle text-stone-300'" class="text-base"></i>
+                                        <span :class="item.checkedBy && item.checkedBy[activeChecklistMember] ? 'line-through text-stone-300' : 'text-stone-700 font-bold'">{{ item.name }}</span>
+                                    </div>
+                                    <button @click="openCheckModal(item)" class="text-stone-300 hover:text-stone-500"><i class="ph-bold ph-pencil-simple"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
+            <!-- 5. 旅遊小幫手分頁 (Assistant) -->
+            <transition name="fade" mode="out-in">
+                <div v-if="viewMode === 'assistant'" key="assistant" class="view-pane p-5 pb-32 space-y-4 w-full text-left">
+                    <div class="bg-white p-4 rounded-3xl border border-stone-100 shadow-sm space-y-3">
+                        <h2 class="text-sm font-black text-stone-800 flex items-center gap-1.5">
+                            <i class="ph-bold ph-sparkle text-primary-500"></i> 旅遊小幫手
+                        </h2>
+                        <p class="text-xs text-stone-500 leading-relaxed">
+                            匯率換算：1 {{ setup.currency }} ≈ {{ setup.rate }} TWD<br>
+                            語言簡譯與緊急求助電話設定完畢。
+                        </p>
+                    </div>
                 </div>
             </transition>
 
@@ -516,7 +461,7 @@
             </div>
         </div>
 
-        <!-- 5 大 Tabs 底部導覽列 (行程, 口袋, 記帳, 清單, 小幫手) -->
+        <!-- 5 大 Tabs 底部導覽列 -->
         <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 backdrop-blur-md border-t border-stone-100 px-2 py-2 flex justify-around items-center z-40 pb-safe">
             <button @click="viewMode = 'plan'" :class="viewMode === 'plan' ? 'text-primary-500' : 'text-stone-400'" class="flex flex-col items-center gap-0.5">
                 <i class="ph-bold ph-calendar-check text-xl"></i>
