@@ -1,5 +1,4 @@
 export const EXPENSE_CATEGORIES = [
-    { slug: 'transport', label: '機票', emoji: '✈️' },
     { slug: 'transport', label: '交通', emoji: '🚗' },
     { slug: 'lodging', label: '住宿', emoji: '🏨' },
     { slug: 'food', label: '餐飲', emoji: '🍜' },
