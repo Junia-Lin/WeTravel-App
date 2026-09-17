@@ -1,6 +1,6 @@
 import { createApp, ref, computed, watch, onMounted, nextTick, reactive } from './vendor/vue-3.5.13.esm-browser.prod.js'
 
-// Firebase 設定改由外部檔案提供
+// Firebase 設定改由外部檔案提供：自架者請編輯 firebase-config.js
 import { firebaseConfig } from './firebase-config.js';
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -38,7 +38,7 @@ createApp({
             'permission-denied': '存取被拒絕，請確認您有權限。',
             'not-found': '找不到此行程，可能已被刪除。',
             'resource-exhausted': '配額已滿，請稍後再試。',
-            'not-configured': '尚未設定 Firebase：請編輯 firebase-config.js'
+            'not-configured': '尚未設定 Firebase：請編輯 firebase-config.js，填入你自己的 Firebase 專案設定（步驟見 README）。'
         };
 
         const dbErrorMessage = computed(() => errorMap[dbErrorCode.value] || `發生未知錯誤 (${dbErrorCode.value})`);
@@ -74,25 +74,26 @@ createApp({
         const participantsStr = ref('');
         const exchangeRate = ref(0.215);
 
-        // 💡 修改點 5 & 6：新增貨幣切換與擴充「機票」分類
-        const ALL_EXPENSE_CATEGORIES = [
+        // 💡 5. 擴充分類：加入「機票」
+        const BASE_EXPENSE_CATEGORIES = [
             { slug: 'flight', label: '機票', emoji: '✈️' },
             ...EXPENSE_CATEGORIES
         ];
 
+        // 💡 6. 記帳支援幣別 ('FOREIGN' 外幣 / 'TWD' 台幣)
         const newExpense = ref({ 
             item: '', 
             amount: '', 
-            currency: 'FOREIGN', // 'FOREIGN' 或 'TWD'
+            currency: 'FOREIGN', 
             payer: '', 
             category: 'other', 
             paymentMethod: 'cash', 
             splitWith: [] 
         });
-        
+
         const customCategories = ref([]);
         const allExpenseCategories = computed(() => [
-            ...ALL_EXPENSE_CATEGORIES,
+            ...BASE_EXPENSE_CATEGORIES,
             ...customCategories.value.map(name => ({ slug: name, label: name, emoji: '🏷️' }))
         ]);
         const newCustomCategory = ref('');
@@ -100,7 +101,7 @@ createApp({
         const addCustomCategory = (targetDraftRefGetter) => {
             const name = newCustomCategory.value.trim();
             if (!name) { showCustomCategoryInput.value = false; return; }
-            if (!customCategories.value.includes(name) && !ALL_EXPENSE_CATEGORIES.some(c => c.slug === name)) {
+            if (!customCategories.value.includes(name) && !BASE_EXPENSE_CATEGORIES.some(c => c.slug === name)) {
                 customCategories.value.push(name);
             }
             const target = targetDraftRefGetter();
@@ -112,25 +113,34 @@ createApp({
         const isRateLoading = ref(false);
         const weather = ref({ temp: null, icon: 'ph-sun', code: 0, location: '', daily: [] });
         const isWeatherEditing = ref(false);
-        const setup = ref({ destination: '', startDate: new Date().toISOString().split('T')[0], days: 5, rate: 1, currency: 'JPY', langCode: 'zh-TW', langName: '中文', mapProvider: 'google' });
+        const setup = ref({ destination: '', startDate: new Date().toISOString().split('T')[0], days: 5, rate: 1, currency: 'TWD', langCode: 'zh-TW', langName: '中文', mapProvider: 'google' });
 
         const currentDay = computed(() => days.value[currentDayIdx.value] || { items: [], flight: null, date: '', title: '' });
-        
-        // 💡 記帳金額計算（外幣自動根據匯率折算）
-        const getExpenseInForeign = (e) => e.currency === 'TWD' ? (Number(e.amount || 0) / (setup.value.rate || 1)) : Number(e.amount || 0);
+
+        // 💡 6. 換算外幣與台幣總金額
+        const getExpenseInForeign = (e) => {
+            const amt = Number(e.amount || 0);
+            if (e.currency === 'TWD') {
+                const rate = setup.value.rate || 1;
+                return rate > 0 ? amt / rate : amt;
+            }
+            return amt;
+        };
 
         const totalExpense = computed(() => expenses.value.reduce((sum, item) => sum + getExpenseInForeign(item), 0));
-        
+
         const paidByPerson = computed(() => {
             const map = {}; participants.value.forEach(p => map[p] = 0);
             expenses.value.forEach(e => { 
                 const amt = getExpenseInForeign(e);
                 if (map[e.payer] === undefined) map[e.payer] = 0; 
                 map[e.payer] += amt; 
-            }); return map;
+            }); 
+            return map;
         });
 
         const effectiveSplitWith = (exp) => (exp.splitWith && exp.splitWith.length) ? exp.splitWith : participants.value;
+
         const owedByPerson = computed(() => {
             const map = {}; participants.value.forEach(p => map[p] = 0);
             expenses.value.forEach(e => {
@@ -214,11 +224,7 @@ createApp({
         };
 
         const currencyLabel = computed(() => setup.value.currency || '外幣');
-        const currencySymbol = computed(() => {
-            const map = { 'JPY': '¥', 'CNY': '¥', 'USD': '$', 'EUR': '€', 'KRW': '₩', 'GBP': '£', 'TWD': 'NT$', 'HKD': 'HK$', 'THB': '฿', 'VND': '₫' };
-            return map[setup.value.currency] || '$';
-        });
-
+        const currencySymbol = computed(() => { const map = { 'JPY': '¥', 'CNY': '¥', 'USD': '$', 'EUR': '€', 'KRW': '₩', 'GBP': '£', 'TWD': 'NT$', 'HKD': 'HK$', 'THB': '฿', 'VND': '₫' }; return map[setup.value.currency] || '$'; });
         const mapProviderLabel = computed(() => { const map = { 'google': 'Google Maps', 'naver': 'Naver Map', 'amap': '高德地圖' }; return map[setup.value.mapProvider] || '地圖'; });
 
         const weatherDisplay = computed(() => {
@@ -244,7 +250,7 @@ createApp({
         const fmtExpDate = (s) => { if (!s) return ''; const p = String(s).split('-'); return p.length === 3 ? `${p[1]}/${p[2]}` : s; };
         const getWeatherIcon = (c) => { if (c === 0) return 'ph-sun'; if (c < 4) return 'ph-cloud-sun'; if (c < 50) return 'ph-cloud-fog'; if (c < 70) return 'ph-cloud-rain'; return 'ph-cloud'; };
 
-        // 💡 需求 1：純 24 小時制（移除上午/下午/晚上）
+        // 💡 1. 移除「上午/下午/晚上」
         const getTimePeriod = (t) => t || '';
 
         const dialog = reactive({ show: false, title: '', message: '', confirmText: '確定', cancelText: '取消', danger: false, showCancel: true, link: '' });
@@ -252,22 +258,34 @@ createApp({
         const appConfirm = (message, opts = {}) => new Promise((resolve) => {
             dialog.title = opts.title || ''; dialog.message = message; dialog.confirmText = opts.confirmText || '確定'; dialog.cancelText = opts.cancelText || '取消'; dialog.danger = !!opts.danger; dialog.showCancel = opts.showCancel !== false; dialog.link = opts.link || ''; dialogResolve = resolve; dialog.show = true;
         });
-        const dialogAnswer = (ok) => { dialog.show = false; if (dialogResolve) { dialogResolve(ok); dialogResolve = null; } };
+        const dialogAnswer = (ok) => {
+            dialog.show = false;
+            if (dialogResolve) { dialogResolve(ok); dialogResolve = null; }
+        };
 
         const toast = reactive({ show: false, message: '', icon: '', hasUndo: false });
         let toastUndoFn = null, toastTimer = null;
         const showToast = (message, opts = {}) => {
             if (toastTimer) clearTimeout(toastTimer); toast.message = message; toast.icon = opts.icon || 'ph-bold ph-check-circle'; toastUndoFn = opts.undo || null; toast.hasUndo = !!toastUndoFn; toast.show = true; toastTimer = setTimeout(() => { toast.show = false; toastUndoFn = null; }, opts.duration || (toastUndoFn ? 5000 : 2200));
         };
-        const undoToast = () => { if (toastUndoFn) toastUndoFn(); toastUndoFn = null; toast.show = false; if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; } };
+        const undoToast = () => {
+            if (toastUndoFn) toastUndoFn(); toastUndoFn = null; toast.show = false; if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+        };
 
-        const toggleFlightCard = () => { if (!currentDay.value.flight) { currentDay.value.flight = { type: 'arrival', startTime: '10:00', startAirport: 'TPE', startTerminal: '', number: '', endTime: '14:00', endAirport: 'DEST', endTerminal: '', gate: '', seat: '', arrivalOffset: 0 }; editingState.flight = true; } };
-        const removeFlight = () => { const day = days.value[currentDayIdx.value]; if (!day || !day.flight) return; const removed = day.flight; day.flight = null; editingState.flight = false; showToast('已移除航班資訊', { icon: 'ph-bold ph-trash', undo: () => { day.flight = removed; } }); };
+        const toggleFlightCard = () => { if (currentDay.value.flight) { } else { currentDay.value.flight = { type: 'arrival', startTime: '10:00', startAirport: 'TPE', startTerminal: '', number: '', endTime: '14:00', endAirport: 'DEST', endTerminal: '', gate: '', seat: '', arrivalOffset: 0 }; editingState.flight = true; } };
+        const removeFlight = () => {
+            const day = days.value[currentDayIdx.value];
+            if (!day || !day.flight) return;
+            const removed = day.flight;
+            day.flight = null;
+            editingState.flight = false;
+            showToast('已移除航班資訊', { icon: 'ph-bold ph-trash', undo: () => { day.flight = removed; } });
+        };
 
         const getDotColor = (t) => {
             if (t === 'food') return 'bg-orange-400 border-orange-100 ring-2 ring-orange-50';
             if (t === 'shop') return 'bg-pink-400 border-pink-100 ring-2 ring-pink-50';
-            if (['transit_metro', 'transit_bus', 'transit_train', 'transit_taxi', 'walk', 'transport'].includes(t)) return 'bg-blue-500 border-blue-100 ring-2 ring-blue-50';
+            if (['transit_metro', 'transit_bus', 'transit_train', 'transit_taxi', 'transport', 'flight'].includes(t)) return 'bg-blue-500 border-blue-100 ring-2 ring-blue-50';
             if (t === 'accommodation') return 'bg-purple-400 border-purple-100 ring-2 ring-purple-50';
             return 'bg-primary-500 border-primary-100 ring-2 ring-primary-50';
         };
@@ -275,21 +293,21 @@ createApp({
         const typeAccent = (t) => {
             if (t === 'food') return 'border-orange-300';
             if (t === 'shop') return 'border-pink-300';
-            if (['transit_metro', 'transit_bus', 'transit_train', 'transit_taxi', 'walk', 'transport'].includes(t)) return 'border-blue-300';
+            if (['transit_metro', 'transit_bus', 'transit_train', 'transit_taxi', 'transport', 'flight'].includes(t)) return 'border-blue-300';
             if (t === 'accommodation') return 'border-purple-300';
             return 'border-primary-300';
         };
 
-        // 💡 需求 2 & 3：細分自由行交通工具 + 月台/路線備註
+        // 💡 2. 交通工具選項細分
         const COMMUTE_MODES = [
             { slug: 'walk', label: '步行', icon: 'ph-bold ph-person-simple-walk' },
             { slug: 'transit_metro', label: '地鐵/捷運', icon: 'ph-bold ph-train-regional' },
-            { slug: 'transit_bus', label: '公車/巴士', icon: 'ph-bold ph-bus' },
+            { slug: 'transit_bus', label: '市公車/巴士', icon: 'ph-bold ph-bus' },
             { slug: 'transit_train', label: '火車/新幹線', icon: 'ph-bold ph-train-simple' },
             { slug: 'transit_taxi', label: '計程車/Uber', icon: 'ph-bold ph-taxi' },
             { slug: 'other', label: '其他', icon: 'ph-bold ph-arrows-clockwise' },
         ];
-        const commuteMeta = (mode) => COMMUTE_MODES.find(m => m.slug === mode) || COMMUTE_MODES[0];
+        const commuteMeta = (mode) => COMMUTE_MODES.find(m => m.slug === mode) || null;
 
         const updateParticipants = () => { participants.value = participantsStr.value.split(',').map(s => s.trim()).filter(s => s); };
         const isUrl = (str) => { if (!str) return false; try { new URL(str); return true; } catch { return /^https?:\/\//i.test(str); } };
@@ -312,18 +330,19 @@ createApp({
                 itemModal.draft = JSON.parse(JSON.stringify(item));
             } else {
                 itemModal.mode = 'add'; itemModal.targetId = null;
+                // 💡 3. 新增 routeNote (路線/月台/方向備註)
                 itemModal.draft = { 
                     id: generateId(), 
-                    time: '09:00', 
+                    time: '', 
                     type: 'spot', 
                     activity: '', 
                     location: '', 
                     link: '', 
                     placeId: null, 
                     note: '', 
-                    routeNote: '', // 💡 需求 3：新增路線/月台/方向備註
+                    routeNote: '', 
                     reserved: false, 
-                    commuteMode: 'walk', 
+                    commuteMode: '', 
                     commuteMinutes: '' 
                 };
             }
@@ -369,6 +388,7 @@ createApp({
             locModal.show = true;
             if (!loc) nextTick(() => { document.querySelector('.js-loc-name')?.focus(); });
         };
+
         const saveLocModal = () => {
             if (locModal.mode === 'edit') {
                 const target = savedLocations.value.find(l => l.id === locModal.targetId);
@@ -378,6 +398,7 @@ createApp({
             }
             locModal.show = false;
         };
+
         const deleteLocFromModal = () => {
             locModal.show = false;
             const idx = savedLocations.value.findIndex(l => l.id === locModal.targetId);
@@ -387,20 +408,46 @@ createApp({
         };
 
         const seedChecklist = () => CHECKLIST_TEMPLATE.map(t => ({ ...t, id: generateId(), checkedBy: {} }));
-        const seedDefaultChecklist = () => { checklist.value = seedChecklist(); showToast(`已帶入預設清單（${CHECKLIST_TEMPLATE.length} 項）`, { icon: 'ph-bold ph-suitcase-rolling' }); };
+        const seedDefaultChecklist = () => {
+            checklist.value = seedChecklist();
+            showToast(`已帶入預設清單（${CHECKLIST_TEMPLATE.length} 項）`, { icon: 'ph-bold ph-suitcase-rolling' });
+        };
         const checklistMembers = computed(() => participants.value.length ? participants.value : ['__shared__']);
         const memberLabel = (m) => m === '__shared__' ? '' : m;
         const activeChecklistMember = ref(localStorage.getItem('wetravel_active_checklist_member') || '');
-        watch(checklistMembers, (ms) => { if (!ms.includes(activeChecklistMember.value)) activeChecklistMember.value = ms[0]; }, { immediate: true });
+        watch(checklistMembers, (ms) => {
+            if (!ms.includes(activeChecklistMember.value)) activeChecklistMember.value = ms[0];
+        }, { immediate: true });
         watch(activeChecklistMember, (v) => { if (v) localStorage.setItem('wetravel_active_checklist_member', v); });
-        const toggleCheck = (item, member) => { if (!item.checkedBy) item.checkedBy = {}; item.checkedBy[member] = !item.checkedBy[member]; };
+        const toggleCheck = (item, member) => {
+            if (!item.checkedBy) item.checkedBy = {};
+            item.checkedBy[member] = !item.checkedBy[member];
+        };
 
-        const checklistByCategory = computed(() => CHECKLIST_CATEGORIES.map(cat => {
-            const items = checklist.value.filter(i => i.category === cat.slug);
-            return { ...cat, items, done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length };
-        }).filter(cat => cat.items.length));
+        const checklistProgress = computed(() => checklistMembers.value.map(m => ({
+            member: m,
+            done: checklist.value.filter(i => i.checkedBy && i.checkedBy[m]).length,
+            total: checklist.value.length
+        })));
+
+        const checklistByCategory = computed(() => CHECKLIST_CATEGORIES
+            .map(cat => {
+                const items = checklist.value.filter(i => i.category === cat.slug);
+                return { ...cat, items, done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length };
+            })
+            .filter(cat => cat.items.length));
 
         const toggleCat = (slug) => { collapsedCats[slug] = !collapsedCats[slug]; };
+
+        watch(viewMode, () => {
+            setTimeout(() => {
+                document.querySelectorAll('.view-pane').forEach(el => {
+                    if (getComputedStyle(el).opacity !== '1' && !/fade-(enter|leave)/.test(el.className)) {
+                        el.getAnimations().forEach(a => a.cancel());
+                    }
+                });
+            }, 400);
+        });
 
         const resetChecklist = async () => {
             const m = activeChecklistMember.value;
@@ -415,16 +462,29 @@ createApp({
         const checkModal = reactive({ show: false, mode: 'add', targetId: null, draft: null });
         const openCheckModal = (item = null) => {
             isCheckNameInvalid.value = false;
-            if (item) { checkModal.mode = 'edit'; checkModal.targetId = item.id; checkModal.draft = JSON.parse(JSON.stringify(item)); }
-            else { checkModal.mode = 'add'; checkModal.targetId = null; checkModal.draft = { id: generateId(), name: '', category: 'misc', luggage: 'any', note: '', checkedBy: {} }; }
+            if (item) {
+                checkModal.mode = 'edit'; checkModal.targetId = item.id;
+                checkModal.draft = JSON.parse(JSON.stringify(item));
+            } else {
+                checkModal.mode = 'add'; checkModal.targetId = null;
+                checkModal.draft = { id: generateId(), name: '', category: 'misc', luggage: 'any', note: '', checkedBy: {} };
+            }
             checkModal.show = true;
             if (!item) nextTick(() => { document.querySelector('.js-check-name')?.focus(); });
         };
 
         const saveCheckModal = () => {
-            if (!checkModal.draft.name.trim()) { isCheckNameInvalid.value = true; nextTick(() => { document.querySelector('.js-check-name')?.focus(); }); return; }
-            if (checkModal.mode === 'edit') { const target = checklist.value.find(i => i.id === checkModal.targetId); if (target) Object.assign(target, checkModal.draft); }
-            else { checklist.value.push({ ...checkModal.draft }); }
+            if (!checkModal.draft.name.trim()) {
+                isCheckNameInvalid.value = true;
+                nextTick(() => { document.querySelector('.js-check-name')?.focus(); });
+                return;
+            }
+            if (checkModal.mode === 'edit') {
+                const target = checklist.value.find(i => i.id === checkModal.targetId);
+                if (target) Object.assign(target, checkModal.draft);
+            } else {
+                checklist.value.push({ ...checkModal.draft });
+            }
             checkModal.show = false;
         };
 
@@ -479,21 +539,22 @@ createApp({
         };
 
         const updateExchangeRate = () => { if (setup.value) setup.value.rate = exchangeRate.value; };
+
         const getExternalMapLink = (loc) => { if (!loc) return '#'; if (isUrl(loc)) return loc; const encodedLoc = encodeURIComponent(loc); if (setup.value.mapProvider === 'naver') return `https://map.naver.com/v5/search/${encodedLoc}`; else if (setup.value.mapProvider === 'amap') return `https://www.amap.com/search?query=${encodedLoc}`; else return `https://www.google.com/maps/search/?api=1&query=${encodedLoc}`; };
 
-        const initSortable = () => {
-            const el = document.getElementById('saved-locations-list');
-            if (!el) return false;
-            if (typeof Sortable !== 'undefined' && Sortable.get && Sortable.get(el)) return true;
-            if (typeof Sortable !== 'undefined') {
-                Sortable.create(el, {
-                    animation: 150, handle: '.loc-drag-handle', ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
-                    onEnd: (evt) => { const item = savedLocations.value.splice(evt.oldIndex, 1)[0]; savedLocations.value.splice(evt.newIndex, 0, item); }
-                });
-                return true;
-            }
-            return false;
-        };
+        const countryInfoMap = { 'jp': { c: 'JPY', l: 'ja', n: '日文', m: 'google' }, 'kr': { c: 'KRW', l: 'ko', n: '韓文', m: 'naver' }, 'us': { c: 'USD', l: 'en', n: '英文', m: 'google' }, 'cn': { c: 'CNY', l: 'zh-CN', n: '簡中', m: 'amap' }, 'th': { c: 'THB', l: 'th', n: '泰文', m: 'google' }, 'tw': { c: 'TWD', l: 'zh-TW', n: '中文', m: 'google' } };
+
+        const updateRateByCurrency = async () => { const currency = setup.value.currency; if (!currency) return; isRateLoading.value = true; try { if (currency === 'TWD') { setup.value.rate = 1; } else { const rRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${currency}`); const rData = await rRes.json(); if (rData?.rates?.TWD) setup.value.rate = rData.rates.TWD; } } catch (e) { console.error('Fetch rate failed', e); } finally { isRateLoading.value = false; } };
+
+        const detectRate = async () => { if (!setup.value.destination) return; isRateLoading.value = true; try { const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(setup.value.destination)}&limit=1&addressdetails=1`); const geoData = await geoRes.json(); if (geoData?.[0]?.address?.country_code) { const code = geoData[0].address.country_code.toLowerCase(); const info = countryInfoMap[code] || { c: 'USD', l: 'en', n: '英文', m: 'google' }; setup.value.currency = info.c; setup.value.langCode = info.l; setup.value.langName = info.n; setup.value.mapProvider = info.m || 'google'; if (!weather.value.location) weather.value.location = setup.value.destination; if (info.c === 'TWD') setup.value.rate = 1; else { const rRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${info.c}`); const rData = await rRes.json(); if (rData?.rates?.TWD) setup.value.rate = rData.rates.TWD; } } } catch (e) { } finally { isRateLoading.value = false; } };
+
+        const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
+
+        const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
+
+        const fetchWeather = async (locName) => { try { weather.value.location = locName; const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locName)}&limit=1`); const geoData = await geoRes.json(); if (geoData?.[0]) { const { lat, lon } = geoData[0]; const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`); const wData = await wRes.json(); weather.value.temp = Math.round(wData.current_weather.temperature); weather.value.icon = getWeatherIcon(wData.current_weather.weathercode); if (wData.daily) weather.value.daily = wData.daily; } } catch (e) { weather.value.temp = '--'; } };
+
+        const initSortable = () => { const el = document.getElementById('saved-locations-list'); if (!el) return false; if (typeof Sortable !== 'undefined' && Sortable.get && Sortable.get(el)) return true; if (typeof Sortable !== 'undefined') { Sortable.create(el, { animation: 150, handle: '.loc-drag-handle', ghostClass: 'sortable-ghost', dragClass: 'sortable-drag', onEnd: (evt) => { const item = savedLocations.value.splice(evt.oldIndex, 1)[0]; savedLocations.value.splice(evt.newIndex, 0, item); } }); return true; } return false; };
 
         onMounted(() => {
             const timer = setInterval(() => { if (initSortable()) clearInterval(timer); }, 500);
@@ -516,10 +577,10 @@ createApp({
             COMMUTE_MODES, commuteMeta, updateParticipants, isUrl, linkedPlace, itemNavTarget,
             itemLocationLabel, itemModal, openItemModal, saveItemModal, deleteItemFromModal,
             addDay, locModal, openLocModal, saveLocModal, deleteLocFromModal, seedDefaultChecklist,
-            checklistMembers, memberLabel, activeChecklistMember, toggleCheck, checklistByCategory,
-            toggleCat, resetChecklist, checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal,
-            addExpense, expModal, openExpModal, saveExpModal, deleteExpFromModal, updateExchangeRate,
-            getExternalMapLink, PAYMENT_METHODS
+            checklistMembers, memberLabel, activeChecklistMember, toggleCheck, checklistProgress,
+            checklistByCategory, toggleCat, resetChecklist, checkModal, openCheckModal, saveCheckModal,
+            deleteCheckFromModal, addExpense, expModal, openExpModal, saveExpModal, deleteExpFromModal,
+            updateExchangeRate, getExternalMapLink, PAYMENT_METHODS
         };
     }
 }).mount('#app');
