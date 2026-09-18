@@ -692,10 +692,7 @@
                                 <div class="absolute -left-[25px] w-2 h-2 rounded-full bg-stone-300"></div>
                                 <span class="text-xs">{{ (commuteMeta(item.commuteMode) || {}).emoji }}</span>
                                 <span class="text-[11px] font-bold">{{ (commuteMeta(item.commuteMode) || {}).label }}・約 {{ item.commuteMinutes }} 分</span>
-                               <span v-if="item.commuteNote"
-    class="text-xs font-bold text-stone-500">
-    ・{{ item.commuteNote }}
-</span>
+                                <span v-if="item.commuteNote" class="text-[11px] text-stone-400">・{{ item.commuteNote }}</span>
                             </div>
                             <div v-if="item" class="relative group">
                                 <div class="absolute -left-[31px] top-5 w-4 h-4 rounded-full border-[3px] border-stone-50 shadow-sm z-10 transition-colors duration-300"
@@ -745,11 +742,13 @@
                                                     :title="isUrl(itemNavTarget(item)) ? '開啟連結' : '開啟導航'">
                                                     <i :class="isUrl(itemNavTarget(item)) ? 'ph-bold ph-globe' : 'ph-bold ph-navigation-arrow'" class="text-xs"></i>
                                                 </a>
-                                           <div v-if="item.note" class="mt-1.5">
-    <div class="text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">
-        {{ item.note }}
-    </div>
-</div>
+                                            </div>
+
+                                            <div v-if="item.note" class="flex items-start gap-1.5 mt-1.5">
+                                                <i class="ph-bold ph-notebook text-stone-300 text-xs mt-0.5 shrink-0 w-3.5 text-center"></i>
+                                                <div class="flex-1 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">
+                                                    {{ item.note }}</div>
+                                            </div>
                                         </div>
 
                                         <i class="ph-bold ph-pencil-simple text-stone-200 shrink-0 mt-1 text-sm"></i>
