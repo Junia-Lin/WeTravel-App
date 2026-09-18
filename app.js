@@ -1,14 +1,27 @@
-import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from './expenseConfig.js';
-
 const { createApp, ref, computed } = Vue;
+
+const EXPENSE_CATEGORIES = [
+    { slug: 'flight', label: '機票', emoji: '✈️' },
+    { slug: 'transport', label: '交通', emoji: '🚗' },
+    { slug: 'lodging', label: '住宿', emoji: '🏨' },
+    { slug: 'food', label: '餐飲', emoji: '🍜' },
+    { slug: 'shopping', label: '購物/伴手禮', emoji: '🛍️' },
+    { slug: 'ticket', label: '票券', emoji: '🎫' },
+    { slug: 'other', label: '其他', emoji: '💰' },
+];
+
+const PAYMENT_METHODS = [
+    { slug: 'cash', label: '現金', emoji: '💵' },
+    { slug: 'credit', label: '信用卡', emoji: '💳' },
+    { slug: 'mobile', label: '行動支付', emoji: '📱' },
+    { slug: 'other', label: '其他', emoji: '🔖' },
+];
 
 createApp({
     setup() {
-        // 當前頁籤
-        const currentTab = ref('itinerary'); // 'itinerary', 'pocket', 'expense', 'checklist', 'helper'
+        const currentTab = ref('itinerary');
         const currentCurrency = ref('CNY');
 
-        // 旅程天數與行程資料
         const tripDays = ref([
             {
                 date: '09/18',
@@ -52,9 +65,9 @@ createApp({
         ]);
 
         const selectedDayIndex = ref(0);
-        const currentDay = computed(() => tripDays.value[selectedDayIndex.value]);
+        const currentDay = computed(() => tripDays.value[selectedDayIndex.value] || tripDays.value[0]);
 
-        // 行程編輯 Modal
+        // 行程編輯 Modal (預設 false 關閉)
         const isEditModalOpen = ref(false);
         const editingItem = ref(null);
         const targetDayIndex = ref(0);
@@ -69,7 +82,6 @@ createApp({
         function saveScheduleItem() {
             if (!editingItem.value) return;
 
-            // 跨日期移動邏輯 (問題 5)
             if (targetDayIndex.value !== selectedDayIndex.value) {
                 const sourceList = tripDays.value[selectedDayIndex.value].items;
                 const idx = sourceList.findIndex(i => i.id === editingItem.value.id);
@@ -85,7 +97,7 @@ createApp({
             isEditModalOpen.value = false;
         }
 
-        // 清單頁面資料 (問題 3)
+        // 清單資料
         const checklistData = ref({
             prep: [
                 { id: 101, name: '網卡 / 台胞證準備', done: true },
@@ -124,7 +136,7 @@ createApp({
             item.done = !item.done;
         }
 
-        // 記帳編輯 Modal (問題 4)
+        // 記帳編輯 Modal (預設 false 關閉)
         const isExpenseModalOpen = ref(false);
         const editingExpense = ref({
             title: '春秋來回機票',
