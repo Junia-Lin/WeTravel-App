@@ -692,7 +692,7 @@
                                 <div class="absolute -left-[25px] w-2 h-2 rounded-full bg-stone-300"></div>
                                 <span class="text-xs">{{ (commuteMeta(item.commuteMode) || {}).emoji }}</span>
                                 <span class="text-[11px] font-bold">{{ (commuteMeta(item.commuteMode) || {}).label }}・約 {{ item.commuteMinutes }} 分</span>
-                                <span v-if="item.commuteNote" class="text-[12px] text-stone-500">・{{ item.commuteNote }}</span>
+                                <span v-if="item.commuteNote" class="text-[11px] text-stone-300">・{{ item.commuteNote }}</span>
                             </div>
                             <div v-if="item" class="relative group">
                                 <div class="absolute -left-[31px] top-5 w-4 h-4 rounded-full border-[3px] border-stone-50 shadow-sm z-10 transition-colors duration-300"
@@ -729,25 +729,28 @@
                                                 </span>
                                             </div>
 
-                                            <div v-if="itemLocationLabel(item) || itemNavTarget(item)"
-                                                class="flex items-center gap-1.5 mt-1.5">
-                                                <i class="text-xs shrink-0 w-3.5 text-center"
-                                                    :class="item.placeId ? 'ph-fill ph-map-pin text-primary-400' : 'ph-bold ph-map-pin text-stone-300'"></i>
-                                                <span class="flex-1 min-w-0 truncate text-xs font-bold"
-                                                    :class="item.placeId ? 'text-primary-600' : 'text-stone-500'">{{ itemLocationLabel(item) }}</span>
-                                                <a v-if="itemNavTarget(item)" :href="getExternalMapLink(itemNavTarget(item))"
-                                                    target="_blank" @click.stop
-                                                    class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
-                                                    :class="isUrl(itemNavTarget(item)) ? 'bg-indigo-50 text-indigo-500 hover:bg-indigo-100' : 'bg-primary-50 text-primary-500 hover:bg-primary-100'"
-                                                    :title="isUrl(itemNavTarget(item)) ? '開啟連結' : '開啟導航'">
-                                                    <i :class="isUrl(itemNavTarget(item)) ? 'ph-bold ph-globe' : 'ph-bold ph-navigation-arrow'" class="text-xs"></i>
-                                                </a>
-                                            </div>
+                                       <!-- 1. 地點名稱與導航（完全靠左） -->
+<div v-if="itemLocationLabel(item) || itemNavTarget(item)" class="flex items-center gap-1.5 mt-1.5">
+    <i class="text-xs shrink-0 w-3.5 text-left"
+        :class="item.placeId ? 'ph-fill ph-map-pin text-primary-400' : 'ph-bold ph-map-pin text-stone-300'"></i>
+    <span class="flex-1 min-w-0 truncate text-xs font-bold text-left"
+        :class="item.placeId ? 'text-primary-600' : 'text-stone-500'">{{ itemLocationLabel(item) }}</span>
+    <a v-if="itemNavTarget(item)" :href="getExternalMapLink(itemNavTarget(item))"
+        target="_blank" @click.stop
+        class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+        :class="isUrl(itemNavTarget(item)) ? 'bg-indigo-50 text-indigo-500 hover:bg-indigo-100' : 'bg-primary-50 text-primary-500 hover:bg-primary-100'"
+        :title="isUrl(itemNavTarget(item)) ? '開啟連結' : '開啟導航'">
+        <i :class="isUrl(itemNavTarget(item)) ? 'ph-bold ph-globe' : 'ph-bold ph-navigation-arrow'" class="text-xs"></i>
+    </a>
+</div>
 
-                                            <div v-if="item.note" class="flex items-start gap-1.5 mt-1.5">
-                                                <i class="ph-bold ph-notebook text-stone-300 text-xs mt-0.5 shrink-0 w-3.5 text-center"></i>
-                                                <div class="flex-1 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">
-                                                    {{ item.note }}</div>
+<!-- 2. 行程備註說明（完全靠左） -->
+<div v-if="item.note" class="flex items-start gap-1.5 mt-1.5">
+    <i class="ph-bold ph-notebook text-stone-300 text-xs mt-0.5 shrink-0 w-3.5 text-left"></i>
+    <div class="flex-1 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap text-left">
+        {{ item.note }}
+    </div>
+</div>
                                             </div>
                                         </div>
 
@@ -1636,11 +1639,14 @@
                             <div
                                 class="flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2 border border-stone-100 focus-within:border-primary-200 focus-within:bg-white transition-colors">
                                 <i class="ph-bold ph-map-pin text-stone-500 shrink-0"></i>
-                               <!-- 地點名稱 (強制靠左) -->
-<div v-if="item.location" class="flex items-center gap-1.5 text-stone-500 text-left justify-start">
-    <i class="ph ph-map-pin text-stone-400 shrink-0"></i>
-    <span class="text-left">{{ item.location }}</span>
-</div>
+                                <div class="flex-1 min-w-0 flex flex-col">
+                                    <input v-model="itemModal.draft.location"
+                                        class="text-sm font-medium bg-transparent focus:outline-none text-stone-700 w-full truncate"
+                                        placeholder="地點名稱">
+                                    <input v-model="itemModal.draft.link"
+                                        class="text-[10px] text-stone-500 bg-transparent focus:outline-none w-full truncate font-mono"
+                                        placeholder="http://地圖連結...">
+                                </div>
                             </div>
                             <div v-if="savedLocations.length" class="flex flex-wrap items-center gap-1.5">
                                 <span class="text-[10px] text-stone-400">或從口袋名單選：</span>
@@ -1652,11 +1658,12 @@
                             </div>
                         </div>
 
-                        <!-- 備註說明 (強制靠左) -->
-<div v-if="item.note" class="flex items-center gap-1.5 text-stone-500 text-left justify-start">
-    <i class="ph ph-article text-stone-400 shrink-0"></i>
-    <span class="text-left">{{ item.note }}</span>
-</div>
+                        <div class="relative">
+                            <i class="ph-bold ph-notebook absolute top-2.5 left-3 text-stone-300"></i>
+                            <textarea v-model="itemModal.draft.note"
+                                class="w-full bg-stone-50 rounded-xl py-2 pl-9 pr-3 text-sm text-stone-600 focus:outline-none focus:ring-2 focus:ring-primary-100 resize-none min-h-[60px]"
+                                placeholder="備註 (票卷/訂位編號...)"></textarea>
+                        </div>
 
                         <!-- 從上一個行程過來的交通方式/時間（顯示在時間軸上的通勤區塊） -->
                         <div>
