@@ -30,17 +30,19 @@
     </script>
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Vue 3 -->
+    <!-- Vue 3 (Global Build) -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        [v-cloak] { display: none !important; }
     </style>
 </head>
 <body class="bg-primary-50 text-stone-800 flex justify-center min-h-screen">
 
-    <div id="app" class="w-full max-w-md bg-white min-h-screen flex flex-col shadow-xl relative overflow-hidden pb-20">
+    <!-- 加入 v-cloak 避免 Vue 尚未掛載前露出 {{ }} 樣板字串 -->
+    <div id="app" v-cloak class="w-full max-w-md bg-white min-h-screen flex flex-col shadow-xl relative overflow-hidden pb-20">
         
         <!-- Top Header -->
         <header class="px-5 pt-12 pb-3 bg-white flex items-center justify-between sticky top-0 z-20 border-b border-stone-100">
@@ -52,7 +54,7 @@
                         <span class="bg-primary-100 text-primary-500 text-xs font-bold px-2 py-0.5 rounded-full">{{ currentCurrency }}</span>
                         <i class="ph ph-check-circle-fill text-emerald-500 text-sm"></i>
                     </div>
-                    <p class="text-[11px] font-semibold text-stone-400">2026上海 : --</p>
+                    <p class="text-[11px] font-semibold text-stone-400">2026上海行程規劃</p>
                 </div>
             </div>
             <div class="w-9 h-9 rounded-full bg-stone-50 border border-stone-200 flex items-center justify-center">
@@ -78,13 +80,10 @@
             <div v-if="currentTab === 'itinerary'" class="space-y-4">
                 
                 <!-- 航班卡片 (修正登機門 & 座位跑版問題) -->
-                <div v-if="currentDay.flight" class="bg-cream-50 border border-stone-200/60 rounded-3xl p-4 shadow-sm space-y-3">
+                <div v-if="currentDay && currentDay.flight" class="bg-cream-50 border border-stone-200/60 rounded-3xl p-4 shadow-sm space-y-3">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-black text-primary-500">編輯航班</span>
+                        <span class="text-xs font-black text-primary-500">航班資訊</span>
                         <div class="flex gap-1.5">
-                            <button class="w-7 h-7 rounded-full bg-white border border-stone-200 flex items-center justify-center text-stone-400">
-                                <i class="ph ph-trash text-xs"></i>
-                            </button>
                             <button class="w-7 h-7 rounded-full bg-primary-400 flex items-center justify-center text-white">
                                 <i class="ph ph-check text-xs"></i>
                             </button>
@@ -107,7 +106,7 @@
                         </div>
                     </div>
 
-                    <!-- 問題 2 修正：登機門 & 座位輸入欄位自適應 (grid-cols-2) -->
+                    <!-- 登機門 & 座位輸入欄位自適應 (grid-cols-2) -->
                     <div class="grid grid-cols-2 gap-2 w-full pt-1">
                         <input v-model="currentDay.flight.gate"
                             class="text-xs font-bold text-stone-700 bg-white border border-stone-200 rounded-xl p-2.5 text-center placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-primary-300 min-w-0"
@@ -118,8 +117,8 @@
                     </div>
                 </div>
 
-                <!-- 行程列表 (問題 1 & 2 修正：時間獨立左欄、內容右欄對齊，字體加深放大) -->
-                <div class="space-y-3">
+                <!-- 行程列表 (時間獨立左欄、內容右欄對齊，字體加深放大) -->
+                <div v-if="currentDay && currentDay.items" class="space-y-3">
                     <div v-for="item in currentDay.items" :key="item.id" class="space-y-2">
                         
                         <!-- 行程主要卡片 -->
@@ -145,7 +144,7 @@
                                     <span class="truncate">{{ item.location }}</span>
                                 </div>
 
-                                <!-- 複雜備註 (加深字體與調大尺寸) -->
+                                <!-- 詳細備註 -->
                                 <div v-if="item.note" class="flex items-start gap-1.5 text-xs font-medium text-stone-700 bg-stone-50/80 rounded-lg p-2.5 leading-relaxed">
                                     <i class="ph ph-note-blank text-stone-400 flex-shrink-0 mt-0.5"></i>
                                     <span class="whitespace-pre-line">{{ item.note }}</span>
@@ -153,7 +152,7 @@
                             </div>
                         </div>
 
-                        <!-- 通勤工具資訊 (加深顏色與放大字體) -->
+                        <!-- 通勤工具資訊 -->
                         <div v-if="item.transit" class="flex items-center gap-2 px-4 py-1 text-xs font-bold text-stone-700">
                             <i class="ph ph-subway text-base text-primary-400"></i>
                             <span>{{ item.transit }}</span>
@@ -164,7 +163,7 @@
 
             </div>
 
-            <!-- Tab 4: 清單 (Checklist) (問題 3 修正：同卡片層內分三層 + 總進度條) -->
+            <!-- Tab 4: 清單 (Checklist) (同卡片層內分三層 + 總進度條) -->
             <div v-if="currentTab === 'checklist'" class="space-y-4">
                 <div class="bg-white rounded-3xl p-4 border border-stone-100 shadow-sm space-y-5">
                     
@@ -239,16 +238,16 @@
                 </div>
             </div>
 
-            <!-- 開啟記帳 Modal 測試按鈕 -->
-            <div v-if="currentTab === 'expense'" class="p-4 text-center">
-                <button @click="isExpenseModalOpen = true" class="bg-primary-400 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md">
-                    開啟編輯支出彈窗
+            <!-- Tab 3: 記帳 (Expense) -->
+            <div v-if="currentTab === 'expense'" class="space-y-4 text-center py-6">
+                <button @click="isExpenseModalOpen = true" class="bg-primary-400 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md">
+                    + 新增 / 編輯支出
                 </button>
             </div>
 
         </main>
 
-        <!-- 行程編輯 Modal (問題 5 修正：可移至其他天) -->
+        <!-- 行程編輯 Modal (可跨日移動) -->
         <div v-if="isEditModalOpen" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center sm:items-center p-4">
             <div class="bg-white rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
                 <div class="flex items-center justify-between">
@@ -258,13 +257,13 @@
                     </button>
                 </div>
 
-                <div class="space-y-3">
+                <div v-if="editingItem" class="space-y-3">
                     <div>
                         <label class="text-xs font-bold text-stone-500 block mb-1">行程名稱</label>
                         <input v-model="editingItem.title" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs font-bold text-stone-800">
                     </div>
 
-                    <!-- 問題 5：跨天移動下拉選單 -->
+                    <!-- 跨日期移動下拉選單 -->
                     <div>
                         <label class="text-xs font-bold text-stone-500 block mb-1">移至哪一天</label>
                         <select v-model="targetDayIndex" class="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs font-bold text-stone-800">
@@ -287,7 +286,7 @@
             </div>
         </div>
 
-        <!-- 編輯支出 Modal (問題 4 修正：iPhone 13 金額與幣別不超出範圍) -->
+        <!-- 編輯支出 Modal (金額與幣別不超出範圍) -->
         <div v-if="isExpenseModalOpen" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center p-0">
             <div class="bg-white rounded-t-3xl w-full max-w-md p-5 space-y-4 shadow-2xl">
                 <div class="flex items-center justify-between border-b border-stone-100 pb-3">
@@ -300,7 +299,7 @@
                 <div class="space-y-3">
                     <input v-model="editingExpense.title" class="w-full bg-cream-50 border border-stone-200/60 rounded-xl p-3 text-sm font-bold text-stone-800" placeholder="消費名稱">
 
-                    <!-- 金額與幣別 (修正 iPhone 13 窄寬度跑版問題) -->
+                    <!-- 金額與幣別 -->
                     <div class="flex items-center gap-2 w-full bg-cream-50 border border-stone-200/60 rounded-xl p-2.5">
                         <input type="number" v-model="editingExpense.amount"
                             class="flex-1 min-w-0 bg-transparent text-right font-mono font-black text-xl text-stone-800 focus:outline-none placeholder:text-stone-300"
@@ -348,7 +347,7 @@
 
     </div>
 
-    <!-- App Script -->
-    <script type="module" src="./app.js"></script>
+    <!-- 載入腳本 -->
+    <script src="./app.js"></script>
 </body>
 </html>
