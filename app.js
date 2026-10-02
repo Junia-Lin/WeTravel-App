@@ -298,8 +298,10 @@ createApp({
         });
 
         // 行程項目彈窗
-        const itemModal = reactive({ show: false, mode: 'add', targetId: null, draft: null });
+        const itemModal = reactive({ show: false, mode: 'add', targetId: null, draft: null, originDayIdx: 0, targetDayIdx: 0 });
         const openItemModal = (item = null) => {
+            itemModal.originDayIdx = currentDayIdx.value;
+            itemModal.targetDayIdx = currentDayIdx.value;
             if (item) {
                 itemModal.mode = 'edit'; itemModal.targetId = item.id;
                 itemModal.draft = JSON.parse(JSON.stringify(item));
@@ -311,19 +313,32 @@ createApp({
             if (!item) nextTick(() => { document.querySelector('.js-item-activity')?.focus(); });
         };
         const saveItemModal = () => {
-            const day = days.value[currentDayIdx.value];
-            if (!day) { itemModal.show = false; return; }
+            const originDay = days.value[itemModal.originDayIdx];
+            if (!originDay) { itemModal.show = false; return; }
             if (itemModal.mode === 'edit') {
-                const target = day.items.find(i => i.id === itemModal.targetId);
-                if (target) Object.assign(target, itemModal.draft);
+                if (itemModal.targetDayIdx !== itemModal.originDayIdx) {
+                    // 搬到別天：從原本那天移除，塞進目標那天再依時間排序
+                    const idx = originDay.items.findIndex(i => i.id === itemModal.targetId);
+                    if (idx !== -1) originDay.items.splice(idx, 1);
+                    const targetDay = days.value[itemModal.targetDayIdx];
+                    if (targetDay) {
+                        targetDay.items.push({ ...itemModal.draft });
+                        sortItemsByTime(targetDay.items);
+                    }
+                    currentDayIdx.value = itemModal.targetDayIdx; // 直接跳到搬過去的那天，讓使用者看到結果
+                } else {
+                    const target = originDay.items.find(i => i.id === itemModal.targetId);
+                    if (target) Object.assign(target, itemModal.draft);
+                    sortItemsByTime(originDay.items);
+                }
             } else {
-                day.items.push({ ...itemModal.draft });
+                originDay.items.push({ ...itemModal.draft });
+                sortItemsByTime(originDay.items); // 保留鐵則：完成編輯後依時間自動排序
             }
-            sortItemsByTime(day.items); // 保留鐵則：完成編輯後依時間自動排序
             itemModal.show = false;
         };
         const deleteItemFromModal = () => {
-            const day = days.value[currentDayIdx.value];
+            const day = days.value[itemModal.originDayIdx];
             itemModal.show = false;
             if (!day) return;
             const idx = day.items.findIndex(i => i.id === itemModal.targetId);
@@ -396,6 +411,21 @@ createApp({
             })
             .filter(cat => cat.items.length));
         const toggleCat = (slug) => { collapsedCats[slug] = !collapsedCats[slug]; };
+        // 依「隨身」「託運」拆成兩份清單：不限（any）兩邊都算，因為使用者兩種行李都可能放
+        const carryChecklistByCategory = computed(() => CHECKLIST_CATEGORIES
+            .map(cat => {
+                const items = checklist.value.filter(i => i.category === cat.slug && (i.luggage === 'carry' || i.luggage === 'any'));
+                return { ...cat, items, done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length };
+            })
+            .filter(cat => cat.items.length));
+        const checkedChecklistByCategory = computed(() => CHECKLIST_CATEGORIES
+            .map(cat => {
+                const items = checklist.value.filter(i => i.category === cat.slug && (i.luggage === 'checked' || i.luggage === 'any'));
+                return { ...cat, items, done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length };
+            })
+            .filter(cat => cat.items.length));
+        const carryProgress = computed(() => { const items = checklist.value.filter(i => i.luggage === 'carry' || i.luggage === 'any'); return { done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length, total: items.length }; });
+        const checkedProgress = computed(() => { const items = checklist.value.filter(i => i.luggage === 'checked' || i.luggage === 'any'); return { done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length, total: items.length }; });
 
         // Chrome 偶發 bug：換頁淡入的 CSSTransition 凍結在 currentTime 0（fill backwards 持續蓋 opacity:0 → 整頁空白），
         // 且 Vue 已清完 transition class、殘留動畫不會自己消失。換頁後逾時檢查，卡住就取消殘留動畫自癒。
@@ -1067,6 +1097,7 @@ createApp({
             checklist, collapsedCats, toggleCat, checklistMembers, memberLabel, toggleCheck,
             activeChecklistMember,
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist,
+            carryChecklistByCategory, checkedChecklistByCategory, carryProgress, checkedProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES, LUGGAGE_META,
             PAYMENT_METHODS, allExpenseCategories, customCategories, newCustomCategory, showCustomCategoryInput, addCustomCategory,
