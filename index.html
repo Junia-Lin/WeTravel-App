@@ -1017,7 +1017,39 @@
 
                 <div v-else-if="viewMode === 'checklist'" key="checklist"
                     class="view-pane p-5 pb-32 space-y-6 flex-1 overflow-y-auto hide-scroll">
-                    <div class="mb-4 flex items-end justify-between gap-3">
+
+                    <!-- 行前準備：放最上面，簡單打勾清單，不分類 -->
+                    <div class="bg-white rounded-3xl border border-stone-100 shadow-soft p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-black text-stone-800 flex items-center gap-2">
+                                <i class="ph-bold ph-list-checks text-primary-500"></i> 行前準備
+                            </h3>
+                            <span v-if="prepTasks.length" class="text-xs font-bold text-stone-400 shrink-0">{{ prepTasks.filter(t => t.completed).length }}/{{ prepTasks.length }}</span>
+                        </div>
+                        <div v-if="!prepTasks.length" class="text-sm text-stone-400 py-1">還沒有要準備的事項，在下面新增一個吧</div>
+                        <div v-for="task in prepTasks" :key="task.id" class="flex items-center gap-3">
+                            <button @click="togglePrepTask(task)"
+                                class="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition active:scale-90"
+                                :class="task.completed ? 'bg-primary-500 border-primary-500 text-white' : 'border-stone-200 text-transparent'">
+                                <i class="ph-bold ph-check text-xs"></i>
+                            </button>
+                            <span class="flex-1 min-w-0 truncate text-sm font-bold text-stone-700"
+                                :class="task.completed ? 'line-through text-stone-300' : ''">{{ task.title }}</span>
+                            <button @click="deletePrepTask(task.id)" class="shrink-0 text-stone-300 hover:text-red-400 transition">
+                                <i class="ph-bold ph-x"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-2 pt-1">
+                            <input v-model="newPrepTask" @keyup.enter="addPrepTask" placeholder="例如：訂機票、辦簽證、換外幣"
+                                class="flex-1 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            <button @click="addPrepTask"
+                                class="px-4 bg-primary-500 text-white rounded-xl text-sm font-bold shadow-md shadow-primary-500/30 active:scale-95 transition shrink-0">
+                                <i class="ph-bold ph-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-end justify-between gap-3">
                         <div class="min-w-0">
                             <h2 class="text-2xl font-black text-stone-800 flex items-center gap-2">
                                 <img src="assets/bow_red.png" class="w-8 h-8 object-contain" alt="Bow"> 旅遊清單
@@ -1065,43 +1097,97 @@
                             </button>
                         </div>
 
-                        <!-- 分類收合區塊 -->
-                        <div v-for="cat in checklistByCategory" :key="cat.slug"
-                            class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden">
-                            <button @click="toggleCat(cat.slug)"
-                                class="w-full flex items-center justify-between px-4 py-3.5 active:bg-stone-50 transition">
-                                <span class="flex items-center gap-2 font-black text-stone-800">
-                                    <span class="text-lg">{{ cat.emoji }}</span> {{ cat.label }}
-                                    <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                                        :class="cat.done === cat.items.length ? 'bg-green-50 text-green-600' : 'bg-stone-100 text-stone-500'">
-                                        {{ cat.done }}/{{ cat.items.length }}</span>
-                                </span>
-                                <i class="ph-bold text-stone-300 transition-transform"
-                                    :class="collapsedCats[cat.slug] ? 'ph-caret-down' : 'ph-caret-up'"></i>
-                            </button>
-                            <div v-show="!collapsedCats[cat.slug]" class="border-t border-stone-50">
-                                <div v-for="item in cat.items" :key="item.id"
-                                    class="check-item-row flex items-center gap-3 px-4 py-3 border-b border-stone-50 last:border-b-0">
-                                    <div @click="openCheckModal(item)"
-                                        class="flex-1 min-w-0 cursor-pointer active:opacity-70">
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-bold text-stone-800 truncate"
-                                                :class="item.checkedBy?.[activeChecklistMember] ? 'line-through text-stone-300' : ''">{{
-                                                item.name }}</span>
-                                            <span class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md border"
-                                                :class="LUGGAGE_META[item.luggage]?.cls">{{
-                                                LUGGAGE_META[item.luggage]?.label }}</span>
+                        <!-- 重要物品（證件財物） -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between px-1">
+                                <h3 class="text-sm font-black text-stone-500 flex items-center gap-1.5">🔖 重要物品</h3>
+                                <span class="text-xs font-bold text-stone-400">{{ importantProgress.done }}/{{ importantProgress.total }}</span>
+                            </div>
+                            <div v-for="cat in importantChecklistByCategory" :key="'imp-' + cat.slug"
+                                class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden">
+                                <button @click="toggleCat('imp-' + cat.slug)"
+                                    class="w-full flex items-center justify-between px-4 py-3.5 active:bg-stone-50 transition">
+                                    <span class="flex items-center gap-2 font-black text-stone-800">
+                                        <span class="text-lg">{{ cat.emoji }}</span> {{ cat.label }}
+                                        <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                                            :class="cat.done === cat.items.length ? 'bg-green-50 text-green-600' : 'bg-stone-100 text-stone-500'">
+                                            {{ cat.done }}/{{ cat.items.length }}</span>
+                                    </span>
+                                    <i class="ph-bold text-stone-300 transition-transform"
+                                        :class="collapsedCats['imp-' + cat.slug] ? 'ph-caret-down' : 'ph-caret-up'"></i>
+                                </button>
+                                <div v-show="!collapsedCats['imp-' + cat.slug]" class="border-t border-stone-50">
+                                    <div v-for="item in cat.items" :key="item.id"
+                                        class="check-item-row flex items-center gap-3 px-4 py-3 border-b border-stone-50 last:border-b-0">
+                                        <div @click="openCheckModal(item)"
+                                            class="flex-1 min-w-0 cursor-pointer active:opacity-70">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-bold text-stone-800 truncate"
+                                                    :class="item.checkedBy?.[activeChecklistMember] ? 'line-through text-stone-300' : ''">{{
+                                                    item.name }}</span>
+                                                <span class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md border"
+                                                    :class="LUGGAGE_META[item.luggage]?.cls">{{
+                                                    LUGGAGE_META[item.luggage]?.label }}</span>
+                                            </div>
+                                            <div v-if="item.note" class="text-sm text-stone-500 truncate mt-0.5">{{
+                                                item.note }}</div>
                                         </div>
-                                        <div v-if="item.note" class="text-sm text-stone-500 truncate mt-0.5">{{
-                                            item.note }}</div>
+                                        <div class="shrink-0">
+                                            <button @click="toggleCheck(item, activeChecklistMember)"
+                                                class="check-circle w-7 h-7 rounded-full border-2 flex items-center justify-center transition active:scale-90"
+                                                :class="item.checkedBy?.[activeChecklistMember] ? 'is-checked bg-primary-500 border-primary-500 text-white' : 'border-stone-200 text-transparent'"
+                                                :aria-label="(memberLabel(activeChecklistMember) || '共用') + (item.checkedBy?.[activeChecklistMember] ? ' 已勾' : ' 未勾')">
+                                                <i class="ph-bold ph-check text-sm"></i>
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="shrink-0">
-                                        <button @click="toggleCheck(item, activeChecklistMember)"
-                                            class="check-circle w-7 h-7 rounded-full border-2 flex items-center justify-center transition active:scale-90"
-                                            :class="item.checkedBy?.[activeChecklistMember] ? 'is-checked bg-primary-500 border-primary-500 text-white' : 'border-stone-200 text-transparent'"
-                                            :aria-label="(memberLabel(activeChecklistMember) || '共用') + (item.checkedBy?.[activeChecklistMember] ? ' 已勾' : ' 未勾')">
-                                            <i class="ph-bold ph-check text-sm"></i>
-                                        </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 行李清單（其餘分類，點進去再看 3C／盥洗…） -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between px-1">
+                                <h3 class="text-sm font-black text-stone-500 flex items-center gap-1.5">🧳 行李清單</h3>
+                                <span class="text-xs font-bold text-stone-400">{{ packingProgress.done }}/{{ packingProgress.total }}</span>
+                            </div>
+                            <div v-for="cat in packingChecklistByCategory" :key="'pack-' + cat.slug"
+                                class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden">
+                                <button @click="toggleCat('pack-' + cat.slug)"
+                                    class="w-full flex items-center justify-between px-4 py-3.5 active:bg-stone-50 transition">
+                                    <span class="flex items-center gap-2 font-black text-stone-800">
+                                        <span class="text-lg">{{ cat.emoji }}</span> {{ cat.label }}
+                                        <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                                            :class="cat.done === cat.items.length ? 'bg-green-50 text-green-600' : 'bg-stone-100 text-stone-500'">
+                                            {{ cat.done }}/{{ cat.items.length }}</span>
+                                    </span>
+                                    <i class="ph-bold text-stone-300 transition-transform"
+                                        :class="collapsedCats['pack-' + cat.slug] ? 'ph-caret-down' : 'ph-caret-up'"></i>
+                                </button>
+                                <div v-show="!collapsedCats['pack-' + cat.slug]" class="border-t border-stone-50">
+                                    <div v-for="item in cat.items" :key="item.id"
+                                        class="check-item-row flex items-center gap-3 px-4 py-3 border-b border-stone-50 last:border-b-0">
+                                        <div @click="openCheckModal(item)"
+                                            class="flex-1 min-w-0 cursor-pointer active:opacity-70">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-bold text-stone-800 truncate"
+                                                    :class="item.checkedBy?.[activeChecklistMember] ? 'line-through text-stone-300' : ''">{{
+                                                    item.name }}</span>
+                                                <span class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md border"
+                                                    :class="LUGGAGE_META[item.luggage]?.cls">{{
+                                                    LUGGAGE_META[item.luggage]?.label }}</span>
+                                            </div>
+                                            <div v-if="item.note" class="text-sm text-stone-500 truncate mt-0.5">{{
+                                                item.note }}</div>
+                                        </div>
+                                        <div class="shrink-0">
+                                            <button @click="toggleCheck(item, activeChecklistMember)"
+                                                class="check-circle w-7 h-7 rounded-full border-2 flex items-center justify-center transition active:scale-90"
+                                                :class="item.checkedBy?.[activeChecklistMember] ? 'is-checked bg-primary-500 border-primary-500 text-white' : 'border-stone-200 text-transparent'"
+                                                :aria-label="(memberLabel(activeChecklistMember) || '共用') + (item.checkedBy?.[activeChecklistMember] ? ' 已勾' : ' 未勾')">
+                                                <i class="ph-bold ph-check text-sm"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1112,37 +1198,6 @@
                             <i class="ph-bold ph-plus"></i> 新增項目
                         </button>
                     </template>
-
-                    <!-- 事前準備：跟行李清單同一頁，簡單打勾清單，不分類 -->
-                    <div class="bg-white rounded-3xl border border-stone-100 shadow-soft p-4 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-black text-stone-800 flex items-center gap-2">
-                                <i class="ph-bold ph-list-checks text-primary-500"></i> 事前準備
-                            </h3>
-                            <span v-if="prepTasks.length" class="text-xs font-bold text-stone-400 shrink-0">{{ prepTasks.filter(t => t.completed).length }}/{{ prepTasks.length }}</span>
-                        </div>
-                        <div v-if="!prepTasks.length" class="text-sm text-stone-400 py-1">還沒有要準備的事項，在下面新增一個吧</div>
-                        <div v-for="task in prepTasks" :key="task.id" class="flex items-center gap-3">
-                            <button @click="togglePrepTask(task)"
-                                class="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition active:scale-90"
-                                :class="task.completed ? 'bg-primary-500 border-primary-500 text-white' : 'border-stone-200 text-transparent'">
-                                <i class="ph-bold ph-check text-xs"></i>
-                            </button>
-                            <span class="flex-1 min-w-0 truncate text-sm font-bold text-stone-700"
-                                :class="task.completed ? 'line-through text-stone-300' : ''">{{ task.title }}</span>
-                            <button @click="deletePrepTask(task.id)" class="shrink-0 text-stone-300 hover:text-red-400 transition">
-                                <i class="ph-bold ph-x"></i>
-                            </button>
-                        </div>
-                        <div class="flex gap-2 pt-1">
-                            <input v-model="newPrepTask" @keyup.enter="addPrepTask" placeholder="例如：訂機票、辦簽證、換外幣"
-                                class="flex-1 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <button @click="addPrepTask"
-                                class="px-4 bg-primary-500 text-white rounded-xl text-sm font-bold shadow-md shadow-primary-500/30 active:scale-95 transition shrink-0">
-                                <i class="ph-bold ph-plus"></i>
-                            </button>
-                        </div>
-                    </div>
                 </div>
 
                 <div v-else-if="viewMode === 'translate'" key="translate"
@@ -1675,6 +1730,14 @@
                                 <input v-model="itemModal.draft.commuteNote" placeholder="路線備註 (例如: 2號線→世紀大道站 3號出口)"
                                     class="flex-1 min-w-0 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-700 py-2 px-3 focus:ring-2 focus:ring-primary-200">
                             </div>
+                        </div>
+
+                        <div v-if="itemModal.mode === 'edit'">
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">搬到哪一天</label>
+                            <select v-model.number="itemModal.targetDayIdx"
+                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
+                                <option v-for="(d, idx) in days" :key="idx" :value="idx">Day {{ idx + 1 }}（{{ d.shortDate }}）</option>
+                            </select>
                         </div>
 
                         <label class="flex items-center gap-2 cursor-pointer select-none">
