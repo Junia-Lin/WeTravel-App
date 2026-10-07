@@ -411,21 +411,23 @@ createApp({
             })
             .filter(cat => cat.items.length));
         const toggleCat = (slug) => { collapsedCats[slug] = !collapsedCats[slug]; };
-        // 依「隨身」「託運」拆成兩份清單：不限（any）兩邊都算，因為使用者兩種行李都可能放
-        const carryChecklistByCategory = computed(() => CHECKLIST_CATEGORIES
+        // 清單拆成兩塊：「重要物品」單獨抓出證件財物分類；「行李清單」是其餘分類，點進去再看 3C／盥洗…等子分類
+        const importantChecklistByCategory = computed(() => CHECKLIST_CATEGORIES
+            .filter(cat => cat.slug === 'docs')
             .map(cat => {
-                const items = checklist.value.filter(i => i.category === cat.slug && (i.luggage === 'carry' || i.luggage === 'any'));
+                const items = checklist.value.filter(i => i.category === cat.slug);
                 return { ...cat, items, done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length };
             })
             .filter(cat => cat.items.length));
-        const checkedChecklistByCategory = computed(() => CHECKLIST_CATEGORIES
+        const packingChecklistByCategory = computed(() => CHECKLIST_CATEGORIES
+            .filter(cat => cat.slug !== 'docs')
             .map(cat => {
-                const items = checklist.value.filter(i => i.category === cat.slug && (i.luggage === 'checked' || i.luggage === 'any'));
+                const items = checklist.value.filter(i => i.category === cat.slug);
                 return { ...cat, items, done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length };
             })
             .filter(cat => cat.items.length));
-        const carryProgress = computed(() => { const items = checklist.value.filter(i => i.luggage === 'carry' || i.luggage === 'any'); return { done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length, total: items.length }; });
-        const checkedProgress = computed(() => { const items = checklist.value.filter(i => i.luggage === 'checked' || i.luggage === 'any'); return { done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length, total: items.length }; });
+        const importantProgress = computed(() => { const items = checklist.value.filter(i => i.category === 'docs'); return { done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length, total: items.length }; });
+        const packingProgress = computed(() => { const items = checklist.value.filter(i => i.category !== 'docs'); return { done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length, total: items.length }; });
 
         // Chrome 偶發 bug：換頁淡入的 CSSTransition 凍結在 currentTime 0（fill backwards 持續蓋 opacity:0 → 整頁空白），
         // 且 Vue 已清完 transition class、殘留動畫不會自己消失。換頁後逾時檢查，卡住就取消殘留動畫自癒。
@@ -1097,7 +1099,7 @@ createApp({
             checklist, collapsedCats, toggleCat, checklistMembers, memberLabel, toggleCheck,
             activeChecklistMember,
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist,
-            carryChecklistByCategory, checkedChecklistByCategory, carryProgress, checkedProgress,
+            importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES, LUGGAGE_META,
             PAYMENT_METHODS, allExpenseCategories, customCategories, newCustomCategory, showCustomCategoryInput, addCustomCategory,
