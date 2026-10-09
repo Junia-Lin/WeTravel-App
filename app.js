@@ -69,6 +69,47 @@ createApp({
             const removed = prepTasks.value.splice(idx, 1)[0];
             showToast('已刪除項目', { icon: 'ph-bold ph-trash', undo: () => { prepTasks.value.splice(Math.min(idx, prepTasks.value.length), 0, removed); } });
         };
+        // ---- 預訂：機票／住宿／租車／憑證，獨立於每日行程之外管理 ----
+        const BOOKING_TYPES = [
+            { slug: 'flights', label: '機票', emoji: '✈️' },
+            { slug: 'lodging', label: '住宿', emoji: '🏨' },
+            { slug: 'cars', label: '租車', emoji: '🚗' },
+            { slug: 'vouchers', label: '憑證', emoji: '🎫' },
+        ];
+        const bookings = reactive({ flights: [], lodging: [], cars: [], vouchers: [] });
+        const bookingTab = ref('flights');
+        const bookingModal = reactive({ show: false, type: 'flights', mode: 'add', targetId: null, draft: null });
+        const emptyBookingDraft = (type) => {
+            if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', date: '', startAirport: '', startCity: '', startTime: '', endAirport: '', endCity: '', endTime: '', baggage: '', aircraft: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'lodging') return { id: generateId(), name: '', checkIn: '', checkOut: '', address: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'cars') return { id: generateId(), company: '', pickupLocation: '', pickupDate: '', dropoffLocation: '', dropoffDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            return { id: generateId(), title: '', validDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' }; // vouchers
+        };
+        const openBookingModal = (type, item = null) => {
+            bookingModal.type = type;
+            if (item) { bookingModal.mode = 'edit'; bookingModal.targetId = item.id; bookingModal.draft = JSON.parse(JSON.stringify(item)); }
+            else { bookingModal.mode = 'add'; bookingModal.targetId = null; bookingModal.draft = emptyBookingDraft(type); }
+            bookingModal.show = true;
+        };
+        const saveBookingModal = () => {
+            const list = bookings[bookingModal.type];
+            if (bookingModal.mode === 'edit') {
+                const target = list.find(b => b.id === bookingModal.targetId);
+                if (target) Object.assign(target, bookingModal.draft);
+            } else {
+                list.push({ ...bookingModal.draft });
+            }
+            bookingModal.show = false;
+        };
+        const deleteBookingModal = () => {
+            const list = bookings[bookingModal.type];
+            bookingModal.show = false;
+            const idx = list.findIndex(b => b.id === bookingModal.targetId);
+            if (idx === -1) return;
+            const removed = list.splice(idx, 1)[0];
+            showToast('已刪除', { icon: 'ph-bold ph-trash', undo: () => { list.splice(Math.min(idx, list.length), 0, removed); } });
+        };
+
         const collapsedCats = reactive({});
         const participants = ref([]);
         const participantsStr = ref('');
@@ -411,6 +452,11 @@ createApp({
             })
             .filter(cat => cat.items.length));
         const toggleCat = (slug) => { collapsedCats[slug] = !collapsedCats[slug]; };
+        // 手風琴式切換：展開某類別時，同一份清單裡其他已展開的類別自動收起，不用自己一個一個收
+        const toggleCatExclusive = (list, prefix, slug) => {
+            list.forEach(c => { if (c.slug !== slug) collapsedCats[prefix + c.slug] = true; });
+            collapsedCats[prefix + slug] = !collapsedCats[prefix + slug];
+        };
         // 清單拆成兩塊：「重要物品」單獨抓出證件財物分類；「行李清單」是其餘分類，點進去再看 3C／盥洗…等子分類
         const importantChecklistByCategory = computed(() => CHECKLIST_CATEGORIES
             .filter(cat => cat.slug === 'docs')
@@ -613,6 +659,7 @@ createApp({
             newExpense.value.payer = '';
             customCategories.value = [];
             prepTasks.value = [];
+            bookings.flights = []; bookings.lodging = []; bookings.cars = []; bookings.vouchers = [];
             isRateLoading.value = false;
             nextTick(() => ignoreRemoteUpdate = false);
         };
@@ -748,6 +795,7 @@ createApp({
             savedLocations.value = [];
             customCategories.value = [];
             prepTasks.value = [];
+            bookings.flights = []; bookings.lodging = []; bookings.cars = []; bookings.vouchers = [];
             checklist.value = seedChecklist();
             exchangeRate.value = setup.value.rate;
             // 成員已在 setup modal 收好（createNewTrip 開窗時已重置過），此處不可清空
@@ -875,6 +923,28 @@ createApp({
                     customCategories.value = data.customCategories || [];
                     prepTasks.value = (data.prepTasks || []).filter(t => t);
                     prepTasks.value.forEach(t => { if (!t.id) t.id = generateId(); });
+
+                    const b = data.bookings || {};
+                    bookings.flights = b.flights || [];
+                    bookings.lodging = b.lodging || [];
+                    bookings.cars = b.cars || [];
+                    bookings.vouchers = b.vouchers || [];
+                    // 舊版航班資訊存在每天的 day.flight 裡，只在第一次遇到時搬進「預訂」，搬完清掉 day.flight 並標記，避免重複搬
+                    if (!data.flightsMigrated) {
+                        days.value.forEach(day => {
+                            if (day.flight) {
+                                bookings.flights.push({
+                                    id: generateId(), airline: '', flightNumber: day.flight.number || '',
+                                    date: day.fullDate || '', startAirport: day.flight.startAirport || '', startCity: '',
+                                    startTime: day.flight.startTime || '', endAirport: day.flight.endAirport || '', endCity: '',
+                                    endTime: day.flight.endTime || '', baggage: '', aircraft: '', price: '',
+                                    purchasedDate: '', purchasedVia: '',
+                                    note: [day.flight.startTerminal && `出發航廈 ${day.flight.startTerminal}`, day.flight.endTerminal && `抵達航廈 ${day.flight.endTerminal}`, day.flight.gate && `登機門 ${day.flight.gate}`, day.flight.seat && `座位 ${day.flight.seat}`].filter(Boolean).join('・')
+                                });
+                                day.flight = null;
+                            }
+                        });
+                    }
                     savedLocations.value = (data.locations || []).filter(l => l);
 
                     // 舊旅程無 checklist → 空陣列（分頁顯示帶入模板的空狀態）；欄位缺漏防禦性補齊
@@ -979,6 +1049,8 @@ createApp({
                         checklist: JSON.parse(JSON.stringify(checklist.value)),
                         customCategories: customCategories.value,
                         prepTasks: prepTasks.value,
+                        bookings: JSON.parse(JSON.stringify(bookings)),
+                        flightsMigrated: true,
                         rate: exchangeRate.value,
                         users: participantsStr.value,
                         setup: setup.value,
@@ -998,7 +1070,7 @@ createApp({
             }, 1000);
         };
 
-        watch([days, expenses, savedLocations, checklist, customCategories, prepTasks, exchangeRate, participantsStr, setup], () => {
+        watch([days, expenses, savedLocations, checklist, customCategories, prepTasks, bookings, exchangeRate, participantsStr, setup], () => {
             if (!ignoreRemoteUpdate && !(showSetupModal.value && !isEditing.value)) debouncedSave();
         }, { deep: true });
 
@@ -1098,7 +1170,7 @@ createApp({
             expModal, openExpModal, saveExpModal, deleteExpFromModal,
             checklist, collapsedCats, toggleCat, checklistMembers, memberLabel, toggleCheck,
             activeChecklistMember,
-            checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist,
+            checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES, LUGGAGE_META,
@@ -1107,6 +1179,7 @@ createApp({
             toggleSplitMember, isSplitChecked,
             linkedPlace, itemNavTarget, itemLocationLabel,
             prepTasks, newPrepTask, addPrepTask, togglePrepTask, deletePrepTask,
+            BOOKING_TYPES, bookings, bookingTab, bookingModal, openBookingModal, saveBookingModal, deleteBookingModal,
             COMMUTE_MODES, commuteMeta, typeAccent,
             timePart, setTimePart, showAddParticipantInput,
             totalExpenseForeign, totalExpenseTWD, expAmountTWD
