@@ -138,7 +138,7 @@ createApp({
         const participants = ref([]);
         const participantsStr = ref('');
         const exchangeRate = ref(0.215);
-        const newExpense = ref({ item: '', amount: '', payer: '', category: 'other', paymentMethod: 'cash', splitWith: [], currency: 'foreign' });
+        const newExpense = ref({ item: '', amount: '', payer: '', category: 'other', paymentMethod: 'cash', splitWith: [], currency: 'foreign', transportType: '', date: (() => { const d = new Date(); const m = d.getMonth() + 1, dd = d.getDate(); return `${d.getFullYear()}-${m < 10 ? '0' + m : m}-${dd < 10 ? '0' + dd : dd}`; })() });
         // 使用者自訂的記帳分類（此趟旅程專屬，跟著行程資料存 Firestore）
         const customCategories = ref([]);
         const allExpenseCategories = computed(() => [
@@ -204,7 +204,7 @@ createApp({
             const cx = 50, cy = 50, r = 45;
             let startAngle = -Math.PI / 2; // 從 12 點鐘方向開始
             const polar = (angle) => [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
-            const entries = Object.entries(categoryTotals.value).filter(([, amt]) => amt > 0);
+            const entries = Object.entries(categoryTotals.value).filter(([, amt]) => amt > 0).sort((x, y) => y[1] - x[1]);
             return entries.map(([slug, amt], idx) => {
                 const cat = allExpenseCategories.value.find(c => c.slug === slug) || { slug, label: slug, emoji: '💰' };
                 const pct = amt / total;
@@ -227,6 +227,64 @@ createApp({
             return data.sort((a, b) => b.amount - a.amount).map(d => ({ ...d, pct: d.amount / max }));
         });
         // 支出對應「第幾天」的顯示標籤（取代原本的日曆日期顯示）
+
+        // ---- 記帳「明細」分頁：依日期／依分類歸類 ----
+        const moneyTab = ref('input');
+        const detailMode = ref('date');
+        const openGroups = reactive({});
+        const toggleGroup = (key) => { openGroups[key] = !openGroups[key]; };
+        const TRANSPORT_TYPES = [
+            { slug: 'pass', label: '交通券', emoji: '🎟️' },
+            { slug: 'metro', label: '地鐵', emoji: '🚇' },
+            { slug: 'taxi', label: '計程車', emoji: '🚕' },
+            { slug: 'bus', label: '公車', emoji: '🚌' },
+            { slug: 'rail', label: '火車/高鐵', emoji: '🚆' },
+        ];
+        const transportMeta = (slug) => TRANSPORT_TYPES.find(t => t.slug === slug) || null;
+        const firstDayDate = computed(() => (days.value[0] && days.value[0].fullDate) || '');
+        const lastDayDate = computed(() => { const n = days.value.length; return n ? (days.value[n - 1].fullDate || '') : ''; });
+        const isPretrip = (e) => !!e.date && !!firstDayDate.value && e.date < firstDayDate.value;
+        const fmtShortDate = (s) => { if (!s) return ''; const p = String(s).split('-'); return p.length === 3 ? `${Number(p[1])}/${Number(p[2])}` : s; };
+        // 帳目的日期標籤：旅程內「9/18 D1」，出發前「出發前 11/14」
+        const dateTag = (date) => {
+            if (!date) return '未指定日期';
+            const i = days.value.findIndex(d => d.fullDate === date);
+            if (i !== -1) return `${fmtShortDate(date)} D${i + 1}`;
+            if (firstDayDate.value && date < firstDayDate.value) return `出發前 ${fmtShortDate(date)}`;
+            if (lastDayDate.value && date > lastDayDate.value) return `旅程後 ${fmtShortDate(date)}`;
+            return fmtShortDate(date);
+        };
+        const expenseGroupKey = (e) => {
+            if (!e.date) return 'none';
+            if (firstDayDate.value && e.date < firstDayDate.value) return 'pre';
+            if (lastDayDate.value && e.date > lastDayDate.value) return 'post';
+            return e.date;
+        };
+        const expenseGroupsByDate = computed(() => {
+            const map = {};
+            expenses.value.forEach(e => { const k = expenseGroupKey(e); (map[k] = map[k] || []).push(e); });
+            const order = (k) => k === 'pre' ? '0' : k === 'post' ? '9' : k === 'none' ? 'A' : '5' + k;
+            return Object.keys(map).sort((x, y) => order(x).localeCompare(order(y))).map(k => {
+                const items = map[k].slice().sort((x, y) => (x.date || '').localeCompare(y.date || ''));
+                const label = k === 'pre' ? '出發前（預購）' : k === 'post' ? '旅程結束後' : k === 'none' ? '未指定日期' : dateTag(k);
+                return { key: k, label, items, total: items.reduce((s, e) => s + expAmountTWD(e), 0) };
+            });
+        });
+        // 某分類的全部明細；交通另外拆出細項小計，並分「預購（出發前）」與「現地」
+        const categoryDetail = (slug) => {
+            const items = expenses.value.filter(e => (e.category || 'other') === slug).slice().sort((x, y) => (x.date || '').localeCompare(y.date || ''));
+            let pre = 0, onTrip = 0;
+            items.forEach(e => { if (isPretrip(e)) pre += expAmountTWD(e); else onTrip += expAmountTWD(e); });
+            let byType = [];
+            if (slug === 'transport') {
+                const m = {};
+                items.forEach(e => { const k = e.transportType || ''; m[k] = (m[k] || 0) + expAmountTWD(e); });
+                byType = Object.keys(m).map(k => { const t = transportMeta(k); return { key: k || 'none', label: t ? t.label : '未細分', emoji: t ? t.emoji : '🚏', total: m[k] }; }).sort((x, y) => y.total - x.total);
+            }
+            return { items, pre, onTrip, byType };
+        };
+        // 輸入金額時，旁邊即時顯示約合台幣
+        const newExpenseTWD = computed(() => { const n = Number(newExpense.value.amount) || 0; return Math.round(newExpense.value.currency === 'TWD' ? n : n * exchangeRate.value); });
         const dayLabel = (idx) => (idx === null || idx === undefined || !days.value[idx]) ? '未指定' : `Day ${idx + 1}`;
         // 成員新增/刪除（直接同步 participantsStr 供存檔；participants 為顯示來源）
         const newParticipant = ref('');
@@ -565,11 +623,12 @@ createApp({
             expenses.value.unshift({
                 ...newExpense.value,
                 id: generateId(),
-                // 記到目前正在看的那一天（行程分頁切到 Day 3 時記帳，就存 Day 3）
-                dayIndex: currentDayIdx.value,
+                // 帳目記「真正的日期」（預設今天，可手動改）；交通細項只有選了交通才留
+                date: newExpense.value.date || localDateStr(),
+                transportType: newExpense.value.category === 'transport' ? (newExpense.value.transportType || '') : '',
                 splitWith: (newExpense.value.splitWith && newExpense.value.splitWith.length) ? [...newExpense.value.splitWith] : []
             });
-            newExpense.value.item = ''; newExpense.value.amount = ''; isItemInvalid.value = false; isAmountInvalid.value = false;
+            newExpense.value.item = ''; newExpense.value.amount = ''; newExpense.value.transportType = ''; isItemInvalid.value = false; isAmountInvalid.value = false;
         };
         const expModal = reactive({ show: false, targetId: null, draft: null });
         const openExpModal = (exp) => {
@@ -578,7 +637,8 @@ createApp({
             if (!expModal.draft.category) expModal.draft.category = 'other';
             if (!expModal.draft.paymentMethod) expModal.draft.paymentMethod = 'cash';
             if (!expModal.draft.currency) expModal.draft.currency = 'foreign';
-            if (expModal.draft.dayIndex === undefined || expModal.draft.dayIndex === null) expModal.draft.dayIndex = currentDayIdx.value;
+            if (!expModal.draft.date) expModal.draft.date = localDateStr();
+            if (expModal.draft.transportType === undefined) expModal.draft.transportType = '';
             if (!Array.isArray(expModal.draft.splitWith)) expModal.draft.splitWith = [];
             expModal.show = true;
         };
@@ -937,12 +997,12 @@ createApp({
                         if (!e.paymentMethod) e.paymentMethod = 'cash';
                         if (!e.currency) e.currency = 'foreign';
                         if (!Array.isArray(e.splitWith)) e.splitWith = [];
-                        if (e.dayIndex === undefined || e.dayIndex === null) {
-                            // 舊資料是存日曆日期（date），換算成落在行程的第幾天；換算不到就先放 Day 1
-                            const idx = e.date ? days.value.findIndex(d => d.fullDate === e.date) : -1;
-                            e.dayIndex = idx !== -1 ? idx : 0;
+                        if (e.transportType === undefined) e.transportType = '';
+                        // 帳目改記「真正的日期」：舊資料只有第幾天（dayIndex）就換算成當天日期
+                        if (!e.date) {
+                            const dd = (e.dayIndex !== undefined && e.dayIndex !== null) ? days.value[e.dayIndex] : null;
+                            e.date = (dd && dd.fullDate) ? dd.fullDate : '';
                         }
-                        delete e.date;
                     });
                     customCategories.value = data.customCategories || [];
                     prepTasks.value = (data.prepTasks || []).filter(t => t);
@@ -1204,6 +1264,7 @@ createApp({
             linkedPlace, itemNavTarget, itemLocationLabel,
             prepTasks, newPrepTask, addPrepTask, togglePrepTask, deletePrepTask,
             BOOKING_TYPES, bookings, bookingTab, bookingModal, openBookingModal, saveBookingModal, deleteBookingModal,
+            moneyTab, detailMode, openGroups, toggleGroup, TRANSPORT_TYPES, transportMeta, dateTag, fmtShortDate, expenseGroupsByDate, categoryDetail, newExpenseTWD, isPretrip,
             sortedFlights, sortedLodging, flightEndDate, flightDurationMin, fmtDuration, flightDayDiff, fmtMD, nightsOf, mapsUrl,
             COMMUTE_MODES, commuteMeta, typeAccent,
             timePart, setTimePart, showAddParticipantInput,
