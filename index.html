@@ -635,209 +635,262 @@
                 </div>
 
                 <div v-else-if="viewMode === 'money'" key="money"
-                    class="view-pane p-5 pb-32 space-y-6 flex-1 overflow-y-auto hide-scroll">
-                    <div
-                        class="bg-stone-800 text-white rounded-3xl p-6 shadow-xl shadow-stone-500/20 relative overflow-hidden group">
+                    class="view-pane p-5 pb-32 space-y-4 w-full">
 
-                        <!-- Background Image -->
-                        <div class="absolute inset-0 z-0">
-                            <img src="assets/kitty_money.png" class="w-full h-full object-cover"
-                                alt="Background Pattern">
-                        </div>
-
-                        <div class="relative z-10 flex justify-between items-start">
-                            <div>
-                                <div class="text-teal-100 text-xs font-bold tracking-widest uppercase mb-1">Total
-                                    Expense (TWD)
-                                </div>
-                                <div class="text-4xl font-black font-mono tracking-tight">NT$ {{
-                                    Math.round(totalExpenseTWD).toLocaleString() }}</div>
-                                <div v-if="totalExpenseForeign > 0"
-                                    class="text-sm font-medium text-teal-100 mt-2 flex items-center gap-1 bg-white/10 w-fit px-2 py-1 rounded-lg backdrop-blur-sm">
-                                    <i class="ph-bold ph-map-pin"></i> 現地花費 {{ currencySymbol }} {{ totalExpenseForeign.toLocaleString() }}
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <label class="text-[10px] text-teal-200 block mb-1">匯率 1{{ currencyLabel }}≈NT$</label>
-                                <input v-model.number="exchangeRate" @change="updateExchangeRate" type="number"
-                                    step="0.001" inputmode="decimal"
-                                    class="w-16 text-right text-sm font-bold text-teal-900 bg-white/80 focus:bg-white rounded-lg px-2 py-1 shadow-sm outline-none focus:ring-2 focus:ring-white/70">
-                            </div>
-                        </div>
+                    <!-- 子分頁：記帳／明細 -->
+                    <div class="flex bg-stone-100 p-1 rounded-2xl">
+                        <button @click="moneyTab = 'input'"
+                            class="flex-1 py-2.5 rounded-xl text-sm font-black transition-colors flex items-center justify-center gap-1.5"
+                            :class="moneyTab === 'input' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">
+                            <i class="ph-bold ph-pencil-simple"></i> 記帳</button>
+                        <button @click="moneyTab = 'detail'"
+                            class="flex-1 py-2.5 rounded-xl text-sm font-black transition-colors flex items-center justify-center gap-1.5"
+                            :class="moneyTab === 'detail' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">
+                            <i class="ph-bold ph-list-bullets"></i> 明細</button>
                     </div>
 
-                    <!-- 記帳成員：小卡呈現，點「+」才展開新增輸入框 -->
-                    <div class="bg-white p-3.5 rounded-3xl border border-stone-100 shadow-soft">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span v-for="p in participants" :key="p"
-                                class="inline-flex items-center gap-1.5 bg-stone-50 border border-stone-100 rounded-full pl-3 pr-1.5 py-1.5 text-xs font-bold text-stone-700">
-                                {{ p }}
-                                <span class="text-primary-600 font-mono">NT${{ Math.round(paidByPerson[p] || 0).toLocaleString() }}</span>
-                                <button @click="removeParticipant(p)"
-                                    class="w-4 h-4 flex items-center justify-center rounded-full text-stone-400 hover:bg-stone-300 hover:text-white transition">
-                                    <i class="ph-bold ph-x text-[9px]"></i>
-                                </button>
-                            </span>
-                            <button v-if="!showAddParticipantInput" @click="showAddParticipantInput = true"
-                                class="w-7 h-7 rounded-full bg-primary-50 text-primary-500 flex items-center justify-center hover:bg-primary-100 transition shrink-0">
-                                <i class="ph-bold ph-plus text-xs"></i>
-                            </button>
-                            <div v-else class="flex items-center gap-1 shrink-0">
-                                <input v-model="newParticipant" @keyup.enter="addParticipant(); showAddParticipantInput = false"
-                                    placeholder="名字" autofocus
-                                    class="w-20 bg-stone-50 border border-stone-200 rounded-full text-xs font-bold text-stone-700 py-1.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                <button @click="addParticipant(); showAddParticipantInput = false" class="text-primary-600 shrink-0">
-                                    <i class="ph-bold ph-check"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- ===== 記帳（只負責輸入） ===== -->
+                    <div v-if="moneyTab === 'input'" class="bg-white rounded-3xl border border-stone-100 shadow-soft p-4 space-y-4">
+                        <div class="text-base font-black text-stone-800">💰 記帳輸入</div>
 
-                    <div class="bg-white p-4 rounded-3xl border border-stone-100 shadow-sm mb-6">
-                        <div class="mb-3">
-                            <div class="text-[10px] text-stone-500 mb-1 pl-1">項目</div>
-                            <input ref="itemInputRef" v-model="newExpense.item" type="text" placeholder="例如: 午餐、地鐵"
-                                :class="{'ring-2 ring-red-300 bg-red-50': isItemInvalid}"
-                                @input="isItemInvalid = false"
-                                class="w-full bg-stone-50 border-none rounded-xl text-base font-bold text-stone-700 py-3 px-3 focus:ring-2 focus:ring-primary-200">
+                        <div>
+                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">日期（預設今天）</div>
+                            <input v-model="newExpense.date" type="date"
+                                class="w-full min-w-0 h-12 bg-stone-50 border-none rounded-xl text-base font-bold text-stone-700 px-3 focus:ring-2 focus:ring-primary-200">
                         </div>
-                        <div class="flex items-end gap-2">
-                            <div class="w-16 shrink-0">
-                                <div class="text-[10px] text-stone-500 mb-1 pl-1">誰付錢</div>
-                                <select v-model="newExpense.payer"
-                                    class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-1.5 focus:ring-2 focus:ring-primary-200 appearance-none">
-                                    <option v-for="p in participants" :value="p">{{ p }}</option>
-                                </select>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="text-[10px] text-stone-500 mb-1 pl-1">金額</div>
-                                <input ref="amountInputRef" v-model.number="newExpense.amount" type="number"
-                                    inputmode="decimal" :placeholder="newExpense.currency === 'TWD' ? 'NT$' : currencySymbol"
-                                    :class="{'ring-2 ring-red-300 bg-red-50': isAmountInvalid}"
-                                    @input="isAmountInvalid = false"
-                                    class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-lg font-black text-stone-700 py-2 px-2 focus:ring-2 focus:ring-primary-200 text-right font-mono tracking-tight">
-                            </div>
-                            <button @click="addExpense"
-                                class="w-11 h-11 bg-primary-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30 hover:bg-primary-600 active:scale-95 transition shrink-0 mb-[1px]">
-                                <i class="ph-bold ph-plus text-xl"></i>
-                            </button>
-                        </div>
-                        <!-- 幣別切換：大部分支出是現地外幣，但機票/簽證這類出發前先付的台幣費用可以切這裡 -->
-                        <div class="flex justify-end mt-1.5">
-                            <div class="flex bg-stone-50 rounded-xl border border-stone-200 p-0.5">
+
+                        <div>
+                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">幣別（預設 {{ currencyLabel }}）</div>
+                            <div class="grid grid-cols-2 gap-2">
                                 <button @click="newExpense.currency = 'foreign'"
-                                    class="px-3 py-1 rounded-lg text-[11px] font-bold transition-colors"
-                                    :class="newExpense.currency !== 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">{{ currencyLabel }}</button>
+                                    class="h-11 rounded-xl text-sm font-black border-2 transition-colors"
+                                    :class="newExpense.currency !== 'TWD' ? 'bg-primary-50 border-primary-400 text-primary-600' : 'bg-stone-50 border-stone-100 text-stone-400'">{{ currencyLabel }}</button>
                                 <button @click="newExpense.currency = 'TWD'"
-                                    class="px-3 py-1 rounded-lg text-[11px] font-bold transition-colors"
-                                    :class="newExpense.currency === 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">TWD</button>
+                                    class="h-11 rounded-xl text-sm font-black border-2 transition-colors"
+                                    :class="newExpense.currency === 'TWD' ? 'bg-primary-50 border-primary-400 text-primary-600' : 'bg-stone-50 border-stone-100 text-stone-400'">TWD</button>
                             </div>
                         </div>
 
-                        <!-- 分類 / 付款方式：下拉選單，一眼看清楚目前選了什麼 -->
-                        <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div class="grid grid-cols-[1fr_7.5rem] gap-2">
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1"><span class="text-red-400">*</span> 金額</div>
+                                <input ref="amountInputRef" v-model.number="newExpense.amount" type="number" inputmode="decimal"
+                                    :placeholder="newExpense.currency === 'TWD' ? 'NT$' : currencySymbol"
+                                    :class="{'ring-2 ring-red-300 bg-red-50': isAmountInvalid}" @input="isAmountInvalid = false"
+                                    class="w-full min-w-0 h-12 bg-stone-50 border-none rounded-xl text-xl font-black text-stone-700 px-3 focus:ring-2 focus:ring-primary-200 font-mono">
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">約合台幣</div>
+                                <div class="h-12 bg-stone-100/70 rounded-xl flex items-center px-3 text-lg font-black text-stone-500 font-mono truncate">{{ newExpenseTWD.toLocaleString() }}</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <div class="text-[10px] text-stone-500 mb-1 pl-1">分類</div>
+                                <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">分類</div>
                                 <select v-model="newExpense.category"
-                                    class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
+                                    class="w-full h-12 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
                                     <option v-for="cat in allExpenseCategories" :key="cat.slug" :value="cat.slug">{{ cat.emoji }} {{ cat.label }}</option>
                                 </select>
                             </div>
                             <div>
-                                <div class="text-[10px] text-stone-500 mb-1 pl-1">付款方式</div>
+                                <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">付款方式</div>
                                 <select v-model="newExpense.paymentMethod"
-                                    class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
+                                    class="w-full h-12 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
                                     <option v-for="pm in PAYMENT_METHODS" :key="pm.slug" :value="pm.slug">{{ pm.emoji }} {{ pm.label }}</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="mt-1.5">
+                        <div v-if="newExpense.category === 'transport'">
+                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">交通細項（選填，再點一次取消）</div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="t in TRANSPORT_TYPES" :key="t.slug"
+                                    @click="newExpense.transportType = (newExpense.transportType === t.slug ? '' : t.slug)"
+                                    class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
+                                    :class="newExpense.transportType === t.slug ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-stone-50 text-stone-500 border-stone-100'">{{ t.emoji }} {{ t.label }}</button>
+                            </div>
+                        </div>
+                        <div class="-mt-2">
                             <button v-if="!showCustomCategoryInput" @click="showCustomCategoryInput = true"
                                 class="text-[11px] font-bold text-stone-400 hover:text-primary-500 transition">＋ 新增自訂分類</button>
                             <div v-else class="flex items-center gap-1">
-                                <input v-model="newCustomCategory" @keyup.enter="addCustomCategory(() => newExpense)"
-                                    placeholder="分類名稱"
+                                <input v-model="newCustomCategory" @keyup.enter="addCustomCategory(() => newExpense)" placeholder="分類名稱"
                                     class="w-32 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 py-1.5 px-2 focus:ring-2 focus:ring-primary-200">
                                 <button @click="addCustomCategory(() => newExpense)" class="text-primary-600"><i class="ph-bold ph-check"></i></button>
                             </div>
                         </div>
 
-                        <!-- 分攤成員（預設全選＝均分給所有人；取消勾選代表這筆不分他） -->
-                        <div v-if="participants.length > 1" class="mt-3">
-                            <div class="text-[10px] text-stone-500 mb-1 pl-1">均分給誰</div>
+                        <div>
+                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1"><span class="text-red-400">*</span> 消費項目</div>
+                            <input ref="itemInputRef" v-model="newExpense.item" type="text" placeholder="例如：午餐、地鐵"
+                                :class="{'ring-2 ring-red-300 bg-red-50': isItemInvalid}" @input="isItemInvalid = false"
+                                class="w-full min-w-0 h-12 bg-stone-50 border-none rounded-xl text-base font-bold text-stone-700 px-3 focus:ring-2 focus:ring-primary-200">
+                        </div>
+
+                        <div>
+                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">誰付錢</div>
+                            <div v-if="participants.length" class="flex flex-wrap gap-1.5">
+                                <button v-for="p in participants" :key="p" @click="newExpense.payer = p"
+                                    class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
+                                    :class="newExpense.payer === p ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">{{ p }}</button>
+                            </div>
+                            <div v-else class="flex items-center gap-2">
+                                <input v-model="newParticipant" @keyup.enter="addParticipant" placeholder="先新增成員名字"
+                                    class="flex-1 min-w-0 h-11 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 px-3 focus:ring-2 focus:ring-primary-200">
+                                <button @click="addParticipant" class="px-4 h-11 bg-primary-500 text-white rounded-xl text-sm font-bold shrink-0">加人</button>
+                            </div>
+                        </div>
+
+                        <div v-if="participants.length > 1">
+                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">均分給誰</div>
                             <div class="flex flex-wrap gap-1.5">
-                                <button v-for="p in participants" :key="p"
-                                    @click="toggleSplitMember(newExpense, p)"
-                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors"
-                                    :class="isSplitChecked(newExpense, p) ? 'bg-primary-100 text-primary-700 border-primary-200' : 'bg-stone-50 text-stone-400 border-stone-100'">
-                                    {{ p }}
-                                </button>
+                                <button v-for="p in participants" :key="p" @click="toggleSplitMember(newExpense, p)"
+                                    class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
+                                    :class="isSplitChecked(newExpense, p) ? 'bg-primary-100 text-primary-700 border-primary-200' : 'bg-stone-50 text-stone-400 border-stone-100'">{{ p }}</button>
                             </div>
+                        </div>
+
+                        <!-- 新增按鈕：放在表單最下面，捲動時固定貼在畫面底部，輸入完直接按 -->
+                        <div class="sticky bottom-0 -mx-4 -mb-4 px-4 pt-4 pb-4 bg-gradient-to-t from-white via-white to-white/0 rounded-b-3xl">
+                            <button @click="addExpense"
+                                class="w-full py-3.5 bg-primary-500 text-white rounded-2xl font-black text-base shadow-lg shadow-primary-500/30 hover:bg-primary-600 active:scale-[0.98] transition flex items-center justify-center gap-2">
+                                <i class="ph-bold ph-plus"></i> 新增這筆帳</button>
                         </div>
                     </div>
 
-                    <!-- 統計：分類佔比圓餅圖 + 每人實際負擔長條圖（統一換算成台幣才能一起比較） -->
-                    <div v-if="expenses.length" class="bg-white p-4 rounded-3xl border border-stone-100 shadow-soft space-y-5">
-                        <div class="text-sm font-black text-stone-800 flex items-center gap-1.5">
-                            <i class="ph-bold ph-chart-pie text-primary-500"></i> 花費統計（台幣）
+                    <!-- ===== 明細（所有統計與紀錄都在這裡，只出現一次） ===== -->
+                    <template v-else>
+                        <div class="bg-stone-800 text-white rounded-3xl p-5 shadow-xl shadow-stone-500/20 relative overflow-hidden">
+                            <div class="absolute inset-0 z-0"><img src="assets/kitty_money.png" class="w-full h-full object-cover" alt=""></div>
+                            <div class="relative z-10 flex justify-between items-start gap-3">
+                                <div class="min-w-0">
+                                    <div class="text-teal-100 text-xs font-bold tracking-widest uppercase mb-1">Total (TWD)</div>
+                                    <div class="text-4xl font-black font-mono tracking-tight">NT$ {{ Math.round(totalExpenseTWD).toLocaleString() }}</div>
+                                    <div v-if="totalExpenseForeign > 0"
+                                        class="text-sm font-medium text-teal-100 mt-2 flex items-center gap-1 bg-white/10 w-fit px-2 py-1 rounded-lg backdrop-blur-sm">
+                                        <i class="ph-bold ph-map-pin"></i> 現地花費 {{ currencySymbol }} {{ totalExpenseForeign.toLocaleString() }}
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <label class="text-[10px] text-teal-200 block mb-1">匯率 1{{ currencyLabel }}≈NT$</label>
+                                    <input v-model.number="exchangeRate" @change="updateExchangeRate" type="number" step="0.001" inputmode="decimal"
+                                        class="w-16 text-right text-sm font-bold text-teal-900 bg-white/80 focus:bg-white rounded-lg px-2 py-1 shadow-sm outline-none focus:ring-2 focus:ring-white/70">
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- 圓餅圖：分類佔比 -->
-                        <div class="flex items-center gap-4">
-                            <svg viewBox="0 0 100 100" class="w-28 h-28 shrink-0">
-                                <path v-for="slice in categoryPieSlices" :key="slice.slug" :d="slice.path" :fill="slice.color" />
-                            </svg>
-                            <div class="flex-1 min-w-0 space-y-1.5">
-                                <div v-for="slice in categoryPieSlices" :key="slice.slug"
-                                    class="flex items-center justify-between gap-2 text-xs">
-                                    <span class="flex items-center gap-1.5 min-w-0 text-stone-600 font-bold truncate">
-                                        <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: slice.color }"></span>
-                                        {{ slice.emoji }} {{ slice.label }}
+                        <!-- 每人花費（只在這裡出現一次） -->
+                        <div class="bg-white rounded-3xl border border-stone-100 shadow-soft p-4">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-black text-stone-800">成員花費</span>
+                                <span class="text-[11px] text-stone-400">實際負擔（均分後）／已付</span>
+                            </div>
+                            <div v-for="p in participants" :key="p" class="flex items-center gap-2 py-2.5 border-t border-stone-50 first:border-t-0">
+                                <span class="font-bold text-stone-700 flex-1 min-w-0 truncate">{{ p }}</span>
+                                <div class="text-right shrink-0">
+                                    <div class="text-sm font-black text-primary-600 font-mono">NT${{ Math.round(owedByPerson[p] || 0).toLocaleString() }}</div>
+                                    <div class="text-[10px] text-stone-400 font-mono">已付 NT${{ Math.round(paidByPerson[p] || 0).toLocaleString() }}</div>
+                                </div>
+                                <button @click="removeParticipant(p)"
+                                    class="w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-stone-300 hover:bg-stone-200 hover:text-white transition">
+                                    <i class="ph-bold ph-x text-[9px]"></i></button>
+                            </div>
+                            <div class="pt-2 border-t border-stone-50">
+                                <button v-if="!showAddParticipantInput" @click="showAddParticipantInput = true"
+                                    class="text-[11px] font-bold text-stone-400 hover:text-primary-500 transition">＋ 新增成員</button>
+                                <div v-else class="flex items-center gap-1">
+                                    <input v-model="newParticipant" @keyup.enter="addParticipant(); showAddParticipantInput = false" placeholder="名字"
+                                        class="w-28 bg-stone-50 border border-stone-200 rounded-full text-xs font-bold text-stone-700 py-1.5 px-3 focus:ring-2 focus:ring-primary-200">
+                                    <button @click="addParticipant(); showAddParticipantInput = false" class="text-primary-600"><i class="ph-bold ph-check"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 歸類方式 -->
+                        <div class="flex bg-stone-100 p-1 rounded-2xl">
+                            <button @click="detailMode = 'date'"
+                                class="flex-1 py-2 rounded-xl text-sm font-bold transition-colors"
+                                :class="detailMode === 'date' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">📅 依日期</button>
+                            <button @click="detailMode = 'category'"
+                                class="flex-1 py-2 rounded-xl text-sm font-bold transition-colors"
+                                :class="detailMode === 'category' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">🏷️ 依分類</button>
+                        </div>
+
+                        <div v-if="!expenses.length" class="text-sm text-stone-400 text-center py-8">還沒有任何帳目，到「記帳」新增第一筆吧</div>
+
+                        <!-- 依日期：點日期展開當天的消費紀錄 -->
+                        <div v-else-if="detailMode === 'date'" class="space-y-2">
+                            <div v-for="g in expenseGroupsByDate" :key="g.key"
+                                class="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+                                <button @click="toggleGroup('d-' + g.key)" class="w-full flex items-center justify-between px-4 py-3.5 active:bg-stone-50 transition">
+                                    <span class="font-black text-stone-800 text-sm flex items-center gap-2">{{ g.label }}
+                                        <span class="text-[11px] font-bold text-stone-400">{{ g.items.length }} 筆</span></span>
+                                    <span class="flex items-center gap-2 shrink-0">
+                                        <span class="font-mono font-black text-stone-800 text-sm">NT${{ Math.round(g.total).toLocaleString() }}</span>
+                                        <i class="ph-bold text-stone-300" :class="openGroups['d-' + g.key] ? 'ph-caret-up' : 'ph-caret-down'"></i>
                                     </span>
-                                    <span class="shrink-0 font-mono font-bold text-stone-700">{{ Math.round(slice.pct * 100) }}%</span>
+                                </button>
+                                <div v-show="openGroups['d-' + g.key]" class="bg-stone-50/50 border-t border-stone-100">
+                                    <div v-for="exp in g.items" :key="exp.id || exp.item" @click="openExpModal(exp)"
+                                    class="flex items-center gap-3 px-4 py-3 cursor-pointer active:bg-stone-100 border-t border-stone-100/70 first:border-t-0">
+                                    <span class="text-lg shrink-0 leading-none">{{ (allExpenseCategories.find(c => c.slug === exp.category) || {}).emoji || '💰' }}</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-bold text-stone-700 text-sm truncate">{{ exp.item }}<span v-if="transportMeta(exp.transportType)" class="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-500">{{ transportMeta(exp.transportType).label }}</span></div>
+                                        <div class="text-[11px] text-stone-400 truncate">{{ exp.payer }}・{{ (PAYMENT_METHODS.find(p => p.slug === exp.paymentMethod) || {}).label }}</div>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <div class="font-mono font-bold text-stone-800 text-sm">{{ exp.currency === 'TWD' ? 'NT$' : currencySymbol }}{{ Number(exp.amount).toLocaleString() }}</div>
+                                        <div v-if="exp.currency !== 'TWD'" class="text-[10px] text-stone-400 font-mono">≈NT${{ Math.round(exp.amount * exchangeRate).toLocaleString() }}</div>
+                                    </div>
+                                </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 長條圖：每人實際負擔（均分後真正該花的錢） -->
-                        <div v-if="participants.length > 1" class="space-y-2 pt-3 border-t border-stone-100">
-                            <div class="text-[10px] text-stone-500 uppercase tracking-wider font-bold">每人實際負擔</div>
-                            <div v-for="p in personBarData" :key="p.name" class="space-y-1">
-                                <div class="flex justify-between text-xs font-bold text-stone-600">
-                                    <span>{{ p.name }}</span>
-                                    <span class="font-mono">NT${{ Math.round(p.amount).toLocaleString() }}</span>
+                        <!-- 依分類：圓餅圖＋分類列表，點分類展開這趟該分類的全部明細 -->
+                        <div v-else class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden">
+                            <div class="p-4 flex justify-center">
+                                <svg viewBox="0 0 100 100" class="w-36 h-36">
+                                    <path v-for="s in categoryPieSlices" :key="s.slug" :d="s.path" :fill="s.color" />
+                                </svg>
+                            </div>
+                            <div v-for="s in categoryPieSlices" :key="s.slug" class="border-t border-stone-50">
+                                <button @click="toggleGroup('c-' + s.slug)" class="w-full flex items-center justify-between px-4 py-3 active:bg-stone-50 transition">
+                                    <span class="flex items-center gap-2 min-w-0">
+                                        <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: s.color }"></span>
+                                        <span class="text-sm font-bold text-stone-700 truncate">{{ s.emoji }} {{ s.label }}</span>
+                                        <span class="text-[11px] text-stone-400 shrink-0">{{ Math.round(s.pct * 100) }}%</span>
+                                    </span>
+                                    <span class="flex items-center gap-2 shrink-0">
+                                        <span class="font-mono font-black text-sm text-stone-800">NT${{ Math.round(s.amount).toLocaleString() }}</span>
+                                        <i class="ph-bold text-stone-300" :class="openGroups['c-' + s.slug] ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                                    </span>
+                                </button>
+                                <div v-show="openGroups['c-' + s.slug]" class="bg-stone-50/50 border-t border-stone-100">
+                                    <template v-for="d in [categoryDetail(s.slug)]" :key="s.slug">
+                                        <div v-if="d.pre > 0" class="px-4 pt-2.5 text-[11px] font-bold text-stone-500">
+                                            預購（出發前）NT${{ Math.round(d.pre).toLocaleString() }}　・　現地 NT${{ Math.round(d.onTrip).toLocaleString() }}</div>
+                                        <div v-if="d.byType.length" class="px-4 pt-2 pb-1 flex flex-wrap gap-1.5">
+                                            <span v-for="t in d.byType" :key="t.key"
+                                                class="text-[11px] font-bold px-2 py-1 rounded-lg bg-blue-50 text-blue-600">{{ t.emoji }} {{ t.label }} NT${{ Math.round(t.total).toLocaleString() }}</span>
+                                        </div>
+                                        <div v-for="exp in d.items" :key="exp.id || exp.item" @click="openExpModal(exp)"
+                                    class="flex items-center gap-3 px-4 py-3 cursor-pointer active:bg-stone-100 border-t border-stone-100/70 first:border-t-0">
+                                    <span class="text-lg shrink-0 leading-none">{{ (allExpenseCategories.find(c => c.slug === exp.category) || {}).emoji || '💰' }}</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-bold text-stone-700 text-sm truncate">{{ exp.item }}<span v-if="transportMeta(exp.transportType)" class="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-500">{{ transportMeta(exp.transportType).label }}</span></div>
+                                        <div class="text-[11px] text-stone-400 truncate">{{ exp.payer }}・{{ (PAYMENT_METHODS.find(p => p.slug === exp.paymentMethod) || {}).label }}・{{ dateTag(exp.date) }}</div>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <div class="font-mono font-bold text-stone-800 text-sm">{{ exp.currency === 'TWD' ? 'NT$' : currencySymbol }}{{ Number(exp.amount).toLocaleString() }}</div>
+                                        <div v-if="exp.currency !== 'TWD'" class="text-[10px] text-stone-400 font-mono">≈NT${{ Math.round(exp.amount * exchangeRate).toLocaleString() }}</div>
+                                    </div>
                                 </div>
-                                <div class="h-2 bg-stone-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-primary-400 rounded-full" :style="{ width: (p.pct * 100) + '%' }"></div>
+                                    </template>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div v-for="exp in expenses" :key="exp.id || exp.item"
-                            class="bg-white rounded-2xl border border-stone-100 shadow-sm transition-all overflow-hidden">
-                            <!-- 點一下開彈窗編輯 -->
-                            <div @click="openExpModal(exp)"
-                                class="flex justify-between items-center p-4 cursor-pointer active:bg-stone-50">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <div
-                                        class="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center border border-primary-100 overflow-hidden shrink-0 text-lg">
-                                        {{ (allExpenseCategories.find(c => c.slug === exp.category) || {}).emoji || '💰' }}
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="font-bold text-stone-700 truncate">{{ exp.item }}</div>
-                                        <div class="text-xs text-stone-400 truncate">{{ exp.payer }} ・ {{ dayLabel(exp.dayIndex) }}</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0">
-                                    <span class="font-mono font-bold text-stone-800 text-lg">{{ exp.currency === 'TWD' ? 'NT$' : currencySymbol }}{{
-                                        exp.amount.toLocaleString() }}</span>
-                                    <i class="ph-bold ph-pencil-simple text-stone-300"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </template>
                 </div>
 
                 <div v-else-if="viewMode === 'checklist'" key="checklist"
@@ -1747,11 +1800,9 @@
                         </div>
 
                         <div>
-                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">哪一天</label>
-                            <select v-model.number="expModal.draft.dayIndex"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
-                                <option v-for="(d, idx) in days" :key="idx" :value="idx">Day {{ idx + 1 }}（{{ d.shortDate }}）</option>
-                            </select>
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">日期</label>
+                            <input v-model="expModal.draft.date" type="date"
+                                class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                         </div>
 
                         <div class="grid grid-cols-2 gap-2">
@@ -1778,6 +1829,16 @@
                                     placeholder="分類名稱"
                                     class="w-32 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 py-1.5 px-2 focus:ring-2 focus:ring-primary-200">
                                 <button @click="addCustomCategory(() => expModal.draft)" class="text-primary-600"><i class="ph-bold ph-check"></i></button>
+                            </div>
+                        </div>
+
+                        <div v-if="expModal.draft.category === 'transport'">
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">交通細項（選填）</label>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="t in TRANSPORT_TYPES" :key="t.slug"
+                                    @click="expModal.draft.transportType = (expModal.draft.transportType === t.slug ? '' : t.slug)"
+                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors"
+                                    :class="expModal.draft.transportType === t.slug ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-stone-50 text-stone-500 border-stone-100'">{{ t.emoji }} {{ t.label }}</button>
                             </div>
                         </div>
 
