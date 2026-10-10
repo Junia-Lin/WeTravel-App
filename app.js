@@ -80,8 +80,8 @@ createApp({
         const bookingTab = ref('flights');
         const bookingModal = reactive({ show: false, type: 'flights', mode: 'add', targetId: null, draft: null });
         const emptyBookingDraft = (type) => {
-            if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', date: '', startAirport: '', startCity: '', startTime: '', endAirport: '', endCity: '', endTime: '', baggage: '', aircraft: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
-            if (type === 'lodging') return { id: generateId(), name: '', checkIn: '', checkOut: '', address: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', legLabel: '', date: '', startAirport: '', startCity: '', startTime: '09:00', startTerminal: '', endDate: '', endAirport: '', endCity: '', endTime: '11:00', endTerminal: '', tzDiff: '', gate: '', seat: '', baggage: '', aircraft: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'lodging') return { id: generateId(), name: '', checkIn: '', checkInTime: '15:00', checkOut: '', checkOutTime: '11:00', address: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             if (type === 'cars') return { id: generateId(), company: '', pickupLocation: '', pickupDate: '', dropoffLocation: '', dropoffDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             return { id: generateId(), title: '', validDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' }; // vouchers
         };
@@ -109,6 +109,30 @@ createApp({
             const removed = list.splice(idx, 1)[0];
             showToast('已刪除', { icon: 'ph-bold ph-trash', undo: () => { list.splice(Math.min(idx, list.length), 0, removed); } });
         };
+
+        // ---- 預訂顯示用的計算：飛行時長、跨日、住宿晚數、地圖連結 ----
+        const addDaysStr = (s, n) => { const d = new Date(s + 'T00:00'); d.setDate(d.getDate() + n); const m = d.getMonth() + 1, dd = d.getDate(); return `${d.getFullYear()}-${m < 10 ? '0' + m : m}-${dd < 10 ? '0' + dd : dd}`; };
+        // 抵達日期沒填時：抵達時間比起飛時間早，就自動視為隔天
+        const flightEndDate = (b) => {
+            if (b.endDate) return b.endDate;
+            if (!b.date) return '';
+            return (b.startTime && b.endTime && b.endTime < b.startTime) ? addDaysStr(b.date, 1) : b.date;
+        };
+        // 飛行總時長（分鐘）：抵達時間 − 起飛時間 − 時差（兩地當地時間要扣掉時差才是真正飛行時間）
+        const flightDurationMin = (b) => {
+            if (!b.date || !b.startTime || !b.endTime) return null;
+            const s = new Date(`${b.date}T${b.startTime}`); const e = new Date(`${flightEndDate(b)}T${b.endTime}`);
+            if (isNaN(s) || isNaN(e)) return null;
+            const diff = Math.round((e - s) / 60000 - (Number(b.tzDiff) || 0) * 60);
+            return diff > 0 ? diff : null;
+        };
+        const fmtDuration = (m) => m == null ? '' : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}m`;
+        const flightDayDiff = (b) => { const end = flightEndDate(b); if (!b.date || !end) return 0; return Math.round((new Date(end + 'T00:00') - new Date(b.date + 'T00:00')) / 86400000); };
+        const fmtMD = (s) => { if (!s) return ''; const d = new Date(s + 'T00:00'); if (isNaN(d)) return s; return `${d.getMonth() + 1}/${d.getDate()}（${'日一二三四五六'[d.getDay()]}）`; };
+        const nightsOf = (b) => { if (!b.checkIn || !b.checkOut) return 0; const n = Math.round((new Date(b.checkOut + 'T00:00') - new Date(b.checkIn + 'T00:00')) / 86400000); return n > 0 ? n : 0; };
+        const mapsUrl = (q) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q || '')}`;
+        const sortedFlights = computed(() => [...bookings.flights].sort((x, y) => ((x.date || '9999') + (x.startTime || '')).localeCompare((y.date || '9999') + (y.startTime || ''))));
+        const sortedLodging = computed(() => [...bookings.lodging].sort((x, y) => (x.checkIn || '9999').localeCompare(y.checkIn || '9999')));
 
         const collapsedCats = reactive({});
         const participants = ref([]);
@@ -1173,13 +1197,14 @@ createApp({
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
-            CHECKLIST_CATEGORIES, LUGGAGE_META,
+            CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
             PAYMENT_METHODS, allExpenseCategories, customCategories, newCustomCategory, showCustomCategoryInput, addCustomCategory,
             effectiveSplitWith, owedByPerson, categoryTotals, categoryPieSlices, personBarData, dayLabel,
             toggleSplitMember, isSplitChecked,
             linkedPlace, itemNavTarget, itemLocationLabel,
             prepTasks, newPrepTask, addPrepTask, togglePrepTask, deletePrepTask,
             BOOKING_TYPES, bookings, bookingTab, bookingModal, openBookingModal, saveBookingModal, deleteBookingModal,
+            sortedFlights, sortedLodging, flightEndDate, flightDurationMin, fmtDuration, flightDayDiff, fmtMD, nightsOf, mapsUrl,
             COMMUTE_MODES, commuteMeta, typeAccent,
             timePart, setTimePart, showAddParticipantInput,
             totalExpenseForeign, totalExpenseTWD, expAmountTWD
