@@ -588,11 +588,33 @@
                         <p class="text-sm text-stone-500 pl-1">點卡片可編輯・按住 ⠿ 拖曳排序</p>
                     </div>
 
+                    <div v-if="savedLocations.length" class="space-y-2">
+                        <div class="flex gap-1.5 overflow-x-auto hide-scroll pb-1">
+                            <button @click="locFilterType = ''"
+                                class="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors"
+                                :class="!locFilterType ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-stone-500 border-stone-200'">全部</button>
+                            <button v-for="t in LOC_TYPES" :key="t.slug" @click="locFilterType = (locFilterType === t.slug ? '' : t.slug)"
+                                class="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors"
+                                :class="locFilterType === t.slug ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-stone-500 border-stone-200'">{{ t.emoji }} {{ t.label }}</button>
+                        </div>
+                        <div v-if="locAreas.length" class="flex gap-1.5 overflow-x-auto hide-scroll pb-1">
+                            <span class="text-[11px] font-bold text-stone-400 shrink-0 self-center">區域</span>
+                            <button @click="locFilterArea = ''"
+                                class="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors"
+                                :class="!locFilterArea ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-200'">全部</button>
+                            <button v-for="a in locAreas" :key="a" @click="locFilterArea = (locFilterArea === a ? '' : a)"
+                                class="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors"
+                                :class="locFilterArea === a ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-200'">{{ a }}</button>
+                        </div>
+                        <div v-if="locFilterActive && !filteredLocations.length" class="text-sm text-stone-400 text-center py-4">
+                            這個分類還沒有地點　<button @click="locFilterType = ''; locFilterArea = ''" class="font-bold text-primary-500">清除篩選</button></div>
+                    </div>
+
                     <div id="saved-locations-list" class="space-y-4">
-                        <div v-for="loc in savedLocations" :key="loc.id" :data-id="loc.id"
+                        <div v-for="loc in filteredLocations" :key="loc.id" :data-id="loc.id"
                             class="location-card bg-white rounded-2xl shadow-sm border border-stone-100 transition-all relative overflow-hidden">
                             <!-- 拖曳把手（touch-none 讓 iOS 不搶手勢，是真機能拖的關鍵） -->
-                            <div class="loc-drag-handle absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center touch-none cursor-move text-stone-300 z-20">
+                            <div v-if="!locFilterActive" class="loc-drag-handle absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center touch-none cursor-move text-stone-300 z-20">
                                 <i class="ph-bold ph-dots-six-vertical text-xl"></i>
                             </div>
                             <!-- 點一下開彈窗編輯 -->
@@ -612,6 +634,7 @@
                                             </span>
                                             <div class="font-bold text-lg text-stone-800 truncate">{{ loc.name || '未命名地點' }}
                                             </div>
+                                            <span v-if="loc.area" class="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary-50 text-primary-500">{{ loc.area }}</span>
                                         </div>
                                         <i class="ph-bold ph-pencil-simple text-stone-300 shrink-0"></i>
                                     </div>
@@ -710,15 +733,7 @@
                                     :class="newExpense.transportType === t.slug ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-stone-50 text-stone-500 border-stone-100'">{{ t.emoji }} {{ t.label }}</button>
                             </div>
                         </div>
-                        <div class="-mt-2">
-                            <button v-if="!showCustomCategoryInput" @click="showCustomCategoryInput = true"
-                                class="text-[11px] font-bold text-stone-400 hover:text-primary-500 transition">＋ 新增自訂分類</button>
-                            <div v-else class="flex items-center gap-1">
-                                <input v-model="newCustomCategory" @keyup.enter="addCustomCategory(() => newExpense)" placeholder="分類名稱"
-                                    class="w-32 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 py-1.5 px-2 focus:ring-2 focus:ring-primary-200">
-                                <button @click="addCustomCategory(() => newExpense)" class="text-primary-600"><i class="ph-bold ph-check"></i></button>
-                            </div>
-                        </div>
+                        
 
                         <div>
                             <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1"><span class="text-red-400">*</span> 消費項目</div>
@@ -761,7 +776,7 @@
                     <!-- ===== 明細（所有統計與紀錄都在這裡，只出現一次） ===== -->
                     <template v-else>
                         <div class="bg-stone-800 text-white rounded-3xl p-5 shadow-xl shadow-stone-500/20 relative overflow-hidden">
-                            <div class="absolute inset-0 z-0"><img src="assets/kitty_money.png" class="w-full h-full object-cover" alt=""></div>
+                            <img src="assets/kitty_money.png" class="absolute bottom-1 right-2 w-14 h-14 object-contain opacity-70 pointer-events-none z-0" alt="">
                             <div class="relative z-10 flex justify-between items-start gap-3">
                                 <div class="min-w-0">
                                     <div class="text-teal-100 text-xs font-bold tracking-widest uppercase mb-1">Total (TWD)</div>
@@ -924,6 +939,7 @@
                             </h3>
                             <span v-if="prepTasks.length" class="text-xs font-bold text-stone-400 shrink-0">{{ prepTasks.filter(t => t.completed).length }}/{{ prepTasks.length }}</span>
                         </div>
+                        <div v-if="prepTasks.length" class="h-1.5 bg-stone-100 rounded-full overflow-hidden -mt-1"><div class="h-full bg-primary-400 rounded-full transition-all" :style="{ width: (prepTasks.filter(t => t.completed).length / prepTasks.length * 100) + '%' }"></div></div>
                         <div v-if="!prepTasks.length" class="text-sm text-stone-400 py-1">還沒有要準備的事項，在下面新增一個吧</div>
                         <div v-for="task in prepTasks" :key="task.id" class="flex items-center gap-3">
                             <button @click="togglePrepTask(task)"
@@ -990,6 +1006,7 @@
                                 <i class="ph-bold text-stone-300 transition-transform"
                                     :class="collapsedCats['imp-card'] ? 'ph-caret-down' : 'ph-caret-up'"></i>
                             </button>
+                            <div v-if="importantProgress.total" class="h-1 bg-stone-100"><div class="h-full bg-primary-400 transition-all" :style="{ width: (importantProgress.done / importantProgress.total * 100) + '%' }"></div></div>
                             <div v-show="!collapsedCats['imp-card']">
                             <template v-for="cat in importantChecklistByCategory" :key="'imp-' + cat.slug">
                                 <div v-for="item in cat.items" :key="item.id"
@@ -1028,6 +1045,7 @@
                                     :class="packingProgress.done === packingProgress.total && packingProgress.total ? 'bg-green-50 text-green-600' : 'bg-stone-100 text-stone-500'">
                                     {{ packingProgress.done }}/{{ packingProgress.total }}</span>
                             </div>
+                            <div v-if="packingProgress.total" class="h-1 bg-stone-100"><div class="h-full bg-primary-400 transition-all" :style="{ width: (packingProgress.done / packingProgress.total * 100) + '%' }"></div></div>
                             <div v-for="cat in packingChecklistByCategory" :key="'pack-' + cat.slug" class="border-b border-stone-50 last:border-b-0">
                                 <button @click="toggleCatExclusive(packingChecklistByCategory, 'pack-', cat.slug)"
                                     class="w-full flex items-center justify-between px-4 py-3 active:bg-stone-50 transition">
@@ -1095,69 +1113,75 @@
                     <div v-if="bookingTab === 'flights'" class="space-y-4">
                         <div v-if="!bookings.flights.length" class="text-sm text-stone-400 text-center py-6">還沒有航班資訊</div>
                         <div v-for="b in sortedFlights" :key="b.id" @click="openBookingModal('flights', b)"
-                            class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden cursor-pointer active:scale-[0.99] transition">
-                            <div class="bg-gradient-to-br from-primary-50 to-primary-100/60 px-5 pt-4 pb-3">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-xs font-bold text-stone-500 truncate">{{ b.airline || '航空公司' }}</span>
-                                    <span v-if="b.legLabel" class="shrink-0 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/80 text-primary-600">{{ b.legLabel }}</span>
-                                </div>
-                                <div class="text-3xl font-black text-stone-800 tracking-widest font-mono mt-0.5">{{ b.flightNumber || '航班號' }}</div>
-                            </div>
-                            <div class="px-5 py-4">
-                                <div class="flex items-start gap-2">
-                                    <div class="w-[5.5rem] shrink-0">
-                                        <div class="text-3xl font-black text-stone-800 leading-none uppercase">{{ b.startAirport || '---' }}</div>
-                                        <div class="text-xl font-black text-stone-700 font-mono mt-1.5">{{ b.startTime || '--:--' }}</div>
-                                        <div class="text-[11px] font-bold text-stone-400 mt-0.5">{{ fmtMD(b.date) }}</div>
-                                        <span v-if="b.startCity" class="inline-block mt-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600">{{ b.startCity }}</span>
+                            class="bg-white rounded-3xl border border-primary-100 shadow-soft p-4 space-y-3 cursor-pointer active:scale-[0.99] transition">
+                            <div class="flex items-start gap-3">
+                                <div class="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center shrink-0 text-2xl">✈️</div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-500 shrink-0">機票</span>
+                                        <span class="text-[11px] font-bold text-stone-400 truncate">{{ b.airline }}</span>
                                     </div>
-                                    <div class="flex-1 min-w-0 pt-1 text-center">
+                                    <div class="text-2xl font-black text-stone-800 tracking-widest font-mono leading-tight mt-0.5">{{ b.flightNumber || '航班號' }}</div>
+                                </div>
+                                <span v-if="b.legLabel" class="shrink-0 text-sm font-black px-3 py-1.5 rounded-full bg-primary-50 text-primary-500 border border-primary-100">{{ b.legLabel }}</span>
+                            </div>
+                            <div class="bg-primary-50/70 rounded-2xl px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="shrink-0 w-[5rem]">
+                                        <div class="text-[10px] font-bold text-stone-400">出發</div>
+                                        <div class="text-2xl font-black text-stone-800 leading-none uppercase">{{ b.startAirport || '---' }}</div>
+                                        <div class="text-sm font-bold text-primary-500 font-mono mt-1">{{ b.startTime || '--:--' }}</div>
+                                        <div class="text-[11px] font-bold text-stone-500">{{ fmtMD(b.date) }}</div>
+                                        <div v-if="b.startCity" class="text-[11px] text-stone-400 truncate">{{ b.startCity }}</div>
+                                    </div>
+                                    <div class="flex-1 min-w-0 text-center">
                                         <div class="text-[11px] font-black text-primary-500 font-mono h-4 leading-4">{{ fmtDuration(flightDurationMin(b)) }}</div>
-                                        <div class="flex items-center gap-1 mt-0.5">
-                                            <div class="flex-1 border-t border-dashed border-stone-300"></div>
-                                            <i class="ph-fill ph-airplane text-primary-500 text-lg rotate-90"></i>
-                                            <div class="flex-1 border-t border-dashed border-stone-300"></div>
+                                        <div class="flex items-center gap-1 text-primary-400">
+                                            <div class="flex-1 border-t border-dashed border-primary-300"></div>
+                                            <i class="ph-fill ph-airplane text-lg rotate-90"></i>
+                                            <div class="flex-1 border-t border-dashed border-primary-300"></div>
                                         </div>
-                                        <div class="text-[10px] font-bold text-red-400 mt-0.5 h-3 leading-3">{{ flightDayDiff(b) > 0 ? '跨日抵達' : '' }}</div>
+                                        <div class="text-[10px] font-bold text-red-400 h-3 leading-3 mt-0.5">{{ flightDayDiff(b) > 0 ? '跨日抵達' : '' }}</div>
                                     </div>
-                                    <div class="w-[5.5rem] shrink-0 text-right">
-                                        <div class="text-3xl font-black text-stone-800 leading-none uppercase">{{ b.endAirport || '---' }}</div>
-                                        <div class="text-xl font-black text-stone-700 font-mono mt-1.5">{{ b.endTime || '--:--' }}</div>
-                                        <div class="text-[11px] font-bold text-stone-400 mt-0.5">{{ fmtMD(flightEndDate(b)) }}<span v-if="flightDayDiff(b) > 0" class="ml-1 text-red-500">+{{ flightDayDiff(b) }}</span></div>
-                                        <span v-if="b.endCity" class="inline-block mt-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{{ b.endCity }}</span>
+                                    <div class="shrink-0 w-[5rem] text-right">
+                                        <div class="text-[10px] font-bold text-stone-400">抵達</div>
+                                        <div class="text-2xl font-black text-stone-800 leading-none uppercase">{{ b.endAirport || '---' }}</div>
+                                        <div class="text-sm font-bold text-primary-500 font-mono mt-1">{{ b.endTime || '--:--' }}</div>
+                                        <div class="text-[11px] font-bold text-stone-500">{{ fmtMD(flightEndDate(b)) }}<span v-if="flightDayDiff(b) > 0" class="ml-1 text-red-500">+{{ flightDayDiff(b) }}</span></div>
+                                        <div v-if="b.endCity" class="text-[11px] text-stone-400 truncate">{{ b.endCity }}</div>
                                     </div>
                                 </div>
                             </div>
-                            <div v-if="b.startTerminal || b.endTerminal || b.gate || b.seat || b.baggage || b.aircraft" class="px-5 pb-4 grid grid-cols-3 gap-2">
-                                <div v-if="b.startTerminal || b.endTerminal" class="bg-stone-50 rounded-xl py-2 text-center">
+                            <div v-if="b.startTerminal || b.endTerminal || b.gate || b.seat || b.baggage || b.aircraft" class="grid grid-cols-3 gap-2">
+                                <div v-if="b.startTerminal || b.endTerminal" class="bg-primary-50/70 rounded-2xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">航廈</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.startTerminal || '-' }} → {{ b.endTerminal || '-' }}</div>
                                 </div>
-                                <div v-if="b.gate" class="bg-stone-50 rounded-xl py-2 text-center">
+                                <div v-if="b.gate" class="bg-primary-50/70 rounded-2xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">登機門</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.gate }}</div>
                                 </div>
-                                <div v-if="b.seat" class="bg-stone-50 rounded-xl py-2 text-center">
+                                <div v-if="b.seat" class="bg-primary-50/70 rounded-2xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">座位</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.seat }}</div>
                                 </div>
-                                <div v-if="b.baggage" class="bg-stone-50 rounded-xl py-2 text-center">
+                                <div v-if="b.baggage" class="bg-primary-50/70 rounded-2xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">行李</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.baggage }}</div>
                                 </div>
-                                <div v-if="b.aircraft" class="bg-stone-50 rounded-xl py-2 text-center">
+                                <div v-if="b.aircraft" class="bg-primary-50/70 rounded-2xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">機型</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.aircraft }}</div>
                                 </div>
                             </div>
-                            <div v-if="b.note" class="px-5 pb-4 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">{{ b.note }}</div>
-                            <div v-if="b.price || b.purchasedDate || b.purchasedVia" class="px-5 py-3 border-t border-stone-50 flex items-center justify-between gap-3 bg-stone-50/50">
-                                <span class="text-base font-black text-stone-800">{{ b.price }}</span>
-                                <span class="text-[11px] text-stone-400 text-right">購買 {{ b.purchasedDate }}<span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
+                            <div v-if="b.note" class="text-xs text-stone-500 leading-relaxed whitespace-pre-wrap px-1">{{ b.note }}</div>
+                            <div v-if="b.price || b.purchasedDate || b.purchasedVia" class="border-t border-primary-100/70 pt-3 flex items-center justify-between gap-3">
+                                <span class="text-xl font-black text-stone-800 font-mono">{{ b.price }}</span>
+                                <span class="text-xs text-stone-400 text-right">購買<span v-if="b.purchasedDate"> {{ b.purchasedDate }}</span><span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
                             </div>
                         </div>
                         <button @click="openBookingModal('flights')"
-                            class="w-full py-3.5 border-2 border-dashed border-stone-300 rounded-2xl text-stone-500 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
+                            class="w-full py-3.5 border-2 border-dashed border-primary-200 rounded-2xl text-primary-400 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
                             <i class="ph-bold ph-plus"></i> 新增航班（轉機請每一段各新增一筆）
                         </button>
                     </div>
@@ -1166,42 +1190,47 @@
                     <div v-if="bookingTab === 'lodging'" class="space-y-4">
                         <div v-if="!bookings.lodging.length" class="text-sm text-stone-400 text-center py-6">還沒有住宿資訊</div>
                         <div v-for="b in sortedLodging" :key="b.id" @click="openBookingModal('lodging', b)"
-                            class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden cursor-pointer active:scale-[0.99] transition">
-                            <div class="bg-gradient-to-br from-purple-50 to-primary-50 px-5 py-4 flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <div class="text-[11px] font-bold text-stone-400">🏨 住宿</div>
-                                    <div class="text-xl font-black text-stone-800 leading-snug break-words">{{ b.name || '未命名住宿' }}</div>
-                                </div>
-                                <span v-if="nightsOf(b)" class="shrink-0 text-xs font-black px-3 py-1.5 rounded-full bg-white text-primary-600 shadow-sm">{{ nightsOf(b) }} 晚</span>
-                            </div>
-                            <div class="px-5 py-4 flex items-center gap-3">
+                            class="bg-white rounded-3xl border border-primary-100 shadow-soft p-4 space-y-3 cursor-pointer active:scale-[0.99] transition">
+                            <div class="flex items-start gap-3">
+                                <div class="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center shrink-0 text-2xl">🏨</div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="text-[10px] font-bold text-stone-400">入住</div>
-                                    <div class="text-lg font-black text-stone-800">{{ fmtMD(b.checkIn) || '--' }}</div>
+                                    <span class="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-500">住宿</span>
+                                    <div class="text-lg font-black text-stone-800 leading-snug break-words mt-0.5">{{ b.name || '未命名住宿' }}</div>
+                                </div>
+                                <span v-if="nightsOf(b)" class="shrink-0 text-sm font-black px-3 py-1.5 rounded-full bg-primary-50 text-primary-500 border border-primary-100">{{ nightsOf(b) }} 晚</span>
+                            </div>
+                            <div class="bg-primary-50/70 rounded-2xl px-4 py-3 flex items-center gap-3">
+                                <div class="shrink-0">
+                                    <div class="text-[11px] font-bold text-stone-400">入住</div>
+                                    <div class="text-xl font-black text-stone-800">{{ fmtMD(b.checkIn) || '--' }}</div>
                                     <div class="text-sm font-bold text-primary-500 font-mono">{{ b.checkInTime || '--:--' }}</div>
                                 </div>
-                                <i class="ph-bold ph-arrow-right text-stone-300 shrink-0"></i>
-                                <div class="flex-1 min-w-0 text-right">
-                                    <div class="text-[10px] font-bold text-stone-400">退房</div>
-                                    <div class="text-lg font-black text-stone-800">{{ fmtMD(b.checkOut) || '--' }}</div>
+                                <div class="flex-1 min-w-0 flex items-center gap-1 text-primary-400">
+                                    <div class="flex-1 border-t border-dashed border-primary-300"></div>
+                                    <i class="ph-bold ph-arrow-right"></i>
+                                    <div class="flex-1 border-t border-dashed border-primary-300"></div>
+                                </div>
+                                <div class="shrink-0 text-right">
+                                    <div class="text-[11px] font-bold text-stone-400">退房</div>
+                                    <div class="text-xl font-black text-stone-800">{{ fmtMD(b.checkOut) || '--' }}</div>
                                     <div class="text-sm font-bold text-primary-500 font-mono">{{ b.checkOutTime || '--:--' }}</div>
                                 </div>
                             </div>
-                            <div v-if="b.address" class="mx-5 mb-4 flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2">
-                                <i class="ph-fill ph-map-pin text-primary-400 shrink-0"></i>
-                                <span class="flex-1 min-w-0 text-xs font-bold text-stone-600 break-words">{{ b.address }}</span>
+                            <div v-if="b.address" class="bg-primary-50/70 rounded-2xl px-4 py-3 flex items-center gap-2">
+                                <i class="ph-fill ph-map-pin text-primary-500 text-xl shrink-0"></i>
+                                <span class="flex-1 min-w-0 text-sm font-bold text-stone-600 break-words">{{ b.address }}</span>
                                 <a :href="mapsUrl(b.address)" target="_blank" @click.stop
-                                    class="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-primary-50 text-primary-600 flex items-center gap-1">
+                                    class="shrink-0 text-sm font-black px-3 py-1.5 rounded-full bg-primary-100 text-primary-600 flex items-center gap-1">
                                     <i class="ph-bold ph-navigation-arrow"></i>地圖</a>
                             </div>
-                            <div v-if="b.note" class="px-5 pb-4 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">{{ b.note }}</div>
-                            <div v-if="b.price || b.purchasedDate || b.purchasedVia" class="px-5 py-3 border-t border-stone-50 flex items-center justify-between gap-3 bg-stone-50/50">
-                                <span class="text-base font-black text-stone-800">{{ b.price }}</span>
-                                <span class="text-[11px] text-stone-400 text-right">購買 {{ b.purchasedDate }}<span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
+                            <div v-if="b.note" class="text-xs text-stone-500 leading-relaxed whitespace-pre-wrap px-1">{{ b.note }}</div>
+                            <div v-if="b.price || b.purchasedDate || b.purchasedVia" class="border-t border-primary-100/70 pt-3 flex items-center justify-between gap-3">
+                                <span class="text-xl font-black text-stone-800 font-mono">{{ b.price }}</span>
+                                <span class="text-xs text-stone-400 text-right">購買<span v-if="b.purchasedDate"> {{ b.purchasedDate }}</span><span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
                             </div>
                         </div>
                         <button @click="openBookingModal('lodging')"
-                            class="w-full py-3.5 border-2 border-dashed border-stone-300 rounded-2xl text-stone-500 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
+                            class="w-full py-3.5 border-2 border-dashed border-primary-200 rounded-2xl text-primary-400 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
                             <i class="ph-bold ph-plus"></i> 新增住宿
                         </button>
                     </div>
@@ -1607,33 +1636,27 @@
                             class="js-item-activity w-full text-lg font-bold text-stone-800 placeholder:text-stone-300 border-b-2 border-stone-100 focus:border-primary-400 bg-transparent py-1 focus:outline-none transition-colors"
                             placeholder="行程名稱...">
 
-                        <div v-if="itemModal.draft.placeId" class="flex items-center gap-2 bg-primary-50 rounded-xl px-3 py-2.5 border border-primary-100">
-                            <i class="ph-fill ph-map-pin text-primary-400 shrink-0"></i>
-                            <span class="flex-1 min-w-0 truncate text-sm font-bold text-primary-700">{{ (savedLocations.find(l => l.id === itemModal.draft.placeId) || {}).name || '已連結的口袋地點' }}</span>
-                            <button @click="itemModal.draft.placeId = null" class="shrink-0 text-xs font-bold text-primary-400 hover:text-primary-600">取消連結</button>
+                        <div v-if="savedLocations.length">
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">口袋名單</label>
+                            <select :value="itemModal.draft.placeId || ''" @change="setItemPlace($event.target.value)"
+                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
+                                <option value="">不選，自己輸入地點</option>
+                                <option v-for="loc in savedLocations" :key="loc.id" :value="loc.id">{{ loc.area ? loc.area + '・' : '' }}{{ loc.name }}</option>
+                            </select>
                         </div>
-                        <div v-else class="space-y-2">
-                            <div
-                                class="flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2 border border-stone-100 focus-within:border-primary-200 focus-within:bg-white transition-colors">
-                                <i class="ph-bold ph-map-pin text-stone-500 shrink-0"></i>
-                                <div class="flex-1 min-w-0 flex flex-col">
-                                    <input v-model="itemModal.draft.location"
-                                        class="text-sm font-medium bg-transparent focus:outline-none text-stone-700 w-full truncate"
-                                        placeholder="地點名稱">
-                                    <input v-model="itemModal.draft.link"
-                                        class="text-[10px] text-stone-500 bg-transparent focus:outline-none w-full truncate font-mono"
-                                        placeholder="http://地圖連結...">
-                                </div>
-                            </div>
-                            <div v-if="savedLocations.length" class="flex flex-wrap items-center gap-1.5">
-                                <span class="text-[10px] text-stone-400">或從口袋名單選：</span>
-                                <button v-for="loc in savedLocations" :key="loc.id"
-                                    @click="itemModal.draft.placeId = loc.id; itemModal.draft.location = ''; itemModal.draft.link = ''"
-                                    class="px-2 py-1 rounded-lg text-xs font-bold bg-stone-50 border border-stone-100 text-stone-500 hover:border-primary-300 hover:text-primary-600 transition truncate max-w-[7rem]">
-                                    {{ loc.name }}
-                                </button>
+                        <div v-if="!itemModal.draft.placeId"
+                            class="flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2 border border-stone-100 focus-within:border-primary-200 focus-within:bg-white transition-colors">
+                            <i class="ph-bold ph-map-pin text-stone-500 shrink-0"></i>
+                            <div class="flex-1 min-w-0 flex flex-col">
+                                <input v-model="itemModal.draft.location"
+                                    class="text-sm font-medium bg-transparent focus:outline-none text-stone-700 w-full truncate"
+                                    placeholder="地點名稱">
+                                <input v-model="itemModal.draft.link"
+                                    class="text-[10px] text-stone-500 bg-transparent focus:outline-none w-full truncate font-mono"
+                                    placeholder="http://地圖連結...">
                             </div>
                         </div>
+
 
                         <div class="relative">
                             <i class="ph-bold ph-notebook absolute top-2.5 left-3 text-stone-300"></i>
@@ -1732,6 +1755,12 @@
                                 </button>
                             </div>
                         </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">區域（例如 浦東、外灘，可自己輸入）</label>
+                            <input v-model="locModal.draft.area" list="loc-area-list" placeholder="區域"
+                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            <datalist id="loc-area-list"><option v-for="a in locAreas" :key="a" :value="a"></option></datalist>
+                        </div>
                         <div
                             class="flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2.5 border border-transparent focus-within:border-primary-200">
                             <i class="ph-fill ph-link text-stone-300 text-sm"></i>
@@ -1821,16 +1850,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div>
-                            <button v-if="!showCustomCategoryInput" @click="showCustomCategoryInput = true"
-                                class="text-[11px] font-bold text-stone-400 hover:text-primary-500 transition">＋ 新增自訂分類</button>
-                            <div v-else class="flex items-center gap-1">
-                                <input v-model="newCustomCategory" @keyup.enter="addCustomCategory(() => expModal.draft)"
-                                    placeholder="分類名稱"
-                                    class="w-32 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 py-1.5 px-2 focus:ring-2 focus:ring-primary-200">
-                                <button @click="addCustomCategory(() => expModal.draft)" class="text-primary-600"><i class="ph-bold ph-check"></i></button>
-                            </div>
-                        </div>
+                        
 
                         <div v-if="expModal.draft.category === 'transport'">
                             <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">交通細項（選填）</label>
@@ -2237,7 +2257,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=41"></script>
+    <script type="module" src="./app.js?v=42"></script>
 
     <script>
         setTimeout(() => {
