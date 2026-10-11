@@ -479,9 +479,10 @@ createApp({
                 locModal.mode = 'edit'; locModal.targetId = loc.id;
                 locModal.draft = JSON.parse(JSON.stringify(loc));
                 if (!locModal.draft.type) locModal.draft.type = 'spot';
+                if (locModal.draft.area === undefined) locModal.draft.area = '';
             } else {
                 locModal.mode = 'add'; locModal.targetId = null;
-                locModal.draft = { id: generateId(), name: '', type: 'spot', link: '', note: '' };
+                locModal.draft = { id: generateId(), name: '', type: 'spot', area: '', link: '', note: '' };
             }
             locModal.show = true;
             if (!loc) nextTick(() => { document.querySelector('.js-loc-name')?.focus(); });
@@ -533,6 +534,26 @@ createApp({
                 return { ...cat, items, done: items.filter(i => i.checkedBy && i.checkedBy[activeChecklistMember.value]).length };
             })
             .filter(cat => cat.items.length));
+        // ---- 口袋名單：依類別／區域篩選；行程項目用下拉選單挑口袋地點 ----
+        const LOC_TYPES = [
+            { slug: 'spot', label: '景點', emoji: '📍' },
+            { slug: 'food', label: '美食', emoji: '🍴' },
+            { slug: 'shop', label: '購物／伴手禮', emoji: '🛍️' },
+            { slug: 'transport', label: '交通', emoji: '🚇' },
+            { slug: 'accommodation', label: '住宿', emoji: '🏨' },
+        ];
+        const locFilterType = ref('');
+        const locFilterArea = ref('');
+        const locAreas = computed(() => [...new Set(savedLocations.value.map(l => (l.area || '').trim()).filter(Boolean))].sort());
+        const locFilterActive = computed(() => !!(locFilterType.value || locFilterArea.value));
+        const filteredLocations = computed(() => savedLocations.value.filter(l =>
+            (!locFilterType.value || (l.type || 'spot') === locFilterType.value) &&
+            (!locFilterArea.value || (l.area || '').trim() === locFilterArea.value)));
+        const setItemPlace = (id) => {
+            itemModal.draft.placeId = id || null;
+            if (id) { itemModal.draft.location = ''; itemModal.draft.link = ''; }
+        };
+
         const toggleCat = (slug) => { collapsedCats[slug] = !collapsedCats[slug]; };
         // 手風琴式切換：展開某類別時，同一份清單裡其他已展開的類別自動收起，不用自己一個一個收
         const toggleCatExclusive = (list, prefix, slug) => {
@@ -1255,6 +1276,7 @@ createApp({
             checklist, collapsedCats, toggleCat, checklistMembers, memberLabel, toggleCheck,
             activeChecklistMember,
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
+            LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
