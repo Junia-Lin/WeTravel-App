@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wetravel-v81';
+const CACHE_NAME = 'wetravel-v82';
 
 // 一開啟就要存進離線快取的檔案：App 能完整運作所需要的「所有」靜態資源
 // 之前漏掉 app.js／expense-data.js／firebase-config.js／icon 圖示／assets 圖片，
@@ -43,6 +43,10 @@ const ASSETS = [
   './assets/kitty_face_pink.png',
   './assets/kitty_money.png',
   './assets/kitty_pilot.png',
+  // Firebase SDK（離線時資料庫要靠它啟動，必須一開始就存好，不能等「第二次開啟」才快取）
+  'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js',
+  'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js',
+  'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap'
 ];
 
