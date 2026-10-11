@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wetravel-v80';
+const CACHE_NAME = 'wetravel-v81';
 
 // 一開啟就要存進離線快取的檔案：App 能完整運作所需要的「所有」靜態資源
 // 之前漏掉 app.js／expense-data.js／firebase-config.js／icon 圖示／assets 圖片，
@@ -104,39 +104,45 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = event.request.url;
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
 
   // 即時 API／資料庫：完全不碰快取，離線時就是該失敗（App 自己的連線狀態提示會處理）
-  const shouldSkipCache = NO_CACHE_PATTERNS.some(pattern => url.includes(pattern));
-  if (shouldSkipCache) {
-    event.respondWith(fetch(event.request));
+  if (NO_CACHE_PATTERNS.some(pattern => req.url.includes(pattern))) {
+    event.respondWith(fetch(req));
     return;
   }
 
-  // 核心程式檔案：Network First，連線時永遠拿最新版並更新快取，離線時才用快取版本
-  const isCoreFile = NETWORK_FIRST_SUFFIXES.some(suffix => url.endsWith(suffix));
-  if (isCoreFile) {
+  // 頁面本身（含 ?tripId=xxx 的網址）與核心程式檔：一律先連網拿最新版並更新快取，離線才用快取版本。
+  // 比對時一定要忽略網址後面的 ?v=38、?tripId=…，否則會被當成一般靜態檔，永遠吃到舊快取，
+  // 造成「檔案換了、畫面完全沒變」。
+  const isNav = req.mode === 'navigate';
+  const isCore = isNav || NETWORK_FIRST_SUFFIXES.some(suffix => url.pathname.endsWith(suffix));
+  if (isCore) {
+    const cacheKey = isNav ? new URL('./index.html', self.registration.scope).href : url.origin + url.pathname;
     event.respondWith(
-      fetch(event.request)
+      fetch(req)
         .then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          if (response && response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, clone));
+          }
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(cacheKey).then(r => r || caches.match(req, { ignoreSearch: true })))
     );
     return;
   }
 
-  // 其餘靜態資源（圖片、字體、第三方函式庫等）：快取優先，找不到才上網抓，
-  // 抓到之後務必存回快取，離線時才真的找得到（修正前這裡只讀快取、沒有寫回去）
+  // 其餘靜態資源（圖片、字體、第三方函式庫等）：快取優先，找不到才上網抓，抓到務必存回快取
   event.respondWith(
-    caches.match(event.request).then((cached) => {
+    caches.match(req).then((cached) => {
       if (cached) return cached;
-      return fetch(event.request).then((response) => {
+      return fetch(req).then((response) => {
         if (response && response.ok) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         }
         return response;
       }).catch(() => cached);
