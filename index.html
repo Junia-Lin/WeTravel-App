@@ -433,11 +433,11 @@
                         <!-- Weather Widget (Editable) -->
                         <div
                             class="flex items-center gap-2 text-xs text-stone-500 font-medium tracking-wide truncate mt-0.5">
+                            <span class="font-bold shrink-0">{{ tripDateRange }}</span>
                             <div @click="toggleWeatherEdit"
                                 class="flex items-center gap-1 hover:text-primary-500 cursor-pointer transition-colors px-1 -ml-1 rounded-lg hover:bg-primary-50">
                                 <i :class="weatherDisplay.icon" class="text-amber-500 text-sm"></i>
-                                <span v-if="!isWeatherEditing">{{ weatherDisplay.label }}: {{ weatherDisplay.temp
-                                    }}</span>
+                                <span v-if="!isWeatherEditing">{{ weatherDisplay.temp }}</span>
                                 <div v-else class="flex items-center gap-1" @click.stop>
                                     <input ref="weatherInputRef" v-model="weather.location"
                                         @blur="updateWeatherLocation" @keydown.enter="updateWeatherLocation"
@@ -682,15 +682,10 @@
                         </div>
 
                         <div>
-                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">幣別（預設 {{ currencyLabel }}）</div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button @click="newExpense.currency = 'foreign'"
-                                    class="h-11 rounded-xl text-sm font-black border-2 transition-colors"
-                                    :class="newExpense.currency !== 'TWD' ? 'bg-primary-50 border-primary-400 text-primary-600' : 'bg-stone-50 border-stone-100 text-stone-400'">{{ currencyLabel }}</button>
-                                <button @click="newExpense.currency = 'TWD'"
-                                    class="h-11 rounded-xl text-sm font-black border-2 transition-colors"
-                                    :class="newExpense.currency === 'TWD' ? 'bg-primary-50 border-primary-400 text-primary-600' : 'bg-stone-50 border-stone-100 text-stone-400'">TWD</button>
-                            </div>
+                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1"><span class="text-red-400">*</span> 消費項目</div>
+                            <input ref="itemInputRef" v-model="newExpense.item" type="text" placeholder="例如：午餐、地鐵"
+                                :class="{'ring-2 ring-red-300 bg-red-50': isItemInvalid}" @input="isItemInvalid = false"
+                                class="w-full min-w-0 h-12 bg-stone-50 border-none rounded-xl text-base font-bold text-stone-700 px-3 focus:ring-2 focus:ring-primary-200">
                         </div>
 
                         <div class="grid grid-cols-[1fr_7.5rem] gap-2">
@@ -704,6 +699,18 @@
                             <div class="min-w-0">
                                 <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">約合台幣</div>
                                 <div class="h-12 bg-stone-100/70 rounded-xl flex items-center px-3 text-lg font-black text-stone-500 font-mono truncate">{{ newExpenseTWD.toLocaleString() }}</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">幣別（預設 {{ currencyLabel }}）</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="newExpense.currency = 'foreign'"
+                                    class="h-11 rounded-xl text-sm font-black border-2 transition-colors"
+                                    :class="newExpense.currency !== 'TWD' ? 'bg-primary-50 border-primary-400 text-primary-600' : 'bg-stone-50 border-stone-100 text-stone-400'">{{ currencyLabel }}</button>
+                                <button @click="newExpense.currency = 'TWD'"
+                                    class="h-11 rounded-xl text-sm font-black border-2 transition-colors"
+                                    :class="newExpense.currency === 'TWD' ? 'bg-primary-50 border-primary-400 text-primary-600' : 'bg-stone-50 border-stone-100 text-stone-400'">TWD</button>
                             </div>
                         </div>
 
@@ -732,14 +739,6 @@
                                     :class="newExpense.transportType === t.slug ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-stone-50 text-stone-500 border-stone-100'">{{ t.emoji }} {{ t.label }}</button>
                             </div>
                         </div>
-                        
-
-                        <div>
-                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1"><span class="text-red-400">*</span> 消費項目</div>
-                            <input ref="itemInputRef" v-model="newExpense.item" type="text" placeholder="例如：午餐、地鐵"
-                                :class="{'ring-2 ring-red-300 bg-red-50': isItemInvalid}" @input="isItemInvalid = false"
-                                class="w-full min-w-0 h-12 bg-stone-50 border-none rounded-xl text-base font-bold text-stone-700 px-3 focus:ring-2 focus:ring-primary-200">
-                        </div>
 
                         <div>
                             <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">誰付錢</div>
@@ -756,12 +755,22 @@
                         </div>
 
                         <div v-if="participants.length > 1">
-                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">均分給誰</div>
-                            <div class="flex flex-wrap gap-1.5">
+                            <div class="text-[11px] font-bold text-stone-500 mb-1 pl-1">這筆是誰的消費</div>
+                            <div v-if="participants.length === 2" class="flex flex-wrap gap-1.5">
+                                <button @click="newExpense.splitWith = []"
+                                    class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
+                                    :class="isSharedAll(newExpense) ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">👫 雙人共同</button>
+                                <button v-for="p in participants" :key="p" @click="newExpense.splitWith = [p]"
+                                    class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
+                                    :class="isPersonalOf(newExpense, p) ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">👤 {{ p }} 個人</button>
+                            </div>
+                            <div v-else class="flex flex-wrap gap-1.5">
                                 <button v-for="p in participants" :key="p" @click="toggleSplitMember(newExpense, p)"
                                     class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
                                     :class="isSplitChecked(newExpense, p) ? 'bg-primary-100 text-primary-700 border-primary-200' : 'bg-stone-50 text-stone-400 border-stone-100'">{{ p }}</button>
                             </div>
+                            <div v-if="newExpense.amount && (newExpense.splitWith || []).length !== 1" class="text-[11px] font-bold text-primary-500 mt-1.5 pl-1">
+                                每人 {{ newExpense.currency === 'TWD' ? 'NT$' : currencySymbol }}{{ (Math.round(newExpense.amount / ((newExpense.splitWith && newExpense.splitWith.length) ? newExpense.splitWith.length : participants.length) * 100) / 100).toLocaleString() }}</div>
                         </div>
 
                         <!-- 新增按鈕：放在表單最下面，捲動時固定貼在畫面底部，輸入完直接按 -->
@@ -809,15 +818,7 @@
                                     class="w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-stone-300 hover:bg-stone-200 hover:text-white transition">
                                     <i class="ph-bold ph-x text-[9px]"></i></button>
                             </div>
-                            <div class="pt-2 border-t border-stone-50">
-                                <button v-if="!showAddParticipantInput" @click="showAddParticipantInput = true"
-                                    class="text-[11px] font-bold text-stone-400 hover:text-primary-500 transition">＋ 新增成員</button>
-                                <div v-else class="flex items-center gap-1">
-                                    <input v-model="newParticipant" @keyup.enter="addParticipant(); showAddParticipantInput = false" placeholder="名字"
-                                        class="w-28 bg-stone-50 border border-stone-200 rounded-full text-xs font-bold text-stone-700 py-1.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                    <button @click="addParticipant(); showAddParticipantInput = false" class="text-primary-600"><i class="ph-bold ph-check"></i></button>
-                                </div>
-                            </div>
+                            
                         </div>
 
                         <!-- 歸類方式 -->
@@ -850,10 +851,11 @@
                                     <span class="text-lg shrink-0 leading-none">{{ (allExpenseCategories.find(c => c.slug === exp.category) || {}).emoji || '💰' }}</span>
                                     <div class="flex-1 min-w-0">
                                         <div class="font-bold text-stone-700 text-sm truncate">{{ exp.item }}<span v-if="transportMeta(exp.transportType)" class="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-500">{{ transportMeta(exp.transportType).label }}</span></div>
-                                        <div class="text-[11px] text-stone-400 truncate">{{ exp.payer }}・{{ (PAYMENT_METHODS.find(p => p.slug === exp.paymentMethod) || {}).label }}</div>
+                                        <div class="text-[11px] text-stone-400 truncate">{{ exp.payer }}<span v-if="splitTag(exp)" class="mx-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md" :class="splitCount(exp) > 1 ? 'bg-primary-50 text-primary-500' : 'bg-stone-100 text-stone-500'">{{ splitTag(exp) }}</span>・{{ (PAYMENT_METHODS.find(p => p.slug === exp.paymentMethod) || {}).label }}</div>
                                     </div>
                                     <div class="text-right shrink-0">
                                         <div class="font-mono font-bold text-stone-800 text-sm">{{ exp.currency === 'TWD' ? 'NT$' : currencySymbol }}{{ Number(exp.amount).toLocaleString() }}</div>
+                                        <div v-if="splitCount(exp) > 1" class="text-[10px] font-bold text-primary-500 font-mono">每人 {{ perPersonText(exp) }}</div>
                                         <div v-if="exp.currency !== 'TWD'" class="text-[10px] text-stone-400 font-mono">≈NT${{ Math.round(exp.amount * exchangeRate).toLocaleString() }}</div>
                                     </div>
                                 </div>
@@ -893,10 +895,11 @@
                                     <span class="text-lg shrink-0 leading-none">{{ (allExpenseCategories.find(c => c.slug === exp.category) || {}).emoji || '💰' }}</span>
                                     <div class="flex-1 min-w-0">
                                         <div class="font-bold text-stone-700 text-sm truncate">{{ exp.item }}<span v-if="transportMeta(exp.transportType)" class="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-500">{{ transportMeta(exp.transportType).label }}</span></div>
-                                        <div class="text-[11px] text-stone-400 truncate">{{ exp.payer }}・{{ (PAYMENT_METHODS.find(p => p.slug === exp.paymentMethod) || {}).label }}・{{ dateTag(exp.date) }}</div>
+                                        <div class="text-[11px] text-stone-400 truncate">{{ exp.payer }}<span v-if="splitTag(exp)" class="mx-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md" :class="splitCount(exp) > 1 ? 'bg-primary-50 text-primary-500' : 'bg-stone-100 text-stone-500'">{{ splitTag(exp) }}</span>・{{ (PAYMENT_METHODS.find(p => p.slug === exp.paymentMethod) || {}).label }}・{{ dateTag(exp.date) }}</div>
                                     </div>
                                     <div class="text-right shrink-0">
                                         <div class="font-mono font-bold text-stone-800 text-sm">{{ exp.currency === 'TWD' ? 'NT$' : currencySymbol }}{{ Number(exp.amount).toLocaleString() }}</div>
+                                        <div v-if="splitCount(exp) > 1" class="text-[10px] font-bold text-primary-500 font-mono">每人 {{ perPersonText(exp) }}</div>
                                         <div v-if="exp.currency !== 'TWD'" class="text-[10px] text-stone-400 font-mono">≈NT${{ Math.round(exp.amount * exchangeRate).toLocaleString() }}</div>
                                     </div>
                                 </div>
@@ -1108,9 +1111,11 @@
                     <!-- 機票 -->
                     <div v-if="bookingTab === 'flights'" class="space-y-4">
                         <div v-if="!bookings.flights.length" class="text-sm text-stone-400 text-center py-6">還沒有航班資訊</div>
-                        <div v-for="b in sortedFlights" :key="b.id" @click="openBookingModal('flights', b)"
-                            class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden cursor-pointer active:scale-[0.99] transition">
-                            <div class="bg-gradient-to-br from-primary-50 to-primary-100/60 px-5 pt-4 pb-3">
+                        <div v-for="o in flightOrders" :key="o.key" class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden">
+                            <div v-if="o.legs.length > 1" class="px-5 pt-3 pb-1 text-[11px] font-black text-primary-500">🔗 同一張訂單・共 {{ o.legs.length }} 段</div>
+                            <div v-for="(b, li) in o.legs" :key="b.id" @click="openBookingModal('flights', b)"
+                                class="cursor-pointer active:bg-stone-50 transition" :class="li > 0 ? 'border-t-2 border-dashed border-stone-100' : ''">
+                                <div class="bg-gradient-to-br from-primary-50 to-primary-100/60 px-5 pt-4 pb-3">
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="text-xs font-bold text-stone-500 truncate">{{ b.airline || '航空公司' }}</span>
                                     <span v-if="b.legLabel" class="shrink-0 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/80 text-primary-600">{{ b.legLabel }}</span>
@@ -1165,14 +1170,20 @@
                                 </div>
                             </div>
                             <div v-if="b.note" class="px-5 pb-4 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">{{ b.note }}</div>
-                            <div v-if="b.price || b.purchasedDate || b.purchasedVia" class="px-5 py-3 border-t border-stone-50 flex items-center justify-between gap-3 bg-stone-50/50">
-                                <span class="text-base font-black text-stone-800">{{ b.price }}</span>
-                                <span class="text-[11px] text-stone-400 text-right">購買 {{ b.purchasedDate }}<span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
+                            
+                            </div>
+                            <button @click="addFlightLeg(o)"
+                                class="w-full py-2.5 text-xs font-bold text-primary-500 border-t border-stone-100 hover:bg-primary-50/50 transition flex items-center justify-center gap-1">
+                                <i class="ph-bold ph-plus"></i> 新增回程／下一段（同一張訂單）</button>
+                            <div v-if="o.price || o.purchasedDate || o.purchasedVia" @click="openBookingModal('flights', o.priceLeg)"
+                                class="px-5 py-3 border-t border-stone-100 flex items-center justify-between gap-3 bg-stone-50/50 cursor-pointer">
+                                <span class="text-base font-black text-stone-800">{{ o.price }}</span>
+                                <span class="text-[11px] text-stone-400 text-right">購買 {{ o.purchasedDate }}<span v-if="o.purchasedVia"> · {{ o.purchasedVia }}</span></span>
                             </div>
                         </div>
                         <button @click="openBookingModal('flights')"
                             class="w-full py-3.5 border-2 border-dashed border-stone-300 rounded-2xl text-stone-500 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
-                            <i class="ph-bold ph-plus"></i> 新增航班（轉機請每一段各新增一筆）
+                            <i class="ph-bold ph-plus"></i> 新增航班
                         </button>
                     </div>
 
@@ -1185,6 +1196,7 @@
                                 <div class="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center shrink-0 text-2xl">🏨</div>
                                 <div class="flex-1 min-w-0 self-center">
                                     <div class="text-lg font-black text-stone-800 leading-snug break-words">{{ b.name || '未命名住宿' }}</div>
+                                    <div v-if="b.city" class="text-xs font-bold text-stone-400 mt-0.5">📍 {{ b.city }}</div>
                                 </div>
                                 </div>
                             <div class="bg-primary-50/70 rounded-2xl px-4 py-3 flex items-center gap-3">
@@ -1207,10 +1219,10 @@
                                     <div class="text-sm font-bold text-primary-500 font-mono">{{ b.checkOutTime || '--:--' }}</div>
                                 </div>
                             </div>
-                            <div v-if="b.address" class="bg-primary-50/70 rounded-2xl px-4 py-3 flex items-center gap-2">
+                            <div v-if="lodgingMapUrl(b)" class="bg-primary-50/70 rounded-2xl px-4 py-3 flex items-center gap-2">
                                 <i class="ph-fill ph-map-pin text-primary-500 text-xl shrink-0"></i>
-                                <span class="flex-1 min-w-0 text-sm font-bold text-stone-600 break-words">{{ b.address }}</span>
-                                <a :href="mapsUrl(b.address)" target="_blank" @click.stop
+                                <span class="flex-1 min-w-0 text-sm font-bold text-stone-600 break-words">{{ b.address || '用名稱在地圖上搜尋' }}</span>
+                                <a :href="lodgingMapUrl(b)" target="_blank" @click.stop
                                     class="shrink-0 text-sm font-black px-3 py-1.5 rounded-full bg-primary-100 text-primary-600 flex items-center gap-1">
                                     <i class="ph-bold ph-navigation-arrow"></i>地圖</a>
                             </div>
@@ -1514,27 +1526,26 @@
                             <span v-else class="text-[10px] text-[#96686c] font-mono">1 {{setup.currency}} ≈
                                 {{setup.rate}} TWD</span>
                         </div>
-                        <div class="flex gap-3">
-                            <div class="relative w-2/3 group">
-                                <select v-model="setup.currency" @change="updateRateByCurrency"
-                                    class="w-full bg-[#fffcfd] hover:bg-white focus:bg-white border-2 border-[#fff0f5] group-hover:border-[#ffe4e1] rounded-3xl pl-5 pr-10 py-3.5 text-[#562a2e] font-bold text-base focus:ring-4 focus:ring-[#ff69b4]/10 focus:border-[#ff69b4] appearance-none transition-all cursor-pointer">
-                                    <option value="TWD">🇹🇼 TWD 台幣</option>
-                                    <option value="JPY">🇯🇵 JPY 日幣</option>
-                                    <option value="USD">🇺🇸 USD 美金</option>
-                                    <option value="KRW">🇰🇷 KRW 韓元</option>
-                                    <option value="EUR">🇪🇺 EUR 歐元</option>
-                                    <option value="CNY">🇨🇳 CNY 人民幣</option>
-                                    <option value="HKD">🇭🇰 HKD 港幣</option>
-                                    <option value="THB">🇹🇭 THB 泰銖</option>
-                                    <option value="SGD">🇸🇬 SGD 新幣</option>
-                                    <option value="VND">🇻🇳 VND 越南盾</option>
-                                </select>
-                                <i
-                                    class="ph-bold ph-caret-down absolute right-4 top-4 text-[#ffb7c5] pointer-events-none text-lg"></i>
-                            </div>
-                            <div class="w-1/3 relative">
-                                <input v-model.number="setup.rate" type="number" step="0.001" disabled placeholder="匯率"
+                        <div class="space-y-2">
+                            <div class="flex gap-3">
+                                <div class="relative w-2/3 group">
+                                    <select :value="currencySelectValue" @change="onCurrencySelect($event.target.value)"
+                                        class="w-full bg-[#fffcfd] hover:bg-white focus:bg-white border-2 border-[#fff0f5] group-hover:border-[#ffe4e1] rounded-3xl pl-5 pr-10 py-3.5 text-[#562a2e] font-bold text-base focus:ring-4 focus:ring-[#ff69b4]/10 focus:border-[#ff69b4] appearance-none transition-all cursor-pointer">
+                                        <option v-for="c in CURRENCY_LIST" :key="c.code" :value="c.code">{{ c.label }}</option>
+                                        <option value="__custom">🌐 其他國家（自己輸入代碼）</option>
+                                    </select>
+                                    <i class="ph-bold ph-caret-down absolute right-4 top-4 text-[#ffb7c5] pointer-events-none text-lg"></i>
+                                </div>
+                                <div class="w-1/3 relative">
+                                    <input v-model.number="setup.rate" type="number" step="0.001" disabled placeholder="匯率"
                                     class="w-full bg-[#f4f6f8] border-2 border-transparent rounded-3xl px-3 py-3.5 text-[#889cb6] focus:ring-0 transition-all font-mono text-center font-bold text-base cursor-not-allowed opacity-80">
+                                </div>
+                            </div>
+                            <div v-if="isCustomCurrency" class="flex items-center gap-2 px-1">
+                                <input :value="customCurrencyValue" @change="applyCustomCurrency($event.target.value)" @keyup.enter="applyCustomCurrency($event.target.value)"
+                                    maxlength="3" placeholder="例如 MOP"
+                                    class="w-28 uppercase bg-[#fffcfd] border-2 border-[#fff0f5] rounded-2xl px-4 py-2.5 text-[#562a2e] font-bold text-base focus:ring-4 focus:ring-[#ff69b4]/10 focus:border-[#ff69b4]">
+                                <span class="text-[11px] text-[#96686c]">輸入 3 個英文字母的幣別代碼，會自動抓匯率</span>
                             </div>
                         </div>
                     </div>
@@ -1854,14 +1865,19 @@
                         </div>
 
                         <div v-if="participants.length > 1">
-                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">均分給誰</label>
-                            <div class="flex flex-wrap gap-1.5">
-                                <button v-for="p in participants" :key="p"
-                                    @click="toggleSplitMember(expModal.draft, p)"
+                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">這筆是誰的消費</label>
+                            <div v-if="participants.length === 2" class="flex flex-wrap gap-1.5">
+                                <button @click="expModal.draft.splitWith = []"
+                                    class="px-3 py-2 rounded-xl text-xs font-bold border transition-colors"
+                                    :class="isSharedAll(expModal.draft) ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">👫 雙人共同</button>
+                                <button v-for="p in participants" :key="p" @click="expModal.draft.splitWith = [p]"
+                                    class="px-3 py-2 rounded-xl text-xs font-bold border transition-colors"
+                                    :class="isPersonalOf(expModal.draft, p) ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">👤 {{ p }} 個人</button>
+                            </div>
+                            <div v-else class="flex flex-wrap gap-1.5">
+                                <button v-for="p in participants" :key="p" @click="toggleSplitMember(expModal.draft, p)"
                                     class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors"
-                                    :class="isSplitChecked(expModal.draft, p) ? 'bg-primary-100 text-primary-700 border-primary-200' : 'bg-stone-50 text-stone-400 border-stone-100'">
-                                    {{ p }}
-                                </button>
+                                    :class="isSplitChecked(expModal.draft, p) ? 'bg-primary-100 text-primary-700 border-primary-200' : 'bg-stone-50 text-stone-400 border-stone-100'">{{ p }}</button>
                             </div>
                         </div>
 
@@ -1914,6 +1930,10 @@
                                 <option value="轉機">轉機</option>
                                 <option value="國內線">國內線</option>
                             </select>
+                            <div v-if="bookingModal.draft.orderId" class="flex items-center justify-between gap-2 bg-primary-50/70 rounded-xl px-3 py-2">
+                                <span class="text-xs font-bold text-primary-600">🔗 同一張訂單的一段（價格、購買資訊填一次就好）</span>
+                                <button @click="bookingModal.draft.orderId = ''" class="shrink-0 text-[11px] font-bold text-stone-500 underline">拆成獨立一張</button>
+                            </div>
 
                             <div v-for="f in [['date','startTime','startAirport','startCity','startTerminal','出發'],['endDate','endTime','endAirport','endCity','endTerminal','抵達']]" :key="f[5]"
                                 class="rounded-2xl border border-stone-100 p-3 space-y-2">
@@ -1967,6 +1987,8 @@
                         <template v-if="bookingModal.type === 'lodging'">
                             <input v-model="bookingModal.draft.name" placeholder="住宿名稱"
                                 class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            <input v-model="bookingModal.draft.city" placeholder="城市（例如 上海）"
+                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                             <div class="grid grid-cols-2 gap-3">
                                 <div v-for="f in [['checkIn','checkInTime','入住'],['checkOut','checkOutTime','退房']]" :key="f[2]" class="space-y-2">
                                     <div class="text-xs font-black text-stone-500 pl-1">{{ f[2] }}</div>
@@ -1988,12 +2010,14 @@
                                 </div>
                             </div>
                             <div v-if="nightsOf(bookingModal.draft)" class="text-sm font-black text-primary-600 px-1">🌙 共 {{ nightsOf(bookingModal.draft) }} 晚</div>
-                            <input v-model="bookingModal.draft.address" placeholder="地址"
+                            <input v-model="bookingModal.draft.address" placeholder="地址（選填）"
                                 class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <a v-if="bookingModal.draft.address || bookingModal.draft.name"
-                                :href="mapsUrl(bookingModal.draft.address || bookingModal.draft.name)" target="_blank"
+                            <input v-model="bookingModal.draft.mapLink" placeholder="Google 地圖連結（選填，貼上最準）"
+                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            <div class="text-[11px] text-stone-400 leading-relaxed px-1">沒貼連結時，會用「名稱＋城市＋地址」去 Google 地圖搜尋，所以名稱和城市寫得越完整越容易找到。</div>
+                            <a v-if="lodgingMapUrl(bookingModal.draft)" :href="lodgingMapUrl(bookingModal.draft)" target="_blank"
                                 class="inline-flex items-center gap-1 text-xs font-bold text-primary-600 px-1">
-                                <i class="ph-bold ph-navigation-arrow"></i> 在 Google 地圖開啟</a>
+                                <i class="ph-bold ph-navigation-arrow"></i> 試試看地圖找不找得到</a>
                         </template>
 
                         <!-- 租車 -->
@@ -2248,7 +2272,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=43"></script>
+    <script type="module" src="./app.js?v=44"></script>
 
     <script>
         setTimeout(() => {
