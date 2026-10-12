@@ -80,8 +80,8 @@ createApp({
         const bookingTab = ref('flights');
         const bookingModal = reactive({ show: false, type: 'flights', mode: 'add', targetId: null, draft: null });
         const emptyBookingDraft = (type) => {
-            if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', legLabel: '', date: '', startAirport: '', startCity: '', startTime: '09:00', startTerminal: '', endDate: '', endAirport: '', endCity: '', endTime: '11:00', endTerminal: '', tzDiff: '', gate: '', seat: '', baggage: '', aircraft: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
-            if (type === 'lodging') return { id: generateId(), name: '', checkIn: '', checkInTime: '15:00', checkOut: '', checkOutTime: '11:00', address: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', legLabel: '', orderId: '', date: '', startAirport: '', startCity: '', startTime: '09:00', startTerminal: '', endDate: '', endAirport: '', endCity: '', endTime: '11:00', endTerminal: '', tzDiff: '', gate: '', seat: '', baggage: '', aircraft: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'lodging') return { id: generateId(), name: '', city: '', mapLink: '', checkIn: '', checkInTime: '15:00', checkOut: '', checkOutTime: '11:00', address: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             if (type === 'cars') return { id: generateId(), company: '', pickupLocation: '', pickupDate: '', dropoffLocation: '', dropoffDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             return { id: generateId(), title: '', validDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' }; // vouchers
         };
@@ -315,7 +315,7 @@ createApp({
             return draftLike.splitWith.includes(name);
         };
         const currencyLabel = computed(() => setup.value.currency || '外幣');
-        const currencySymbol = computed(() => { const map = { 'JPY': '¥', 'CNY': '¥', 'USD': '$', 'EUR': '€', 'KRW': '₩', 'GBP': '£', 'TWD': 'NT$', 'HKD': 'HK$', 'THB': '฿', 'VND': '₫' }; return map[setup.value.currency] || '$'; });
+        const currencySymbol = computed(() => { const map = { 'JPY': '¥', 'CNY': '¥', 'USD': '$', 'EUR': '€', 'KRW': '₩', 'GBP': '£', 'TWD': 'NT$', 'HKD': 'HK$', 'THB': '฿', 'VND': '₫', 'MYR': 'RM', 'IDR': 'Rp', 'PHP': '₱', 'INR': '₹', 'SGD': 'S$', 'AUD': 'A$', 'CAD': 'C$', 'NZD': 'NZ$', 'MOP': 'MOP$', 'CHF': 'CHF ' }; return map[setup.value.currency] || (setup.value.currency ? setup.value.currency + ' ' : '$'); });
         const mapProviderLabel = computed(() => { const map = { 'google': 'Google Maps', 'naver': 'Naver Map', 'amap': '高德地圖' }; return map[setup.value.mapProvider] || '地圖'; });
 
         const weatherDisplay = computed(() => {
@@ -678,9 +678,104 @@ createApp({
         const updateExchangeRate = () => { if (setup.value) setup.value.rate = exchangeRate.value; };
 
         const getExternalMapLink = (loc) => { if (!loc) return '#'; if (isUrl(loc)) return loc; const encodedLoc = encodeURIComponent(loc); if (setup.value.mapProvider === 'naver') return `https://map.naver.com/v5/search/${encodedLoc}`; else if (setup.value.mapProvider === 'amap') return `https://www.amap.com/search?query=${encodedLoc}`; else return `https://www.google.com/maps/search/?api=1&query=${encodedLoc}`; };
-        const countryInfoMap = { 'jp': { c: 'JPY', l: 'ja', n: '日文', m: 'google' }, 'kr': { c: 'KRW', l: 'ko', n: '韓文', m: 'naver' }, 'us': { c: 'USD', l: 'en', n: '英文', m: 'google' }, 'cn': { c: 'CNY', l: 'zh-CN', n: '簡中', m: 'amap' }, 'th': { c: 'THB', l: 'th', n: '泰文', m: 'google' }, 'tw': { c: 'TWD', l: 'zh-TW', n: '中文', m: 'google' } };
+        const countryInfoMap = { 'jp': { c: 'JPY', l: 'ja', n: '日文', m: 'google' }, 'kr': { c: 'KRW', l: 'ko', n: '韓文', m: 'naver' }, 'us': { c: 'USD', l: 'en', n: '英文', m: 'google' }, 'cn': { c: 'CNY', l: 'zh-CN', n: '簡中', m: 'amap' }, 'th': { c: 'THB', l: 'th', n: '泰文', m: 'google' }, 'tw': { c: 'TWD', l: 'zh-TW', n: '中文', m: 'google' }, 'my': { c: 'MYR', l: 'ms', n: '馬來文', m: 'google' }, 'sg': { c: 'SGD', l: 'en', n: '英文', m: 'google' }, 'hk': { c: 'HKD', l: 'zh-TW', n: '粵語', m: 'google' }, 'mo': { c: 'MOP', l: 'zh-TW', n: '中文', m: 'google' }, 'id': { c: 'IDR', l: 'id', n: '印尼文', m: 'google' }, 'ph': { c: 'PHP', l: 'en', n: '英文', m: 'google' }, 'vn': { c: 'VND', l: 'vi', n: '越南文', m: 'google' }, 'in': { c: 'INR', l: 'hi', n: '印地文', m: 'google' }, 'gb': { c: 'GBP', l: 'en', n: '英文', m: 'google' }, 'au': { c: 'AUD', l: 'en', n: '英文', m: 'google' }, 'nz': { c: 'NZD', l: 'en', n: '英文', m: 'google' }, 'ca': { c: 'CAD', l: 'en', n: '英文', m: 'google' }, 'fr': { c: 'EUR', l: 'fr', n: '法文', m: 'google' }, 'de': { c: 'EUR', l: 'de', n: '德文', m: 'google' }, 'it': { c: 'EUR', l: 'it', n: '義大利文', m: 'google' }, 'es': { c: 'EUR', l: 'es', n: '西班牙文', m: 'google' }, 'ch': { c: 'CHF', l: 'de', n: '德文', m: 'google' } };
         const updateRateByCurrency = async () => { const currency = setup.value.currency; if (!currency) return; isRateLoading.value = true; try { if (currency === 'TWD') { setup.value.rate = 1; } else { const rRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${currency}`); const rData = await rRes.json(); if (rData?.rates?.TWD) setup.value.rate = rData.rates.TWD; } } catch (e) { console.error('Fetch rate failed', e); } finally { isRateLoading.value = false; } };
-        const detectRate = async () => { if (!setup.value.destination) return; isRateLoading.value = true; try { const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(setup.value.destination)}&limit=1&addressdetails=1`); const geoData = await geoRes.json(); if (geoData?.[0]?.address?.country_code) { const code = geoData[0].address.country_code.toLowerCase(); const info = countryInfoMap[code] || { c: 'USD', l: 'en', n: '英文', m: 'google' }; setup.value.currency = info.c; setup.value.langCode = info.l; setup.value.langName = info.n; setup.value.mapProvider = info.m || 'google'; if (!weather.value.location) weather.value.location = setup.value.destination; if (info.c === 'TWD') setup.value.rate = 1; else { const rRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${info.c}`); const rData = await rRes.json(); if (rData?.rates?.TWD) setup.value.rate = rData.rates.TWD; } } } catch (e) { } finally { isRateLoading.value = false; } };
+        const detectRate = async () => { if (!setup.value.destination) return; isRateLoading.value = true; try { const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(setup.value.destination)}&limit=1&addressdetails=1`); const geoData = await geoRes.json(); if (geoData?.[0]?.address?.country_code) { const code = geoData[0].address.country_code.toLowerCase(); const info = countryInfoMap[code]; if (!info) return; setup.value.currency = info.c; setup.value.langCode = info.l; setup.value.langName = info.n; setup.value.mapProvider = info.m || 'google'; if (!weather.value.location) weather.value.location = setup.value.destination; if (info.c === 'TWD') setup.value.rate = 1; else { const rRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${info.c}`); const rData = await rRes.json(); if (rData?.rates?.TWD) setup.value.rate = rData.rates.TWD; } } } catch (e) { } finally { isRateLoading.value = false; } };
+        // ---- 幣別：常用清單＋任何國家都能自己輸入 3 碼代碼 ----
+        const CURRENCY_LIST = [
+            { code: 'TWD', label: '🇹🇼 TWD 台幣' }, { code: 'JPY', label: '🇯🇵 JPY 日幣' }, { code: 'KRW', label: '🇰🇷 KRW 韓元' },
+            { code: 'CNY', label: '🇨🇳 CNY 人民幣' }, { code: 'HKD', label: '🇭🇰 HKD 港幣' }, { code: 'MOP', label: '🇲🇴 MOP 澳門幣' },
+            { code: 'SGD', label: '🇸🇬 SGD 新加坡幣' }, { code: 'MYR', label: '🇲🇾 MYR 馬來西亞令吉' }, { code: 'THB', label: '🇹🇭 THB 泰銖' },
+            { code: 'VND', label: '🇻🇳 VND 越南盾' }, { code: 'IDR', label: '🇮🇩 IDR 印尼盾' }, { code: 'PHP', label: '🇵🇭 PHP 菲律賓披索' },
+            { code: 'INR', label: '🇮🇳 INR 印度盧比' }, { code: 'USD', label: '🇺🇸 USD 美金' }, { code: 'CAD', label: '🇨🇦 CAD 加幣' },
+            { code: 'EUR', label: '🇪🇺 EUR 歐元' }, { code: 'GBP', label: '🇬🇧 GBP 英鎊' }, { code: 'CHF', label: '🇨🇭 CHF 瑞士法郎' },
+            { code: 'AUD', label: '🇦🇺 AUD 澳幣' }, { code: 'NZD', label: '🇳🇿 NZD 紐幣' },
+        ];
+        const showCustomCurrency = ref(false);
+        const isKnownCurrency = (c) => CURRENCY_LIST.some(x => x.code === c);
+        const isCustomCurrency = computed(() => showCustomCurrency.value || !isKnownCurrency(setup.value.currency));
+        const currencySelectValue = computed(() => isCustomCurrency.value ? '__custom' : setup.value.currency);
+        const customCurrencyValue = computed(() => isKnownCurrency(setup.value.currency) ? '' : setup.value.currency);
+        const onCurrencySelect = (v) => {
+            if (v === '__custom') { showCustomCurrency.value = true; return; }
+            showCustomCurrency.value = false;
+            setup.value.currency = v;
+            updateRateByCurrency();
+        };
+        const applyCustomCurrency = (v) => {
+            const code = String(v || '').trim().toUpperCase();
+            if (!/^[A-Z]{3}$/.test(code)) { showToast('請輸入 3 個英文字母的幣別代碼，例如 MOP', { icon: 'ph-bold ph-warning' }); return; }
+            setup.value.currency = code;
+            showCustomCurrency.value = !isKnownCurrency(code);
+            updateRateByCurrency();
+        };
+        // 標題下方的旅遊日期與天數，例如「6/10~6/15　6日」
+        const tripDateRange = computed(() => {
+            const n = days.value.length || Number(setup.value.days) || 0;
+            const first = (days.value[0] && days.value[0].fullDate) || setup.value.startDate;
+            if (!first || !n) return '';
+            const s = new Date(first + 'T00:00'); if (isNaN(s)) return '';
+            const e = new Date(s); e.setDate(e.getDate() + n - 1);
+            return `${s.getMonth() + 1}/${s.getDate()}~${e.getMonth() + 1}/${e.getDate()}　${n}日`;
+        });
+        // ---- 記帳：雙人共同／個人標籤，以及每人分攤金額 ----
+        const isSharedAll = (d) => !d.splitWith || !d.splitWith.length || d.splitWith.length >= participants.value.length;
+        const isPersonalOf = (d, name) => !!d.splitWith && d.splitWith.length === 1 && d.splitWith[0] === name;
+        const splitCount = (e) => effectiveSplitWith(e).length;
+        const splitTag = (e) => {
+            const n = participants.value.length; if (n < 2) return '';
+            const who = effectiveSplitWith(e);
+            if (who.length >= n) return n === 2 ? '雙人' : `${n}人共同`;
+            if (who.length === 1) return `個人・${who[0]}`;
+            return `${who.length}人`;
+        };
+        const perPersonText = (e) => {
+            const c = splitCount(e); if (c < 2) return '';
+            const v = Math.round((Number(e.amount) || 0) / c * 100) / 100;
+            return `${e.currency === 'TWD' ? 'NT$' : currencySymbol.value}${v.toLocaleString()}`;
+        };
+        // ---- 預訂：住宿地圖連結、來回機票併成同一張訂單 ----
+        // 有貼 Google 地圖連結就直接用（最準）；沒有就用「名稱＋城市＋地址」去搜尋
+        const lodgingMapUrl = (b) => {
+            if (b.mapLink && isUrl(b.mapLink)) return b.mapLink;
+            const q = [b.name, b.city, b.address].filter(Boolean).join(' ');
+            return q ? mapsUrl(q) : '';
+        };
+        const flightOrders = computed(() => {
+            const groups = {}; const list = [];
+            const cmp = (x, y) => ((x.date || '9999') + (x.startTime || '')).localeCompare((y.date || '9999') + (y.startTime || ''));
+            bookings.flights.forEach(f => {
+                const k = f.orderId || ('solo-' + f.id);
+                if (!groups[k]) { groups[k] = { key: k, legs: [] }; list.push(groups[k]); }
+                groups[k].legs.push(f);
+            });
+            list.forEach(o => {
+                o.legs = o.legs.slice().sort(cmp);
+                o.priceLeg = o.legs.find(l => l.price) || o.legs[0];
+                o.price = (o.legs.find(l => l.price) || {}).price || '';
+                o.purchasedDate = (o.legs.find(l => l.purchasedDate) || {}).purchasedDate || '';
+                o.purchasedVia = (o.legs.find(l => l.purchasedVia) || {}).purchasedVia || '';
+            });
+            return list.sort((x, y) => cmp(x.legs[0], y.legs[0]));
+        });
+        // 在同一張訂單底下新增回程／下一段：只有一段時自動帶入「反方向」的航線
+        const addFlightLeg = (o) => {
+            const first = o.legs[0]; const last = o.legs[o.legs.length - 1];
+            let gid = first.orderId;
+            if (!gid) { gid = generateId(); o.legs.forEach(l => { l.orderId = gid; }); }
+            const d = emptyBookingDraft('flights');
+            d.orderId = gid; d.airline = last.airline || '';
+            if (o.legs.length === 1) {
+                if (!first.legLabel) first.legLabel = '去程';
+                d.legLabel = '回程';
+                d.startAirport = first.endAirport; d.startCity = first.endCity; d.endAirport = first.startAirport; d.endCity = first.startCity;
+            } else {
+                d.legLabel = '轉機';
+                d.startAirport = last.endAirport; d.startCity = last.endCity;
+            }
+            bookingModal.type = 'flights'; bookingModal.mode = 'add'; bookingModal.targetId = null; bookingModal.draft = d; bookingModal.show = true;
+        };
+
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
         const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
         const fetchWeather = async (locName) => { try { weather.value.location = locName; const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locName)}&limit=1`); const geoData = await geoRes.json(); if (geoData?.[0]) { const { lat, lon } = geoData[0]; const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`); const wData = await wRes.json(); weather.value.temp = Math.round(wData.current_weather.temperature); weather.value.icon = getWeatherIcon(wData.current_weather.weathercode); if (wData.daily) weather.value.daily = wData.daily; } } catch (e) { weather.value.temp = '--'; } };
@@ -1277,6 +1372,8 @@ createApp({
             activeChecklistMember,
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
+            CURRENCY_LIST, showCustomCurrency, isCustomCurrency, currencySelectValue, customCurrencyValue, onCurrencySelect, applyCustomCurrency, tripDateRange,
+            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
