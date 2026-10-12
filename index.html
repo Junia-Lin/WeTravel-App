@@ -286,7 +286,6 @@
             -webkit-appearance: none;
             appearance: none;
             min-height: 2.75rem;
-            background-color: transparent;
         }
     </style>
 </head>
@@ -939,7 +938,6 @@
                             </h3>
                             <span v-if="prepTasks.length" class="text-xs font-bold text-stone-400 shrink-0">{{ prepTasks.filter(t => t.completed).length }}/{{ prepTasks.length }}</span>
                         </div>
-                        <div v-if="prepTasks.length" class="h-1.5 bg-stone-100 rounded-full overflow-hidden -mt-1"><div class="h-full bg-primary-400 rounded-full transition-all" :style="{ width: (prepTasks.filter(t => t.completed).length / prepTasks.length * 100) + '%' }"></div></div>
                         <div v-if="!prepTasks.length" class="text-sm text-stone-400 py-1">還沒有要準備的事項，在下面新增一個吧</div>
                         <div v-for="task in prepTasks" :key="task.id" class="flex items-center gap-3">
                             <button @click="togglePrepTask(task)"
@@ -1006,7 +1004,6 @@
                                 <i class="ph-bold text-stone-300 transition-transform"
                                     :class="collapsedCats['imp-card'] ? 'ph-caret-down' : 'ph-caret-up'"></i>
                             </button>
-                            <div v-if="importantProgress.total" class="h-1 bg-stone-100"><div class="h-full bg-primary-400 transition-all" :style="{ width: (importantProgress.done / importantProgress.total * 100) + '%' }"></div></div>
                             <div v-show="!collapsedCats['imp-card']">
                             <template v-for="cat in importantChecklistByCategory" :key="'imp-' + cat.slug">
                                 <div v-for="item in cat.items" :key="item.id"
@@ -1045,7 +1042,6 @@
                                     :class="packingProgress.done === packingProgress.total && packingProgress.total ? 'bg-green-50 text-green-600' : 'bg-stone-100 text-stone-500'">
                                     {{ packingProgress.done }}/{{ packingProgress.total }}</span>
                             </div>
-                            <div v-if="packingProgress.total" class="h-1 bg-stone-100"><div class="h-full bg-primary-400 transition-all" :style="{ width: (packingProgress.done / packingProgress.total * 100) + '%' }"></div></div>
                             <div v-for="cat in packingChecklistByCategory" :key="'pack-' + cat.slug" class="border-b border-stone-50 last:border-b-0">
                                 <button @click="toggleCatExclusive(packingChecklistByCategory, 'pack-', cat.slug)"
                                     class="w-full flex items-center justify-between px-4 py-3 active:bg-stone-50 transition">
@@ -1113,75 +1109,69 @@
                     <div v-if="bookingTab === 'flights'" class="space-y-4">
                         <div v-if="!bookings.flights.length" class="text-sm text-stone-400 text-center py-6">還沒有航班資訊</div>
                         <div v-for="b in sortedFlights" :key="b.id" @click="openBookingModal('flights', b)"
-                            class="bg-white rounded-3xl border border-primary-100 shadow-soft p-4 space-y-3 cursor-pointer active:scale-[0.99] transition">
-                            <div class="flex items-start gap-3">
-                                <div class="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center shrink-0 text-2xl">✈️</div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-500 shrink-0">機票</span>
-                                        <span class="text-[11px] font-bold text-stone-400 truncate">{{ b.airline }}</span>
-                                    </div>
-                                    <div class="text-2xl font-black text-stone-800 tracking-widest font-mono leading-tight mt-0.5">{{ b.flightNumber || '航班號' }}</div>
+                            class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden cursor-pointer active:scale-[0.99] transition">
+                            <div class="bg-gradient-to-br from-primary-50 to-primary-100/60 px-5 pt-4 pb-3">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-xs font-bold text-stone-500 truncate">{{ b.airline || '航空公司' }}</span>
+                                    <span v-if="b.legLabel" class="shrink-0 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/80 text-primary-600">{{ b.legLabel }}</span>
                                 </div>
-                                <span v-if="b.legLabel" class="shrink-0 text-sm font-black px-3 py-1.5 rounded-full bg-primary-50 text-primary-500 border border-primary-100">{{ b.legLabel }}</span>
+                                <div class="text-3xl font-black text-stone-800 tracking-widest font-mono mt-0.5">{{ b.flightNumber || '航班號' }}</div>
                             </div>
-                            <div class="bg-primary-50/70 rounded-2xl px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <div class="shrink-0 w-[5rem]">
-                                        <div class="text-[10px] font-bold text-stone-400">出發</div>
-                                        <div class="text-2xl font-black text-stone-800 leading-none uppercase">{{ b.startAirport || '---' }}</div>
-                                        <div class="text-sm font-bold text-primary-500 font-mono mt-1">{{ b.startTime || '--:--' }}</div>
-                                        <div class="text-[11px] font-bold text-stone-500">{{ fmtMD(b.date) }}</div>
-                                        <div v-if="b.startCity" class="text-[11px] text-stone-400 truncate">{{ b.startCity }}</div>
+                            <div class="px-5 py-4">
+                                <div class="flex items-start gap-2">
+                                    <div class="w-[5.5rem] shrink-0">
+                                        <div class="text-3xl font-black text-stone-800 leading-none uppercase">{{ b.startAirport || '---' }}</div>
+                                        <div class="text-xl font-black text-stone-700 font-mono mt-1.5">{{ b.startTime || '--:--' }}</div>
+                                        <div class="text-[11px] font-bold text-stone-400 mt-0.5">{{ fmtMD(b.date) }}</div>
+                                        <span v-if="b.startCity" class="inline-block mt-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600">{{ b.startCity }}</span>
                                     </div>
-                                    <div class="flex-1 min-w-0 text-center">
+                                    <div class="flex-1 min-w-0 pt-1 text-center">
                                         <div class="text-[11px] font-black text-primary-500 font-mono h-4 leading-4">{{ fmtDuration(flightDurationMin(b)) }}</div>
-                                        <div class="flex items-center gap-1 text-primary-400">
-                                            <div class="flex-1 border-t border-dashed border-primary-300"></div>
-                                            <i class="ph-fill ph-airplane text-lg rotate-90"></i>
-                                            <div class="flex-1 border-t border-dashed border-primary-300"></div>
+                                        <div class="flex items-center gap-1 mt-0.5">
+                                            <div class="flex-1 border-t border-dashed border-stone-300"></div>
+                                            <i class="ph-fill ph-airplane text-primary-500 text-lg rotate-90"></i>
+                                            <div class="flex-1 border-t border-dashed border-stone-300"></div>
                                         </div>
-                                        <div class="text-[10px] font-bold text-red-400 h-3 leading-3 mt-0.5">{{ flightDayDiff(b) > 0 ? '跨日抵達' : '' }}</div>
+                                        <div class="text-[10px] font-bold text-red-400 mt-0.5 h-3 leading-3">{{ flightDayDiff(b) > 0 ? '跨日抵達' : '' }}</div>
                                     </div>
-                                    <div class="shrink-0 w-[5rem] text-right">
-                                        <div class="text-[10px] font-bold text-stone-400">抵達</div>
-                                        <div class="text-2xl font-black text-stone-800 leading-none uppercase">{{ b.endAirport || '---' }}</div>
-                                        <div class="text-sm font-bold text-primary-500 font-mono mt-1">{{ b.endTime || '--:--' }}</div>
-                                        <div class="text-[11px] font-bold text-stone-500">{{ fmtMD(flightEndDate(b)) }}<span v-if="flightDayDiff(b) > 0" class="ml-1 text-red-500">+{{ flightDayDiff(b) }}</span></div>
-                                        <div v-if="b.endCity" class="text-[11px] text-stone-400 truncate">{{ b.endCity }}</div>
+                                    <div class="w-[5.5rem] shrink-0 text-right">
+                                        <div class="text-3xl font-black text-stone-800 leading-none uppercase">{{ b.endAirport || '---' }}</div>
+                                        <div class="text-xl font-black text-stone-700 font-mono mt-1.5">{{ b.endTime || '--:--' }}</div>
+                                        <div class="text-[11px] font-bold text-stone-400 mt-0.5">{{ fmtMD(flightEndDate(b)) }}<span v-if="flightDayDiff(b) > 0" class="ml-1 text-red-500">+{{ flightDayDiff(b) }}</span></div>
+                                        <span v-if="b.endCity" class="inline-block mt-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{{ b.endCity }}</span>
                                     </div>
                                 </div>
                             </div>
-                            <div v-if="b.startTerminal || b.endTerminal || b.gate || b.seat || b.baggage || b.aircraft" class="grid grid-cols-3 gap-2">
-                                <div v-if="b.startTerminal || b.endTerminal" class="bg-primary-50/70 rounded-2xl py-2 text-center">
+                            <div v-if="b.startTerminal || b.endTerminal || b.gate || b.seat || b.baggage || b.aircraft" class="px-5 pb-4 grid grid-cols-3 gap-2">
+                                <div v-if="b.startTerminal || b.endTerminal" class="bg-stone-50 rounded-xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">航廈</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.startTerminal || '-' }} → {{ b.endTerminal || '-' }}</div>
                                 </div>
-                                <div v-if="b.gate" class="bg-primary-50/70 rounded-2xl py-2 text-center">
+                                <div v-if="b.gate" class="bg-stone-50 rounded-xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">登機門</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.gate }}</div>
                                 </div>
-                                <div v-if="b.seat" class="bg-primary-50/70 rounded-2xl py-2 text-center">
+                                <div v-if="b.seat" class="bg-stone-50 rounded-xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">座位</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.seat }}</div>
                                 </div>
-                                <div v-if="b.baggage" class="bg-primary-50/70 rounded-2xl py-2 text-center">
+                                <div v-if="b.baggage" class="bg-stone-50 rounded-xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">行李</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.baggage }}</div>
                                 </div>
-                                <div v-if="b.aircraft" class="bg-primary-50/70 rounded-2xl py-2 text-center">
+                                <div v-if="b.aircraft" class="bg-stone-50 rounded-xl py-2 text-center">
                                     <div class="text-[10px] font-bold text-stone-400">機型</div>
                                     <div class="text-sm font-black text-stone-700">{{ b.aircraft }}</div>
                                 </div>
                             </div>
-                            <div v-if="b.note" class="text-xs text-stone-500 leading-relaxed whitespace-pre-wrap px-1">{{ b.note }}</div>
-                            <div v-if="b.price || b.purchasedDate || b.purchasedVia" class="border-t border-primary-100/70 pt-3 flex items-center justify-between gap-3">
-                                <span class="text-xl font-black text-stone-800 font-mono">{{ b.price }}</span>
-                                <span class="text-xs text-stone-400 text-right">購買<span v-if="b.purchasedDate"> {{ b.purchasedDate }}</span><span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
+                            <div v-if="b.note" class="px-5 pb-4 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">{{ b.note }}</div>
+                            <div v-if="b.price || b.purchasedDate || b.purchasedVia" class="px-5 py-3 border-t border-stone-50 flex items-center justify-between gap-3 bg-stone-50/50">
+                                <span class="text-base font-black text-stone-800">{{ b.price }}</span>
+                                <span class="text-[11px] text-stone-400 text-right">購買 {{ b.purchasedDate }}<span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
                             </div>
                         </div>
                         <button @click="openBookingModal('flights')"
-                            class="w-full py-3.5 border-2 border-dashed border-primary-200 rounded-2xl text-primary-400 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
+                            class="w-full py-3.5 border-2 border-dashed border-stone-300 rounded-2xl text-stone-500 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
                             <i class="ph-bold ph-plus"></i> 新增航班（轉機請每一段各新增一筆）
                         </button>
                     </div>
@@ -1193,22 +1183,23 @@
                             class="bg-white rounded-3xl border border-primary-100 shadow-soft p-4 space-y-3 cursor-pointer active:scale-[0.99] transition">
                             <div class="flex items-start gap-3">
                                 <div class="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center shrink-0 text-2xl">🏨</div>
-                                <div class="flex-1 min-w-0">
-                                    <span class="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-500">住宿</span>
-                                    <div class="text-lg font-black text-stone-800 leading-snug break-words mt-0.5">{{ b.name || '未命名住宿' }}</div>
+                                <div class="flex-1 min-w-0 self-center">
+                                    <div class="text-lg font-black text-stone-800 leading-snug break-words">{{ b.name || '未命名住宿' }}</div>
                                 </div>
-                                <span v-if="nightsOf(b)" class="shrink-0 text-sm font-black px-3 py-1.5 rounded-full bg-primary-50 text-primary-500 border border-primary-100">{{ nightsOf(b) }} 晚</span>
-                            </div>
+                                </div>
                             <div class="bg-primary-50/70 rounded-2xl px-4 py-3 flex items-center gap-3">
                                 <div class="shrink-0">
                                     <div class="text-[11px] font-bold text-stone-400">入住</div>
                                     <div class="text-xl font-black text-stone-800">{{ fmtMD(b.checkIn) || '--' }}</div>
                                     <div class="text-sm font-bold text-primary-500 font-mono">{{ b.checkInTime || '--:--' }}</div>
                                 </div>
-                                <div class="flex-1 min-w-0 flex items-center gap-1 text-primary-400">
-                                    <div class="flex-1 border-t border-dashed border-primary-300"></div>
-                                    <i class="ph-bold ph-arrow-right"></i>
-                                    <div class="flex-1 border-t border-dashed border-primary-300"></div>
+                                <div class="flex-1 min-w-0 text-center">
+                                    <div v-if="nightsOf(b)" class="text-sm font-black text-primary-500 leading-tight mb-0.5">{{ nightsOf(b) }} 晚</div>
+                                    <div class="flex items-center gap-1 text-primary-400">
+                                        <div class="flex-1 border-t border-dashed border-primary-300"></div>
+                                        <i class="ph-bold ph-arrow-right"></i>
+                                        <div class="flex-1 border-t border-dashed border-primary-300"></div>
+                                    </div>
                                 </div>
                                 <div class="shrink-0 text-right">
                                     <div class="text-[11px] font-bold text-stone-400">退房</div>
@@ -2257,7 +2248,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=42"></script>
+    <script type="module" src="./app.js?v=43"></script>
 
     <script>
         setTimeout(() => {
