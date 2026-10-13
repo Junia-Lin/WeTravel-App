@@ -80,7 +80,7 @@ createApp({
         const bookingTab = ref('flights');
         const bookingModal = reactive({ show: false, type: 'flights', mode: 'add', targetId: null, draft: null });
         const emptyBookingDraft = (type) => {
-            if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', legLabel: '', orderId: '', date: '', startAirport: '', startCity: '', startTime: '09:00', startTerminal: '', endDate: '', endAirport: '', endCity: '', endTime: '11:00', endTerminal: '', tzDiff: '', gate: '', seat: '', baggage: '', aircraft: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', legLabel: '', orderId: '', date: '', startAirport: '', startCity: '', startTime: '09:00', startTerminal: '', endDate: '', endAirport: '', endCity: '', endTime: '11:00', endTerminal: '', tzDiff: '', gate: '', seat: '', baggage: '', carryOn: '', checkedBag: '', aircraft: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             if (type === 'lodging') return { id: generateId(), name: '', city: '', mapLink: '', checkIn: '', checkInTime: '15:00', checkOut: '', checkOutTime: '11:00', address: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             if (type === 'cars') return { id: generateId(), company: '', pickupLocation: '', pickupDate: '', dropoffLocation: '', dropoffDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             return { id: generateId(), title: '', validDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' }; // vouchers
@@ -776,6 +776,17 @@ createApp({
             bookingModal.type = 'flights'; bookingModal.mode = 'add'; bookingModal.targetId = null; bookingModal.draft = d; bookingModal.show = true;
         };
 
+        // 行李重量：只輸入數字就自動加上 kg（輸入「7kg」這種有文字的就原樣顯示）
+        const fmtKg = (v) => { const s = String(v == null ? '' : v).trim(); if (!s) return '-'; return /^[0-9]+(\.[0-9]+)?$/.test(s) ? s + 'kg' : s; };
+        // 把 checklist-data.js 裡「這趟清單還沒有的」預設項目補進來（不動已有項目與勾選狀態）
+        const mergeTemplateChecklist = () => {
+            const have = new Set(checklist.value.map(i => i.category + '|' + i.name));
+            const add = CHECKLIST_TEMPLATE.filter(t => !have.has(t.category + '|' + t.name)).map(t => ({ ...t, id: generateId(), checkedBy: {} }));
+            if (!add.length) { showToast('預設清單沒有新的項目可以補'); return; }
+            checklist.value.push(...add);
+            showToast(`已補上 ${add.length} 個預設項目`, { icon: 'ph-bold ph-suitcase-rolling' });
+        };
+
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
         const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
         const fetchWeather = async (locName) => { try { weather.value.location = locName; const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locName)}&limit=1`); const geoData = await geoRes.json(); if (geoData?.[0]) { const { lat, lon } = geoData[0]; const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`); const wData = await wRes.json(); weather.value.temp = Math.round(wData.current_weather.temperature); weather.value.icon = getWeatherIcon(wData.current_weather.weathercode); if (wData.daily) weather.value.daily = wData.daily; } } catch (e) { weather.value.temp = '--'; } };
@@ -1373,7 +1384,7 @@ createApp({
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
             CURRENCY_LIST, showCustomCurrency, isCustomCurrency, currencySelectValue, customCurrencyValue, onCurrencySelect, applyCustomCurrency, tripDateRange,
-            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg,
+            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
