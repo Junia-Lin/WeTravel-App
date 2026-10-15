@@ -299,10 +299,12 @@ createApp({
             newParticipant.value = '';
         };
         const removeParticipant = (name) => {
+            const idx = participants.value.indexOf(name);
             participants.value = participants.value.filter(p => p !== name);
             participantsStr.value = participants.value.join(', ');
             if (newExpense.value.payer === name) newExpense.value.payer = participants.value[0] || '';
             if (newExpense.value.splitWith) newExpense.value.splitWith = newExpense.value.splitWith.filter(p => p !== name);
+            showToast(`已移除 ${name}`, { icon: 'ph-bold ph-user-minus', undo: () => { participants.value.splice(Math.min(idx, participants.value.length), 0, name); participantsStr.value = participants.value.join(', '); } });
         };
         // 記帳表單裡「分攤成員」勾選切換（newExpense 快速新增 / expModal 編輯共用）
         const toggleSplitMember = (draftLike, name) => {
@@ -786,6 +788,48 @@ createApp({
             checklist.value.push(...add);
             showToast(`已補上 ${add.length} 個預設項目`, { icon: 'ph-bold ph-suitcase-rolling' });
         };
+
+        // ---- 住宿一覽：每晚住哪一眼看完，並檢查有沒有哪晚沒訂（或重複訂）----
+        const mdPad = (s) => { const p = String(s || '').split('-'); return p.length === 3 ? `${p[1]}/${p[2]}` : (s || ''); };
+        const nightRangeLabel = (inDate, outDate, n) => {
+            if (n <= 1) return `${mdPad(inDate)}（${n}晚）`;
+            const sameMonth = inDate.slice(0, 7) === outDate.slice(0, 7);
+            return `${mdPad(inDate)}~${sameMonth ? outDate.slice(8, 10) : mdPad(outDate)}（${n}晚）`;
+        };
+        const lodgingSummary = computed(() => {
+            const list = sortedLodging.value;
+            const rows = list.map(b => {
+                const n = nightsOf(b);
+                const label = (!b.checkIn) ? '日期未填' : (!b.checkOut || !n) ? mdPad(b.checkIn) : nightRangeLabel(b.checkIn, b.checkOut, n);
+                return { b, label, nights: n };
+            });
+            const totalNights = rows.reduce((s, r) => s + r.nights, 0);
+            const gaps = []; const overlaps = [];
+            const first = days.value[0] && days.value[0].fullDate;
+            const last = days.value.length ? days.value[days.value.length - 1].fullDate : '';
+            const checked = !!(first && last && first < last);
+            if (checked) {
+                const count = {};
+                list.forEach(b => {
+                    if (!b.checkIn || !b.checkOut) return;
+                    let d = b.checkIn, guard = 0;
+                    while (d < b.checkOut && guard++ < 400) { count[d] = (count[d] || 0) + 1; d = addDaysStr(d, 1); }
+                });
+                const collect = (test, out) => {
+                    let cur = null, d = first, guard = 0;
+                    while (d < last && guard++ < 400) {
+                        if (test(count[d] || 0)) { if (!cur) cur = { start: d, n: 0 }; cur.n++; cur.end = d; }
+                        else if (cur) { out.push(cur); cur = null; }
+                        d = addDaysStr(d, 1);
+                    }
+                    if (cur) out.push(cur);
+                    out.forEach(g => { g.label = nightRangeLabel(g.start, addDaysStr(g.end, 1), g.n); });
+                };
+                collect(c => c === 0, gaps);
+                collect(c => c > 1, overlaps);
+            }
+            return { rows, totalNights, gaps, overlaps, checked };
+        });
 
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
         const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
@@ -1384,7 +1428,7 @@ createApp({
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
             CURRENCY_LIST, showCustomCurrency, isCustomCurrency, currencySelectValue, customCurrencyValue, onCurrencySelect, applyCustomCurrency, tripDateRange,
-            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist,
+            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
