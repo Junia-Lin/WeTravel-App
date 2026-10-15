@@ -814,9 +814,7 @@
                                     <div class="text-sm font-black text-primary-600 font-mono">NT${{ Math.round(owedByPerson[p] || 0).toLocaleString() }}</div>
                                     <div class="text-[10px] text-stone-400 font-mono">已付 NT${{ Math.round(paidByPerson[p] || 0).toLocaleString() }}</div>
                                 </div>
-                                <button @click="removeParticipant(p)"
-                                    class="w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-stone-300 hover:bg-stone-200 hover:text-white transition">
-                                    <i class="ph-bold ph-x text-[9px]"></i></button>
+                                
                             </div>
                             
                         </div>
@@ -1116,19 +1114,23 @@
                             <div v-if="o.legs.length > 1" class="px-5 pt-3 pb-1 text-[11px] font-black text-primary-500">🔗 同一張訂單・共 {{ o.legs.length }} 段</div>
                             <div v-for="(b, li) in o.legs" :key="b.id" @click="openBookingModal('flights', b)"
                                 class="cursor-pointer active:bg-stone-50 transition" :class="li > 0 ? 'border-t-2 border-dashed border-stone-100' : ''">
-                                <div class="bg-gradient-to-br from-primary-50 to-primary-100/60 px-5 pt-4 pb-3">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-xs font-bold text-stone-500 truncate">{{ b.airline || '航空公司' }}</span>
-                                    <span v-if="b.legLabel" class="shrink-0 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/80 text-primary-600">{{ b.legLabel }}</span>
+                                <div class="bg-gradient-to-br from-primary-50 to-primary-100/60 px-5 pt-4 pb-3 flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-bold text-stone-500 truncate">{{ b.airline || '航空公司' }}</div>
+                                        <div class="text-3xl font-black text-stone-800 tracking-widest font-mono mt-0.5">{{ b.flightNumber || '航班號' }}</div>
+                                    </div>
+                                    <div class="shrink-0 text-right">
+                                        <span v-if="b.legLabel" class="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/80 text-primary-600">{{ b.legLabel }}</span>
+                                        <div class="text-sm font-black text-stone-700 mt-1">{{ fmtMD(b.date) }}</div>
+                                        <div v-if="flightDayDiff(b) > 0" class="text-[11px] font-bold text-red-400">{{ fmtMD(flightEndDate(b)) }} 抵達 +{{ flightDayDiff(b) }}</div>
+                                    </div>
                                 </div>
-                                <div class="text-3xl font-black text-stone-800 tracking-widest font-mono mt-0.5">{{ b.flightNumber || '航班號' }}</div>
-                            </div>
                             <div class="px-5 py-4">
                                 <div class="flex items-start gap-2">
                                     <div class="w-[5.5rem] shrink-0">
                                         <div class="text-3xl font-black text-stone-800 leading-none uppercase">{{ b.startAirport || '---' }}</div>
                                         <div class="text-xl font-black text-stone-700 font-mono mt-1.5">{{ b.startTime || '--:--' }}</div>
-                                        <div class="text-[11px] font-bold text-stone-400 mt-0.5">{{ fmtMD(b.date) }}</div>
+                                        
                                         <span v-if="b.startCity" class="inline-block mt-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600">{{ b.startCity }}</span>
                                     </div>
                                     <div class="flex-1 min-w-0 pt-1 text-center">
@@ -1143,13 +1145,17 @@
                                     <div class="w-[5.5rem] shrink-0 text-right">
                                         <div class="text-3xl font-black text-stone-800 leading-none uppercase">{{ b.endAirport || '---' }}</div>
                                         <div class="text-xl font-black text-stone-700 font-mono mt-1.5">{{ b.endTime || '--:--' }}</div>
-                                        <div class="text-[11px] font-bold text-stone-400 mt-0.5">{{ fmtMD(flightEndDate(b)) }}<span v-if="flightDayDiff(b) > 0" class="ml-1 text-red-500">+{{ flightDayDiff(b) }}</span></div>
+                                        
                                         <span v-if="b.endCity" class="inline-block mt-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{{ b.endCity }}</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="px-5 pb-4">
-                                    <div class="grid grid-cols-3 gap-px bg-stone-200/70 rounded-2xl overflow-hidden">
+                            <div class="px-5 pb-3">
+                                    <button @click.stop="toggleGroup('f-' + b.id)" class="w-full flex items-center justify-between text-xs font-bold text-stone-400 py-1.5">
+                                        <span>航廈・登機門・座位・行李・機型</span>
+                                        <i class="ph-bold" :class="openGroups['f-' + b.id] ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                                    </button>
+                                    <div v-show="openGroups['f-' + b.id]" class="grid grid-cols-3 gap-px bg-stone-200/70 rounded-2xl overflow-hidden mt-1">
                                         <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">航廈</div><div class="text-sm font-black text-stone-700">{{ b.startTerminal || '-' }} → {{ b.endTerminal || '-' }}</div></div>
                                         <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">登機門</div><div class="text-sm font-black text-stone-700">{{ b.gate || '-' }}</div></div>
                                         <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">座位</div><div class="text-sm font-black text-stone-700">{{ b.seat || '-' }}</div></div>
@@ -1178,7 +1184,26 @@
 
                     <!-- 住宿 -->
                     <div v-if="bookingTab === 'lodging'" class="space-y-4">
-                        <div v-if="!bookings.lodging.length" class="text-sm text-stone-400 text-center py-6">還沒有住宿資訊</div>
+                        <div v-if="bookings.lodging.length" class="bg-white rounded-3xl border border-primary-100 shadow-soft p-4">
+                            <div class="flex items-center justify-between pb-3 border-b border-primary-100/70">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center text-lg">🏨</div>
+                                    <span class="text-lg font-black text-stone-800">住宿一覽</span>
+                                </div>
+                                <span v-if="lodgingSummary.totalNights" class="text-xs font-black px-2.5 py-1 rounded-full bg-primary-50 text-primary-500">共 {{ lodgingSummary.totalNights }} 晚</span>
+                            </div>
+                            <div v-for="r in lodgingSummary.rows" :key="r.b.id" @click="openBookingModal('lodging', r.b)"
+                                class="flex items-center justify-between gap-3 py-3 border-b border-stone-100 last:border-b-0 cursor-pointer active:bg-stone-50">
+                                <span class="text-sm text-stone-400 font-mono shrink-0">{{ r.label }}</span>
+                                <span class="text-sm font-black text-stone-700 text-right truncate">{{ r.b.name || '未命名住宿' }}</span>
+                            </div>
+                            <div v-if="lodgingSummary.gaps.length || lodgingSummary.overlaps.length" class="mt-2 space-y-1.5">
+                                <div v-for="g in lodgingSummary.gaps" :key="'gap' + g.start" class="bg-red-50 text-red-500 rounded-xl px-3 py-2 text-xs font-bold">⚠️ {{ g.label }} 還沒有住宿</div>
+                                <div v-for="o in lodgingSummary.overlaps" :key="'ov' + o.start" class="bg-amber-50 text-amber-600 rounded-xl px-3 py-2 text-xs font-bold">⚠️ {{ o.label }} 有重複的住宿</div>
+                            </div>
+                            <div v-else-if="lodgingSummary.checked" class="mt-2 bg-green-50 text-green-600 rounded-xl px-3 py-2 text-xs font-bold">✅ 旅程每一晚都有住宿</div>
+                        </div>
+<div v-if="!bookings.lodging.length" class="text-sm text-stone-400 text-center py-6">還沒有住宿資訊</div>
                         <div v-for="b in sortedLodging" :key="b.id" @click="openBookingModal('lodging', b)"
                             class="bg-white rounded-3xl border border-primary-100 shadow-soft p-4 space-y-3 cursor-pointer active:scale-[0.99] transition">
                             <div class="flex items-start gap-3">
@@ -2269,7 +2294,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=45"></script>
+    <script type="module" src="./app.js?v=46"></script>
 
     <script>
         setTimeout(() => {
