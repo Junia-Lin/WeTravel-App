@@ -831,6 +831,37 @@ createApp({
             return { rows, totalNights, gaps, overlaps, checked };
         });
 
+        // ---- 行程總覽：每天一列，多天行程一眼看完 ----
+        const showOverview = ref(false);
+        const goDay = (i) => { currentDayIdx.value = i; showOverview.value = false; nextTick(() => { const m = document.querySelector('main'); if (m) m.scrollTo(0, 0); }); };
+        const itemEmoji = (t) => ({ spot: '📍', food: '🍴', shop: '🛍️', transport: '🚇', accommodation: '🏨' }[t] || '📍');
+        const tripOverview = computed(() => {
+            const today = localDateStr();
+            const last = days.value.length - 1;
+            let totalItems = 0, totalReserved = 0;
+            const byTime = (x, y) => (x.startTime || '').localeCompare(y.startTime || '');
+            const rows = days.value.map((day, i) => {
+                const fd = day.fullDate || '';
+                const items = (day.items || []).filter(Boolean);
+                const reserved = items.filter(it => it.reserved).length;
+                totalItems += items.length; totalReserved += reserved;
+                const flights = fd ? bookings.flights.filter(f => f.date === fd).sort(byTime).map(f => ({
+                    id: f.id, route: `${f.startAirport || '?'} ${f.startTime || ''} → ${f.endAirport || '?'} ${f.endTime || ''}`.replace(/\s+/g, ' '),
+                    label: f.legLabel, no: f.flightNumber, plus: flightDayDiff(f) })) : [];
+                const arrivals = fd ? bookings.flights.filter(f => f.date && f.date !== fd && flightEndDate(f) === fd).map(f => ({
+                    id: f.id, route: `抵達 ${f.endAirport || '?'} ${f.endTime || ''}`.trim(), label: f.legLabel })) : [];
+                const night = (fd && i < last) ? (bookings.lodging.find(b => b.checkIn && b.checkOut && b.checkIn <= fd && fd < b.checkOut) || null) : null;
+                const checkouts = fd ? bookings.lodging.filter(b => b.checkOut === fd) : [];
+                return {
+                    idx: i, date: day.date || day.shortDate || '', title: day.title || '', isToday: !!fd && fd === today,
+                    flights, arrivals, night, noLodging: !!fd && i < last && !night, checkouts,
+                    items: items.slice(0, 3).map(it => ({ id: it.id, time: it.time, name: it.activity || '未命名行程', emoji: itemEmoji(it.type) })),
+                    more: Math.max(0, items.length - 3), total: items.length, reserved
+                };
+            });
+            return { rows, totalItems, totalReserved };
+        });
+
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
         const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
         const fetchWeather = async (locName) => { try { weather.value.location = locName; const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locName)}&limit=1`); const geoData = await geoRes.json(); if (geoData?.[0]) { const { lat, lon } = geoData[0]; const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`); const wData = await wRes.json(); weather.value.temp = Math.round(wData.current_weather.temperature); weather.value.icon = getWeatherIcon(wData.current_weather.weathercode); if (wData.daily) weather.value.daily = wData.daily; } } catch (e) { weather.value.temp = '--'; } };
@@ -1428,7 +1459,7 @@ createApp({
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
             CURRENCY_LIST, showCustomCurrency, isCustomCurrency, currencySelectValue, customCurrencyValue, onCurrencySelect, applyCustomCurrency, tripDateRange,
-            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary,
+            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, showOverview, goDay, tripOverview, itemEmoji,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
