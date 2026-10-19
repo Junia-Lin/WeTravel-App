@@ -80,10 +80,10 @@ createApp({
         const bookingTab = ref('flights');
         const bookingModal = reactive({ show: false, type: 'flights', mode: 'add', targetId: null, draft: null });
         const emptyBookingDraft = (type) => {
-            if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', legLabel: '', orderId: '', date: '', startAirport: '', startCity: '', startTime: '09:00', startTerminal: '', endDate: '', endAirport: '', endCity: '', endTime: '11:00', endTerminal: '', tzDiff: '', gate: '', seat: '', baggage: '', carryOn: '', checkedBag: '', aircraft: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', legLabel: '', orderId: '', date: '', startAirport: '', startCity: '', startTime: '09:00', startTerminal: '', endDate: '', endAirport: '', endCity: '', endTime: '11:00', endTerminal: '', startTz: '', endTz: '', baggage: '', carryOn: '', checkedBag: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             if (type === 'lodging') return { id: generateId(), name: '', city: '', mapLink: '', checkIn: '', checkInTime: '15:00', checkOut: '', checkOutTime: '11:00', address: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             if (type === 'cars') return { id: generateId(), company: '', pickupLocation: '', pickupDate: '', dropoffLocation: '', dropoffDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
-            return { id: generateId(), title: '', validDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' }; // vouchers
+            return { id: generateId(), title: '', link: '', validDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' }; // vouchers
         };
         const openBookingModal = (type, item = null) => {
             bookingModal.type = type;
@@ -123,7 +123,8 @@ createApp({
             if (!b.date || !b.startTime || !b.endTime) return null;
             const s = new Date(`${b.date}T${b.startTime}`); const e = new Date(`${flightEndDate(b)}T${b.endTime}`);
             if (isNaN(s) || isNaN(e)) return null;
-            const diff = Math.round((e - s) / 60000 - (Number(b.tzDiff) || 0) * 60);
+            const tzHours = (b.startTz !== '' && b.startTz != null && b.endTz !== '' && b.endTz != null) ? (Number(b.endTz) - Number(b.startTz)) : (Number(b.tzDiff) || 0);
+            const diff = Math.round((e - s) / 60000 - tzHours * 60);
             return diff > 0 ? diff : null;
         };
         const fmtDuration = (m) => m == null ? '' : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}m`;
@@ -196,7 +197,7 @@ createApp({
             });
             return map;
         });
-        const PIE_COLORS = ['#ff69b4', '#5eead4', '#fbbf24', '#818cf8', '#fb923c', '#34d399', '#f472b6', '#60a5fa'];
+        const PIE_COLORS = ['#76ad7b', '#e0a96d', '#7fb3c8', '#b89bd0', '#e58f8f', '#9bb86a', '#d4b483', '#8aa1c4'];
         // 圓餅圖：依分類佔比切出 SVG 弧形 path（半徑 45、圓心 (50,50)）
         const categoryPieSlices = computed(() => {
             const total = totalExpenseTWD.value;
@@ -862,6 +863,12 @@ createApp({
             return { rows, totalItems, totalReserved };
         });
 
+        // ---- 機票時區（UTC）與超連結 ----
+        const UTC_OFFSETS = [-12, -11, -10, -9, -8, -7, -6, -5, -4, -3.5, -3, -2, -1, 0, 1, 2, 3, 3.5, 4, 4.5, 5, 5.5, 5.75, 6, 6.5, 7, 8, 9, 9.5, 10, 11, 12, 13, 14];
+        const utcLabel = (v) => { const n = Number(v); const sign = n < 0 ? '-' : '+'; const abs = Math.abs(n); const hh = Math.floor(abs); const mm = Math.round((abs - hh) * 60); return `UTC${sign}${hh}${mm ? ':' + String(mm).padStart(2, '0') : ''}`; };
+        // 使用者貼的連結如果沒有 http(s)://，自動補上，避免點了跳去 App 自己的網址
+        const normUrl = (u) => { const s = String(u || '').trim(); if (!s) return ''; return /^[a-z][a-z0-9+.-]*:/i.test(s) ? s : 'https://' + s; };
+
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
         const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
         const fetchWeather = async (locName) => { try { weather.value.location = locName; const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locName)}&limit=1`); const geoData = await geoRes.json(); if (geoData?.[0]) { const { lat, lon } = geoData[0]; const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`); const wData = await wRes.json(); weather.value.temp = Math.round(wData.current_weather.temperature); weather.value.icon = getWeatherIcon(wData.current_weather.weathercode); if (wData.daily) weather.value.daily = wData.daily; } } catch (e) { weather.value.temp = '--'; } };
@@ -1459,7 +1466,7 @@ createApp({
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
             CURRENCY_LIST, showCustomCurrency, isCustomCurrency, currencySelectValue, customCurrencyValue, onCurrencySelect, applyCustomCurrency, tripDateRange,
-            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, showOverview, goDay, tripOverview, itemEmoji,
+            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, UTC_OFFSETS, utcLabel, normUrl, showOverview, goDay, tripOverview, itemEmoji,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
