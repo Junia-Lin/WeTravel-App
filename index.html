@@ -62,16 +62,16 @@
                     },
                     colors: {
                         primary: {
-                            50: '#fff0f5',  // LavenderBlush
-                            100: '#ffe4e1', // MistyRose
-                            200: '#ffcccb', // Pink
-                            300: '#ffb6c1', // LightPink
-                            400: '#ff69b4', // HotPink
-                            500: '#ff1493', // DeepPink (Main text/Icon)
-                            600: '#db0a75',
-                            700: '#b8005b',
-                            800: '#940045',
-                            900: '#7a0036'
+                            50: '#f1f7f1',
+                            100: '#e0eee0',
+                            200: '#c3dcc4',
+                            300: '#9cc59f',
+                            400: '#76ad7b',
+                            500: '#5a9a61',
+                            600: '#487f4f',
+                            700: '#3b6641',
+                            800: '#315236',
+                            900: '#27422c'
                         },
                         hello: {
                             blue: '#007FFF',   // Classic Blue (keeping for accents)
@@ -80,20 +80,20 @@
                             black: '#444444',  // Softer Black
                         },
                         stone: {
-                            50: '#fffaf0', // FloralWhite
-                            100: '#fff5ee', // Seashell
-                            200: '#ffe4e1',
-                            300: '#ffcccb',
-                            400: '#dcaeb1',
-                            500: '#b88a8e',
-                            600: '#96686c',
-                            700: '#75484c',
-                            800: '#562a2e',
-                            900: '#3a1012'
+                            50: '#faf7f0',
+                            100: '#f4efe4',
+                            200: '#e8e1d2',
+                            300: '#d6ccb8',
+                            400: '#b3a78f',
+                            500: '#8f8470',
+                            600: '#6f6553',
+                            700: '#544c3e',
+                            800: '#3e382d',
+                            900: '#2a261e'
                         },
                         boxShadow: {
-                            'soft': '0 8px 30px -4px rgba(255, 182, 193, 0.3)',
-                            'glow': '0 0 20px rgba(255, 105, 180, 0.4)',
+                            'soft': '0 8px 30px -4px rgba(156, 197, 159, 0.3)',
+                            'glow': '0 0 20px rgba(90, 154, 97, 0.4)',
                         },
                         spacing: {
                             'safe-top': 'env(safe-area-inset-top)',
@@ -112,7 +112,7 @@
     <link rel="manifest" href="./manifest.json">
     <style>
         body {
-            background-color: #fff0f5;
+            background-color: #f1f7f1;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
@@ -297,7 +297,7 @@
         position: fixed;
         inset: 0;
         z-index: 99999;
-        background-color: #fff0f5;
+        background-color: #f1f7f1;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -315,7 +315,7 @@
         <p style="
             position: relative;
             z-index: 1;
-            color: #b88a8e;
+            color: #8f8470;
             font-size: 13px;
             font-family: 'Inter', 'Noto Sans TC', sans-serif;
             letter-spacing: 0.5px;
@@ -328,7 +328,7 @@
             max-width: 260px;
             height: 22px;
             border-radius: 999px;
-            border: 2.5px solid #ff1493;
+            border: 2.5px solid #5a9a61;
             background: white;
             overflow: hidden;
             padding: 3px;
@@ -338,7 +338,7 @@
                 height: 100%;
                 width: 0%;
                 border-radius: 999px;
-                background: linear-gradient(90deg, #ff69b4, #ff1493);
+                background: linear-gradient(90deg, #76ad7b, #5a9a61);
                 transition: width 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             "></div>
         </div>
@@ -587,7 +587,7 @@
 
                                 <!-- 行程卡（點卡片開彈窗編輯） -->
                                 <div @click="openItemModal(item)"
-                                    class="bg-white rounded-2xl shadow-sm border border-stone-100 border-l-4 transition-all duration-200 relative cursor-pointer active:bg-stone-50 hover:shadow-md"
+                                    class="bg-white rounded-lg shadow-sm border border-stone-100 border-l-4 transition-all duration-200 relative cursor-pointer active:bg-stone-50 hover:shadow-md"
                                     :class="typeAccent(item.type)">
 
                                     <div class="p-3.5 pr-8 space-y-1.5">
@@ -1217,16 +1217,13 @@
                             </div>
                             <div class="px-5 pb-3">
                                     <button @click.stop="toggleGroup('f-' + b.id)" class="w-full flex items-center justify-between text-xs font-bold text-stone-400 py-1.5">
-                                        <span>航廈・登機門・座位・行李・機型</span>
+                                        <span>航廈・行李</span>
                                         <i class="ph-bold" :class="openGroups['f-' + b.id] ? 'ph-caret-up' : 'ph-caret-down'"></i>
                                     </button>
                                     <div v-show="openGroups['f-' + b.id]" class="grid grid-cols-3 gap-px bg-stone-200/70 rounded-2xl overflow-hidden mt-1">
                                         <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">航廈</div><div class="text-sm font-black text-stone-700">{{ b.startTerminal || '-' }} → {{ b.endTerminal || '-' }}</div></div>
-                                        <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">登機門</div><div class="text-sm font-black text-stone-700">{{ b.gate || '-' }}</div></div>
-                                        <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">座位</div><div class="text-sm font-black text-stone-700">{{ b.seat || '-' }}</div></div>
                                         <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">手提行李</div><div class="text-sm font-black text-stone-700">{{ fmtKg(b.carryOn) }}</div></div>
                                         <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">托運行李</div><div class="text-sm font-black text-stone-700">{{ b.checkedBag ? fmtKg(b.checkedBag) : (b.baggage || '-') }}</div></div>
-                                        <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">機型</div><div class="text-sm font-black text-stone-700">{{ b.aircraft || '-' }}</div></div>
                                     </div>
                                 </div>
                             <div v-if="b.note" class="px-5 pb-4 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">{{ b.note }}</div>
@@ -1339,6 +1336,9 @@
                             class="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 cursor-pointer active:bg-stone-50">
                             <div class="font-bold text-stone-800">{{ b.title || '未命名憑證' }}</div>
                             <div v-if="b.validDate" class="text-xs text-stone-500 mt-1">使用日期 {{ b.validDate }}</div>
+                            <a v-if="b.link" :href="normUrl(b.link)" target="_blank" rel="noopener" @click.stop
+                                class="mt-2 inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-primary-50 text-primary-600">
+                                <i class="ph-bold ph-link"></i> 開啟連結</a>
                         </div>
                         <button @click="openBookingModal('vouchers')"
                             class="w-full py-3.5 border-2 border-dashed border-stone-300 rounded-2xl text-stone-500 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
@@ -1524,55 +1524,55 @@
         <div v-if="showSetupModal"
             class="absolute inset-0 bg-stone-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-fade-in">
             <div
-                class="bg-white/95 w-full max-w-sm rounded-[2.5rem] p-8 shadow-[0_20px_60px_-15px_rgba(255,105,180,0.5)] relative max-h-[90vh] overflow-y-auto hide-scroll ring-8 ring-white/50 backdrop-blur-xl border border-white/60">
+                class="bg-white/95 w-full max-w-sm rounded-[2.5rem] p-8 shadow-[0_20px_60px_-15px_rgba(90, 154, 97,0.5)] relative max-h-[90vh] overflow-y-auto hide-scroll ring-8 ring-white/50 backdrop-blur-xl border border-white/60">
                 <div class="text-center mb-8">
                     <div
-                        class="w-24 h-24 bg-gradient-to-br from-[#ff69b4] to-[#ff1493] rounded-[2rem] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#ff1493]/40 transform rotate-3 ring-4 ring-white">
+                        class="w-24 h-24 bg-gradient-to-br from-[#76ad7b] to-[#5a9a61] rounded-[2rem] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#5a9a61]/40 transform rotate-3 ring-4 ring-white">
                         <i class="ph-duotone ph-airplane-tilt text-5xl text-white drop-shadow-md"></i>
                     </div>
-                    <h2 class="text-3xl font-black text-[#562a2e] tracking-tight">{{ isEditing ? '修改旅程' : '開啟新旅程' }}
+                    <h2 class="text-3xl font-black text-[#3e382d] tracking-tight">{{ isEditing ? '修改旅程' : '開啟新旅程' }}
                     </h2>
-                    <p class="text-sm text-[#96686c] font-medium mt-2 tracking-wide">Ready for next adventure?</p>
+                    <p class="text-sm text-[#6f6553] font-medium mt-2 tracking-wide">Ready for next adventure?</p>
                 </div>
 
                 <div class="space-y-5">
                     <div class="space-y-2 relative">
                         <label
-                            class="text-xs font-bold text-[#96686c] ml-2 uppercase tracking-widest">Destination</label>
+                            class="text-xs font-bold text-[#6f6553] ml-2 uppercase tracking-widest">Destination</label>
                         <img src="assets/kitty3.png"
                             class="absolute right-0 -top-6 w-12 h-12 object-contain z-10 drop-shadow-sm transform -rotate-12"
                             alt="Kitty">
                         <div class="relative group">
                             <i
-                                class="ph-bold ph-map-pin absolute left-5 top-4 text-[#ffb7c5] group-focus-within:text-[#ff69b4] transition-colors text-lg"></i>
+                                class="ph-bold ph-map-pin absolute left-5 top-4 text-[#9cc59f] group-focus-within:text-[#76ad7b] transition-colors text-lg"></i>
                             <input v-model="setup.destination" @blur="detectRate" type="text"
                                 placeholder="例如: Tokyo, Seoul"
-                                class="w-full bg-[#fffcfd] hover:bg-white focus:bg-white border-2 border-[#fff0f5] group-hover:border-[#ffe4e1] rounded-3xl pl-12 pr-12 py-3.5 text-[#562a2e] font-bold focus:ring-4 focus:ring-[#ff69b4]/10 focus:border-[#ff69b4] transition-all placeholder:text-[#dcb4bb] text-lg">
+                                class="w-full bg-[#fdfcf8] hover:bg-white focus:bg-white border-2 border-[#f1f7f1] group-hover:border-[#e0eee0] rounded-3xl pl-12 pr-12 py-3.5 text-[#3e382d] font-bold focus:ring-4 focus:ring-[#76ad7b]/10 focus:border-[#76ad7b] transition-all placeholder:text-[#b3a78f] text-lg">
                             <button @click="detectRate"
-                                class="absolute right-4 top-3.5 text-[#ffb7c5] hover:text-[#ff69b4] p-1.5 rounded-full hover:bg-pink-50 transition"
+                                class="absolute right-4 top-3.5 text-[#9cc59f] hover:text-[#76ad7b] p-1.5 rounded-full hover:bg-pink-50 transition"
                                 title="重新抓取匯率"><i class="ph-bold ph-arrows-clockwise text-lg"
                                     :class="{'animate-spin': isRateLoading}"></i></button>
                         </div>
                     </div>
 
                     <div class="space-y-2">
-                        <label class="text-xs font-bold text-[#96686c] ml-2 uppercase tracking-widest">Members
+                        <label class="text-xs font-bold text-[#6f6553] ml-2 uppercase tracking-widest">Members
                             <span class="normal-case tracking-normal font-medium">（選填）</span></label>
                         <div v-if="participants.length" class="flex flex-wrap gap-2 px-1">
                             <span v-for="p in participants" :key="p"
-                                class="inline-flex items-center gap-1.5 bg-[#fff0f5] rounded-full pl-3 pr-1.5 py-1.5 text-sm font-bold text-[#562a2e]">
+                                class="inline-flex items-center gap-1.5 bg-[#f1f7f1] rounded-full pl-3 pr-1.5 py-1.5 text-sm font-bold text-[#3e382d]">
                                 {{ p }}
                                 <button @click="removeParticipant(p)"
-                                    class="w-5 h-5 flex items-center justify-center rounded-full text-[#dcb4bb] hover:bg-[#ffb7c5] hover:text-white transition">
+                                    class="w-5 h-5 flex items-center justify-center rounded-full text-[#b3a78f] hover:bg-[#9cc59f] hover:text-white transition">
                                     <i class="ph-bold ph-x text-xs"></i>
                                 </button>
                             </span>
                         </div>
                         <div class="flex gap-2">
                             <input v-model="newParticipant" @keyup.enter="addParticipant" placeholder="新增成員名字"
-                                class="flex-1 min-w-0 bg-[#fffcfd] hover:bg-white focus:bg-white border-2 border-[#fff0f5] hover:border-[#ffe4e1] rounded-3xl px-5 py-3 text-[#562a2e] font-bold focus:ring-4 focus:ring-[#ff69b4]/10 focus:border-[#ff69b4] transition-all placeholder:text-[#dcb4bb] text-base">
+                                class="flex-1 min-w-0 bg-[#fdfcf8] hover:bg-white focus:bg-white border-2 border-[#f1f7f1] hover:border-[#e0eee0] rounded-3xl px-5 py-3 text-[#3e382d] font-bold focus:ring-4 focus:ring-[#76ad7b]/10 focus:border-[#76ad7b] transition-all placeholder:text-[#b3a78f] text-base">
                             <button @click="addParticipant"
-                                class="px-5 bg-[#ff69b4] text-white rounded-3xl text-sm font-bold shadow-md shadow-[#ff69b4]/30 active:scale-95 transition flex items-center gap-1 shrink-0">
+                                class="px-5 bg-[#76ad7b] text-white rounded-3xl text-sm font-bold shadow-md shadow-[#76ad7b]/30 active:scale-95 transition flex items-center gap-1 shrink-0">
                                 <i class="ph-bold ph-plus"></i> 加人
                             </button>
                         </div>
@@ -1581,39 +1581,39 @@
                     <div class="grid grid-cols-3 gap-4">
                         <div class="col-span-2 space-y-2">
                             <label
-                                class="text-xs font-bold text-[#96686c] ml-2 uppercase tracking-widest">Start
+                                class="text-xs font-bold text-[#6f6553] ml-2 uppercase tracking-widest">Start
                                 Date</label>
                             <div class="relative group">
                                 <input v-model="setup.startDate" type="date"
-                                    class="w-full bg-[#fffcfd] hover:bg-white focus:bg-white border-2 border-[#fff0f5] group-hover:border-[#ffe4e1] rounded-3xl px-5 py-3.5 text-[#562a2e] font-bold focus:ring-4 focus:ring-[#ff69b4]/10 focus:border-[#ff69b4] transition-all text-base tracking-wide">
+                                    class="w-full bg-[#fdfcf8] hover:bg-white focus:bg-white border-2 border-[#f1f7f1] group-hover:border-[#e0eee0] rounded-3xl px-5 py-3.5 text-[#3e382d] font-bold focus:ring-4 focus:ring-[#76ad7b]/10 focus:border-[#76ad7b] transition-all text-base tracking-wide">
                             </div>
                         </div>
                         <div class="space-y-2">
                             <label
-                                class="text-xs font-bold text-[#96686c] ml-2 uppercase tracking-widest">Days</label>
+                                class="text-xs font-bold text-[#6f6553] ml-2 uppercase tracking-widest">Days</label>
                             <input v-model.number="setup.days" type="number" min="1" max="30"
-                                class="w-full bg-[#fffcfd] hover:bg-white focus:bg-white border-2 border-[#fff0f5] hover:border-[#ffe4e1] rounded-3xl px-2 py-3.5 text-[#562a2e] font-bold focus:ring-4 focus:ring-[#ff69b4]/10 focus:border-[#ff69b4] transition-all text-center text-xl">
+                                class="w-full bg-[#fdfcf8] hover:bg-white focus:bg-white border-2 border-[#f1f7f1] hover:border-[#e0eee0] rounded-3xl px-2 py-3.5 text-[#3e382d] font-bold focus:ring-4 focus:ring-[#76ad7b]/10 focus:border-[#76ad7b] transition-all text-center text-xl">
                         </div>
                     </div>
 
                     <div class="space-y-2">
                         <div class="flex justify-between items-end px-2">
                             <label
-                                class="text-xs font-bold text-[#96686c] uppercase tracking-widest">Currency</label>
+                                class="text-xs font-bold text-[#6f6553] uppercase tracking-widest">Currency</label>
                             <span v-if="isRateLoading"
-                                class="text-[10px] text-[#ff69b4] font-bold animate-pulse">更新中...</span>
-                            <span v-else class="text-[10px] text-[#96686c] font-mono">1 {{setup.currency}} ≈
+                                class="text-[10px] text-[#76ad7b] font-bold animate-pulse">更新中...</span>
+                            <span v-else class="text-[10px] text-[#6f6553] font-mono">1 {{setup.currency}} ≈
                                 {{setup.rate}} TWD</span>
                         </div>
                         <div class="space-y-2">
                             <div class="flex gap-3">
                                 <div class="relative w-2/3 group">
                                     <select :value="currencySelectValue" @change="onCurrencySelect($event.target.value)"
-                                        class="w-full bg-[#fffcfd] hover:bg-white focus:bg-white border-2 border-[#fff0f5] group-hover:border-[#ffe4e1] rounded-3xl pl-5 pr-10 py-3.5 text-[#562a2e] font-bold text-base focus:ring-4 focus:ring-[#ff69b4]/10 focus:border-[#ff69b4] appearance-none transition-all cursor-pointer">
+                                        class="w-full bg-[#fdfcf8] hover:bg-white focus:bg-white border-2 border-[#f1f7f1] group-hover:border-[#e0eee0] rounded-3xl pl-5 pr-10 py-3.5 text-[#3e382d] font-bold text-base focus:ring-4 focus:ring-[#76ad7b]/10 focus:border-[#76ad7b] appearance-none transition-all cursor-pointer">
                                         <option v-for="c in CURRENCY_LIST" :key="c.code" :value="c.code">{{ c.label }}</option>
                                         <option value="__custom">🌐 其他國家（自己輸入代碼）</option>
                                     </select>
-                                    <i class="ph-bold ph-caret-down absolute right-4 top-4 text-[#ffb7c5] pointer-events-none text-lg"></i>
+                                    <i class="ph-bold ph-caret-down absolute right-4 top-4 text-[#9cc59f] pointer-events-none text-lg"></i>
                                 </div>
                                 <div class="w-1/3 relative">
                                     <input v-model.number="setup.rate" type="number" step="0.001" disabled placeholder="匯率"
@@ -1623,8 +1623,8 @@
                             <div v-if="isCustomCurrency" class="flex items-center gap-2 px-1">
                                 <input :value="customCurrencyValue" @change="applyCustomCurrency($event.target.value)" @keyup.enter="applyCustomCurrency($event.target.value)"
                                     maxlength="3" placeholder="例如 MOP"
-                                    class="w-28 uppercase bg-[#fffcfd] border-2 border-[#fff0f5] rounded-2xl px-4 py-2.5 text-[#562a2e] font-bold text-base focus:ring-4 focus:ring-[#ff69b4]/10 focus:border-[#ff69b4]">
-                                <span class="text-[11px] text-[#96686c]">輸入 3 個英文字母的幣別代碼，會自動抓匯率</span>
+                                    class="w-28 uppercase bg-[#fdfcf8] border-2 border-[#f1f7f1] rounded-2xl px-4 py-2.5 text-[#3e382d] font-bold text-base focus:ring-4 focus:ring-[#76ad7b]/10 focus:border-[#76ad7b]">
+                                <span class="text-[11px] text-[#6f6553]">輸入 3 個英文字母的幣別代碼，會自動抓匯率</span>
                             </div>
                         </div>
                     </div>
@@ -1638,9 +1638,9 @@
 
                     <div class="text-center">
                         <button v-if="tripList.length > 0" @click="cancelSetupModal"
-                            class="text-xs font-bold text-[#96686c] hover:text-[#75484c] py-2 transition-colors">暫不修改，返回</button>
+                            class="text-xs font-bold text-[#6f6553] hover:text-[#544c3e] py-2 transition-colors">暫不修改，返回</button>
                         <button v-else @click="cancelSetupModal(); showTripMenu = true"
-                            class="text-xs font-bold text-[#96686c] hover:text-[#75484c] py-2 transition-colors">先看看現有旅程</button>
+                            class="text-xs font-bold text-[#6f6553] hover:text-[#544c3e] py-2 transition-colors">先看看現有旅程</button>
                     </div>
                 </div>
             </div>
@@ -2043,18 +2043,27 @@
                                         class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                                 </div>
                             </div>
-                            <div class="text-[11px] text-stone-400 leading-relaxed px-1">抵達日期沒填的話，系統會依時間自動判斷是否隔天；跨日、跨時區請填抵達日期與時差。</div>
-                            <div class="flex items-center gap-2">
-                                <input v-model.number="bookingModal.draft.tzDiff" type="number" step="0.5" inputmode="decimal" placeholder="時差"
-                                    class="w-24 shrink-0 min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 text-center focus:ring-2 focus:ring-primary-200">
-                                <span class="text-[11px] text-stone-400 flex-1">抵達地比出發地快幾小時（韓國 +1、日本 +1、上海 0）</span>
+                            <div class="text-[11px] text-stone-400 leading-relaxed px-1">抵達日期沒填的話，系統會依時間自動判斷是否隔天；兩地時區不同時，請選出發地與抵達地的 UTC 時區，才能算出正確的飛行時間。</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <div class="text-[10px] text-stone-500 mb-1 pl-1">出發地時區</div>
+                                    <select v-model.number="bookingModal.draft.startTz"
+                                        class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
+                                        <option value="">未選</option>
+                                        <option v-for="o in UTC_OFFSETS" :key="o" :value="o">{{ utcLabel(o) }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-stone-500 mb-1 pl-1">抵達地時區</div>
+                                    <select v-model.number="bookingModal.draft.endTz"
+                                        class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
+                                        <option value="">未選</option>
+                                        <option v-for="o in UTC_OFFSETS" :key="o" :value="o">{{ utcLabel(o) }}</option>
+                                    </select>
+                                </div>
                             </div>
                             <div v-if="flightDurationMin(bookingModal.draft)" class="text-sm font-black text-primary-600 px-1">✈️ 飛行時間約 {{ fmtDuration(flightDurationMin(bookingModal.draft)) }}</div>
                             <div class="grid grid-cols-2 gap-2">
-                                <input v-model="bookingModal.draft.gate" placeholder="登機門"
-                                    class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 uppercase">
-                                <input v-model="bookingModal.draft.seat" placeholder="座位號碼"
-                                    class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 uppercase">
                                 <div class="relative">
                                     <input v-model="bookingModal.draft.carryOn" inputmode="decimal" placeholder="手提行李"
                                         class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 pl-3 pr-9 focus:ring-2 focus:ring-primary-200">
@@ -2065,8 +2074,6 @@
                                         class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 pl-3 pr-9 focus:ring-2 focus:ring-primary-200">
                                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400 pointer-events-none">kg</span>
                                 </div>
-                                <input v-model="bookingModal.draft.aircraft" placeholder="機型 (A321)"
-                                    class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                             </div>
                         </template>
 
@@ -2136,6 +2143,8 @@
                                 <input v-model="bookingModal.draft.validDate" type="date"
                                     class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                             </div>
+                            <input v-model="bookingModal.draft.link" type="url" inputmode="url" placeholder="連結（電子票券、訂單頁、QR 圖檔網址…）"
+                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                         </template>
 
                         <!-- 共用欄位：價格、購買日期/管道、備註 -->
@@ -2359,7 +2368,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=47"></script>
+    <script type="module" src="./app.js?v=48"></script>
 
     <script>
         setTimeout(() => {
