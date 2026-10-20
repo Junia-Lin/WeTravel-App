@@ -553,8 +553,16 @@ createApp({
             (!locFilterType.value || (l.type || 'spot') === locFilterType.value) &&
             (!locFilterArea.value || (l.area || '').trim() === locFilterArea.value)));
         const setItemPlace = (id) => {
+            const oldPlace = itemModal.draft.placeId ? savedLocations.value.find(l => l.id === itemModal.draft.placeId) : null;
             itemModal.draft.placeId = id || null;
-            if (id) { itemModal.draft.location = ''; itemModal.draft.link = ''; }
+            if (!id) return;
+            itemModal.draft.location = ''; itemModal.draft.link = '';
+            const p = savedLocations.value.find(l => l.id === id);
+            if (!p) return;
+            // 一起帶入口袋名單的名稱、備註、類型：只補空白欄位，或「上一次自動帶入、你沒改過」的內容，不會蓋掉你自己打的字
+            if (!itemModal.draft.activity || (oldPlace && itemModal.draft.activity === oldPlace.name)) itemModal.draft.activity = p.name || '';
+            if (!itemModal.draft.note || (oldPlace && itemModal.draft.note === oldPlace.note)) itemModal.draft.note = p.note || '';
+            if (itemModal.mode === 'add' && p.type && itemModal.draft.type === 'spot') itemModal.draft.type = p.type;
         };
 
         const toggleCat = (slug) => { collapsedCats[slug] = !collapsedCats[slug]; };
