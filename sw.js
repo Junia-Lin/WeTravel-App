@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wetravel-v82';
+const CACHE_NAME = 'wetravel-v83';
 
 // 一開啟就要存進離線快取的檔案：App 能完整運作所需要的「所有」靜態資源
 // 之前漏掉 app.js／expense-data.js／firebase-config.js／icon 圖示／assets 圖片，
@@ -125,17 +125,20 @@ self.addEventListener('fetch', (event) => {
   const isCore = isNav || NETWORK_FIRST_SUFFIXES.some(suffix => url.pathname.endsWith(suffix));
   if (isCore) {
     const cacheKey = isNav ? new URL('./index.html', self.registration.scope).href : url.origin + url.pathname;
-    event.respondWith(
-      fetch(req)
-        .then(response => {
-          if (response && response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(cacheKey).then(r => r || caches.match(req, { ignoreSearch: true })))
-    );
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = (await cache.match(cacheKey)) || (await caches.match(req, { ignoreSearch: true }));
+      const network = fetch(req).then(res => { if (res && res.ok) cache.put(cacheKey, res.clone()); return res; });
+      network.catch(() => {});
+      event.waitUntil(network.catch(() => {}));   // 就算這次先用快取，也讓背景把最新版存起來，下次開啟就是新的
+      if (!cached) return network;                // 完全沒快取（例如剛重新加入主畫面）：只能等網路
+      // 有快取：最多等 3 秒，網路太慢或「有訊號但上不了網」時先用快取開啟，避免整個 App 卡很久
+      try {
+        return await Promise.race([network, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))]);
+      } catch (e) {
+        return cached;
+      }
+    })());
     return;
   }
 
