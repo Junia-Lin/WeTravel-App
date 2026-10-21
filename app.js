@@ -436,7 +436,7 @@ createApp({
                 itemModal.draft = { id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', placeId: null, note: '', reserved: false, commuteMode: '', commuteMinutes: '', commuteNote: '' };
             }
             itemModal.show = true;
-            if (!item) nextTick(() => { document.querySelector('.js-item-activity')?.focus(); });
+            if (!item) nextTick(() => autoFocus('.js-item-activity'));
         };
         const saveItemModal = () => {
             const originDay = days.value[itemModal.originDayIdx];
@@ -488,7 +488,7 @@ createApp({
                 locModal.draft = { id: generateId(), name: '', type: 'spot', area: '', link: '', note: '' };
             }
             locModal.show = true;
-            if (!loc) nextTick(() => { document.querySelector('.js-loc-name')?.focus(); });
+            if (!loc) nextTick(() => autoFocus('.js-loc-name'));
         };
         const saveLocModal = () => {
             if (locModal.mode === 'edit') {
@@ -622,7 +622,7 @@ createApp({
                 checkModal.draft = { id: generateId(), name: '', category: 'misc', luggage: 'any', note: '', checkedBy: {} };
             }
             checkModal.show = true;
-            if (!item) nextTick(() => { document.querySelector('.js-check-name')?.focus(); });
+            if (!item) nextTick(() => autoFocus('.js-check-name'));
         };
         const saveCheckModal = () => {
             if (!checkModal.draft.name.trim()) {
@@ -876,6 +876,14 @@ createApp({
         const utcLabel = (v) => { const n = Number(v); const sign = n < 0 ? '-' : '+'; const abs = Math.abs(n); const hh = Math.floor(abs); const mm = Math.round((abs - hh) * 60); return `UTC${sign}${hh}${mm ? ':' + String(mm).padStart(2, '0') : ''}`; };
         // 使用者貼的連結如果沒有 http(s)://，自動補上，避免點了跳去 App 自己的網址
         const normUrl = (u) => { const s = String(u || '').trim(); if (!s) return ''; return /^[a-z][a-z0-9+.-]*:/i.test(s) ? s : 'https://' + s; };
+
+        // iOS：彈窗一打開就用程式 focus()，鍵盤不會跳出來，而且輸入框會處於「已聚焦」狀態，之後點它也不會再叫出鍵盤。
+        // 所以 iPhone／iPad 不自動聚焦，讓使用者自己點輸入框。
+        const autoFocus = (sel) => {
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isIOS) return;
+            const el = document.querySelector(sel); if (el) el.focus();
+        };
 
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
         const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
@@ -1405,6 +1413,8 @@ createApp({
             // Modern Firestore initialization with multi-tab persistence support
             try {
                 db = initializeFirestore(app, {
+                    // iOS 主畫面 App／部分行動網路下，Firestore 預設的串流連線可能卡很久才放棄；自動偵測並改用長輪詢
+                    experimentalAutoDetectLongPolling: true,
                     localCache: persistentLocalCache({
                         tabManager: persistentMultipleTabManager()
                     })
