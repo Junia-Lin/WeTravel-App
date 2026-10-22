@@ -586,11 +586,11 @@
                                     :class="getDotColor(item.type)"></div>
 
                                 <!-- 行程卡（點卡片開彈窗編輯） -->
-                                <div @click="openItemModal(item)"
+                                <div @click="toggleGroup('i-' + item.id)"
                                     class="bg-white rounded-lg shadow-sm border border-stone-100 border-l-4 transition-all duration-200 relative cursor-pointer active:bg-stone-50 hover:shadow-md"
                                     :class="typeAccent(item.type)">
 
-                                    <div class="p-3.5 pr-8 space-y-1.5">
+                                    <div class="p-3.5 pr-11 space-y-1.5">
                                         <!-- Time -->
                                         <div class="text-xs font-black text-stone-400 font-mono">{{ item.time || '--:--' }}</div>
 
@@ -604,7 +604,7 @@
                                                 <span v-else-if="item.type==='accommodation'">🏨</span>
                                                 <span v-else>📍</span>
                                             </span>
-                                            <span class="font-bold text-stone-800 text-base truncate">{{ item.activity || '未命名行程' }}</span>
+                                            <span class="font-bold text-stone-800 text-base" :class="openGroups['i-' + item.id] ? 'break-words' : 'truncate'">{{ item.activity || '未命名行程' }}</span>
                                             <span v-if="item.reserved"
                                                 class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-0.5">
                                                 <i class="ph-fill ph-check-circle"></i>已預約
@@ -615,25 +615,25 @@
                                             class="flex items-center gap-1">
                                             <i class="text-xs shrink-0"
                                                 :class="item.placeId ? 'ph-fill ph-map-pin text-primary-400' : 'ph-bold ph-map-pin text-stone-300'"></i>
-                                            <span class="flex-1 min-w-0 truncate text-xs font-bold"
-                                                :class="item.placeId ? 'text-primary-600' : 'text-stone-500'">{{ itemLocationLabel(item) }}</span>
-                                            <a v-if="itemNavTarget(item)" :href="getExternalMapLink(itemNavTarget(item))"
-                                                target="_blank" @click.stop
-                                                class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
-                                                :class="isUrl(itemNavTarget(item)) ? 'bg-indigo-50 text-indigo-500 hover:bg-indigo-100' : 'bg-primary-50 text-primary-500 hover:bg-primary-100'"
-                                                :title="isUrl(itemNavTarget(item)) ? '開啟連結' : '開啟導航'">
-                                                <i :class="isUrl(itemNavTarget(item)) ? 'ph-bold ph-globe' : 'ph-bold ph-navigation-arrow'" class="text-xs"></i>
-                                            </a>
+                                            <span class="flex-1 min-w-0 text-xs font-bold" :class="[item.placeId ? 'text-primary-600' : 'text-stone-500', openGroups['i-' + item.id] ? 'break-words' : 'truncate']">{{ itemLocationLabel(item) }}</span>
+                                            <a v-if="itemNavTarget(item)" :href="getExternalMapLink(itemNavTarget(item))" target="_blank" rel="noopener" @click.stop
+                                                class="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-colors bg-primary-50 text-primary-600 hover:bg-primary-100">
+                                                <i class="ph-bold ph-navigation-arrow"></i>地圖</a>
                                         </div>
 
-                                        <div v-if="item.note" class="flex items-start gap-1">
+                                        <div v-if="item.note" class="flex items-start gap-1.5">
                                             <i class="ph-bold ph-notebook text-stone-300 text-xs mt-0.5 shrink-0"></i>
-                                            <div class="flex-1 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">
-                                                {{ item.note }}</div>
+                                            <div class="flex-1 min-w-0 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap break-words" :class="openGroups['i-' + item.id] ? '' : 'line-clamp-3'"><template v-for="(p, pi) in noteParts(item)" :key="pi"><a v-if="p.href" :href="p.href" target="_blank" rel="noopener" @click.stop class="font-bold text-primary-600 underline decoration-dotted underline-offset-2 break-all">{{ p.text }}</a><span v-else>{{ p.text }}</span></template></div>
+                                        </div>
+                                        <div v-if="itemHasMore(item)" class="flex items-center justify-center gap-1 text-[11px] font-bold text-stone-400 pt-0.5">
+                                            <span>{{ openGroups['i-' + item.id] ? '收合' : '展開全部' }}</span>
+                                            <i class="ph-bold" :class="openGroups['i-' + item.id] ? 'ph-caret-up' : 'ph-caret-down'"></i>
                                         </div>
                                     </div>
 
-                                    <i class="ph-bold ph-pencil-simple text-stone-200 absolute top-3.5 right-3.5 text-sm"></i>
+                                    <button @click.stop="openItemModal(item)" aria-label="編輯"
+                                        class="absolute top-1 right-1 w-10 h-10 flex items-center justify-center rounded-full text-stone-300 hover:text-primary-500 active:bg-stone-100 transition">
+                                        <i class="ph-bold ph-pencil-simple text-base"></i></button>
                                 </div>
                             </div>
                         </template>
@@ -1742,8 +1742,12 @@
                         <div class="relative">
                             <i class="ph-bold ph-notebook absolute top-2.5 left-3 text-stone-300"></i>
                             <textarea v-model="itemModal.draft.note"
-                                class="w-full bg-stone-50 rounded-xl py-2 pl-9 pr-3 text-sm text-stone-600 focus:outline-none focus:ring-2 focus:ring-primary-100 resize-none min-h-[60px]"
+                                class="js-item-note w-full bg-stone-50 rounded-xl py-2 pl-9 pr-3 text-sm text-stone-600 focus:outline-none focus:ring-2 focus:ring-primary-100 resize-none min-h-[60px]"
                                 placeholder="備註 (票卷/訂位編號...)"></textarea>
+                        </div>
+                        <div class="flex items-start justify-between gap-3 -mt-2 px-1">
+                            <button type="button" @click="insertPin" class="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-primary-50 text-primary-600">🔸 插入周邊地點</button>
+                            <span class="text-[11px] text-stone-400 text-right leading-snug">🔸名稱 會變成地圖連結；名稱有空格請寫 🔸(名稱 空格)</span>
                         </div>
 
                         <!-- 從上一個行程過來的交通方式/時間（顯示在時間軸上的通勤區塊） -->
@@ -2368,7 +2372,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=50"></script>
+    <script type="module" src="./app.js?v=51"></script>
 
     <script>
         setTimeout(() => {
