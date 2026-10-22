@@ -688,7 +688,7 @@ createApp({
         };
         const updateExchangeRate = () => { if (setup.value) setup.value.rate = exchangeRate.value; };
 
-        const getExternalMapLink = (loc) => { if (!loc) return '#'; if (isUrl(loc)) return loc; const encodedLoc = encodeURIComponent(loc); if (setup.value.mapProvider === 'naver') return `https://map.naver.com/v5/search/${encodedLoc}`; else if (setup.value.mapProvider === 'amap') return `https://www.amap.com/search?query=${encodedLoc}`; else return `https://www.google.com/maps/search/?api=1&query=${encodedLoc}`; };
+        const getExternalMapLink = (loc) => { if (!loc) return '#'; if (isUrl(loc)) return loc; return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`; };
         const countryInfoMap = { 'jp': { c: 'JPY', l: 'ja', n: '日文', m: 'google' }, 'kr': { c: 'KRW', l: 'ko', n: '韓文', m: 'naver' }, 'us': { c: 'USD', l: 'en', n: '英文', m: 'google' }, 'cn': { c: 'CNY', l: 'zh-CN', n: '簡中', m: 'amap' }, 'th': { c: 'THB', l: 'th', n: '泰文', m: 'google' }, 'tw': { c: 'TWD', l: 'zh-TW', n: '中文', m: 'google' }, 'my': { c: 'MYR', l: 'ms', n: '馬來文', m: 'google' }, 'sg': { c: 'SGD', l: 'en', n: '英文', m: 'google' }, 'hk': { c: 'HKD', l: 'zh-TW', n: '粵語', m: 'google' }, 'mo': { c: 'MOP', l: 'zh-TW', n: '中文', m: 'google' }, 'id': { c: 'IDR', l: 'id', n: '印尼文', m: 'google' }, 'ph': { c: 'PHP', l: 'en', n: '英文', m: 'google' }, 'vn': { c: 'VND', l: 'vi', n: '越南文', m: 'google' }, 'in': { c: 'INR', l: 'hi', n: '印地文', m: 'google' }, 'gb': { c: 'GBP', l: 'en', n: '英文', m: 'google' }, 'au': { c: 'AUD', l: 'en', n: '英文', m: 'google' }, 'nz': { c: 'NZD', l: 'en', n: '英文', m: 'google' }, 'ca': { c: 'CAD', l: 'en', n: '英文', m: 'google' }, 'fr': { c: 'EUR', l: 'fr', n: '法文', m: 'google' }, 'de': { c: 'EUR', l: 'de', n: '德文', m: 'google' }, 'it': { c: 'EUR', l: 'it', n: '義大利文', m: 'google' }, 'es': { c: 'EUR', l: 'es', n: '西班牙文', m: 'google' }, 'ch': { c: 'CHF', l: 'de', n: '德文', m: 'google' } };
         const updateRateByCurrency = async () => { const currency = setup.value.currency; if (!currency) return; isRateLoading.value = true; try { if (currency === 'TWD') { setup.value.rate = 1; } else { const rRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${currency}`); const rData = await rRes.json(); if (rData?.rates?.TWD) setup.value.rate = rData.rates.TWD; } } catch (e) { console.error('Fetch rate failed', e); } finally { isRateLoading.value = false; } };
         const detectRate = async () => { if (!setup.value.destination) return; isRateLoading.value = true; try { const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(setup.value.destination)}&limit=1&addressdetails=1`); const geoData = await geoRes.json(); if (geoData?.[0]?.address?.country_code) { const code = geoData[0].address.country_code.toLowerCase(); const info = countryInfoMap[code]; if (!info) return; setup.value.currency = info.c; setup.value.langCode = info.l; setup.value.langName = info.n; setup.value.mapProvider = info.m || 'google'; if (!weather.value.location) weather.value.location = setup.value.destination; if (info.c === 'TWD') setup.value.rate = 1; else { const rRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${info.c}`); const rData = await rRes.json(); if (rData?.rates?.TWD) setup.value.rate = rData.rates.TWD; } } } catch (e) { } finally { isRateLoading.value = false; } };
@@ -883,6 +883,35 @@ createApp({
             const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             if (isIOS) return;
             const el = document.querySelector(sel); if (el) el.focus();
+        };
+
+        // ---- 行程備註：🔸名稱 變成 Google 地圖連結、網址可點、過長可收合 ----
+        const noteParts = (item) => {
+            const note = String(item.note || '');
+            let label = itemLocationLabel(item); if (!label || isUrl(label)) label = item.activity || '';
+            const re = /🔸\(([^)\n]+)\)|🔸（([^）\n]+)）|🔸([^\s、，,。；;:：！!？?()（）【】\[\]「」『』<>"'“”]+)|(https?:\/\/[^\s]+)/g;
+            const parts = []; let last = 0, m;
+            while ((m = re.exec(note))) {
+                if (m.index > last) parts.push({ text: note.slice(last, m.index) });
+                if (m[4]) parts.push({ text: m[4], href: m[4] });
+                else { const name = (m[1] || m[2] || m[3] || '').trim(); parts.push({ text: '📍' + name, href: mapsUrl([name, label].filter(Boolean).join(' ')) }); }
+                last = re.lastIndex;
+            }
+            if (last < note.length) parts.push({ text: note.slice(last) });
+            return parts;
+        };
+        // 卡片是否有「收起來沒顯示完」的內容（備註超過 3 行、或標題／地點名稱很長）
+        const itemHasMore = (item) => {
+            const n = String(item.note || '');
+            return n.split('\n').length > 3 || n.length > 60 || (item.activity || '').length > 14 || (itemLocationLabel(item) || '').length > 16;
+        };
+        const insertPin = () => {
+            const d = itemModal.draft; if (!d) return;
+            const el = document.querySelector('.js-item-note');
+            const v = d.note || '';
+            const pos = (el && typeof el.selectionStart === 'number') ? el.selectionStart : v.length;
+            d.note = v.slice(0, pos) + '🔸' + v.slice(pos);
+            nextTick(() => { if (el) { el.focus(); try { el.setSelectionRange(pos + 2, pos + 2); } catch (e) { } } });
         };
 
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
@@ -1484,7 +1513,7 @@ createApp({
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
             CURRENCY_LIST, showCustomCurrency, isCustomCurrency, currencySelectValue, customCurrencyValue, onCurrencySelect, applyCustomCurrency, tripDateRange,
-            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, UTC_OFFSETS, utcLabel, normUrl, showOverview, goDay, tripOverview, itemEmoji,
+            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, UTC_OFFSETS, utcLabel, normUrl, noteParts, itemHasMore, insertPin, showOverview, goDay, tripOverview, itemEmoji,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
