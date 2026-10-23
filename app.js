@@ -889,7 +889,7 @@ createApp({
         const noteParts = (item) => {
             const note = String(item.note || '');
             let label = itemLocationLabel(item); if (!label || isUrl(label)) label = item.activity || '';
-            const re = /🔸\(([^)\n]+)\)|🔸（([^）\n]+)）|🔸([^\s、，,。；;:：！!？?()（）【】\[\]「」『』<>"'“”]+)|(https?:\/\/[^\s]+)/g;
+            const re = /(?:🔸|📍)\(([^)\n]+)\)|(?:🔸|📍)（([^）\n]+)）|(?:🔸|📍)([^\s、，,。；;:：！!？?()（）【】\[\]「」『』<>"'“”]+)|(https?:\/\/[^\s]+)/g;
             const parts = []; let last = 0, m;
             while ((m = re.exec(note))) {
                 if (m.index > last) parts.push({ text: note.slice(last, m.index) });
@@ -910,7 +910,7 @@ createApp({
             const el = document.querySelector('.js-item-note');
             const v = d.note || '';
             const pos = (el && typeof el.selectionStart === 'number') ? el.selectionStart : v.length;
-            d.note = v.slice(0, pos) + '🔸' + v.slice(pos);
+            d.note = v.slice(0, pos) + '📍' + v.slice(pos);
             nextTick(() => { if (el) { el.focus(); try { el.setSelectionRange(pos + 2, pos + 2); } catch (e) { } } });
         };
 
