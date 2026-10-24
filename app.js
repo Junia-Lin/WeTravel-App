@@ -864,7 +864,8 @@ createApp({
                 return {
                     idx: i, date: day.date || day.shortDate || '', title: day.title || '', isToday: !!fd && fd === today,
                     flights, arrivals, night, noLodging: !!fd && i < last && !night, checkouts,
-                    items: items.slice(0, 3).map(it => ({ id: it.id, time: it.time, name: it.activity || '未命名行程', emoji: itemEmoji(it.type) })),
+                    items: items.slice(0, 3).map(it => ({ id: it.id, time: it.time, name: it.activity || '未命名行程', emoji: itemEmoji(it.type), reserved: !!it.reserved })),
+                    allItems: items.map(it => ({ id: it.id, time: it.time, name: it.activity || '未命名行程', emoji: itemEmoji(it.type), reserved: !!it.reserved })),
                     more: Math.max(0, items.length - 3), total: items.length, reserved
                 };
             });
@@ -913,6 +914,31 @@ createApp({
             d.note = v.slice(0, pos) + '📍' + v.slice(pos);
             nextTick(() => { if (el) { el.focus(); try { el.setSelectionRange(pos + 2, pos + 2); } catch (e) { } } });
         };
+
+        // ---- 行程頁「今日預訂」：預訂的機票、住宿直接帶進當天行程（連動顯示，在「預訂」改了這裡就跟著變，不用重打）----
+        const dayBookings = computed(() => {
+            const day = currentDay.value; const fd = day && day.fullDate;
+            if (!fd) return { events: [], tonight: null, noLodging: false };
+            const idx = currentDayIdx.value; const last = days.value.length - 1;
+            const events = [];
+            bookings.flights.forEach(f => {
+                if (f.date === fd) {
+                    events.push({ key: 'fd' + f.id, time: f.startTime || '', emoji: '✈️', title: `${f.startAirport || '?'} → ${f.endAirport || '?'}`,
+                        sub: [f.airline, f.flightNumber, f.legLabel].filter(Boolean).join(' · '),
+                        extra: `${f.startTime || '--:--'} 起飛・${f.endTime || '--:--'} 抵達${flightDayDiff(f) > 0 ? ' +' + flightDayDiff(f) : ''}`, type: 'flights', ref: f, map: '' });
+                } else if (f.date && flightEndDate(f) === fd) {
+                    events.push({ key: 'fa' + f.id, time: f.endTime || '', emoji: '✈️', title: `抵達 ${f.endAirport || '?'}`,
+                        sub: [f.airline, f.flightNumber].filter(Boolean).join(' '), extra: `${f.endTime || '--:--'} 抵達`, type: 'flights', ref: f, map: '' });
+                }
+            });
+            bookings.lodging.forEach(b => {
+                if (b.checkIn === fd) events.push({ key: 'li' + b.id, time: b.checkInTime || '', emoji: '🏨', title: `入住 ${b.name || '住宿'}`, sub: b.city || '', extra: `${b.checkInTime || '--:--'} 入住`, type: 'lodging', ref: b, map: lodgingMapUrl(b) });
+                if (b.checkOut === fd) events.push({ key: 'lo' + b.id, time: b.checkOutTime || '', emoji: '🧳', title: `退房 ${b.name || '住宿'}`, sub: b.city || '', extra: `${b.checkOutTime || '--:--'} 退房`, type: 'lodging', ref: b, map: '' });
+            });
+            events.sort((x, y) => (x.time || '99:99').localeCompare(y.time || '99:99'));
+            const night = idx < last ? (bookings.lodging.find(b => b.checkIn && b.checkOut && b.checkIn <= fd && fd < b.checkOut) || null) : null;
+            return { events, tonight: (night && night.checkIn !== fd) ? night : null, noLodging: idx < last && !night && bookings.lodging.length > 0 };
+        });
 
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
         const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
@@ -1513,7 +1539,7 @@ createApp({
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
             CURRENCY_LIST, showCustomCurrency, isCustomCurrency, currencySelectValue, customCurrencyValue, onCurrencySelect, applyCustomCurrency, tripDateRange,
-            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, UTC_OFFSETS, utcLabel, normUrl, noteParts, itemHasMore, insertPin, showOverview, goDay, tripOverview, itemEmoji,
+            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, UTC_OFFSETS, utcLabel, normUrl, noteParts, itemHasMore, insertPin, dayBookings, showOverview, goDay, tripOverview, itemEmoji,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
