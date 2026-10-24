@@ -496,10 +496,10 @@
                             <h2 class="text-xl font-black text-stone-800">📋 行程總覽</h2>
                             <span class="text-xs font-bold text-stone-400">共 {{ tripOverview.totalItems }} 個行程・已預約 {{ tripOverview.totalReserved }}</span>
                         </div>
-                        <div v-for="r in tripOverview.rows" :key="r.idx" @click="goDay(r.idx)"
-                            class="bg-white rounded-3xl border shadow-soft overflow-hidden cursor-pointer active:scale-[0.99] transition"
+                        <div v-for="r in tripOverview.rows" :key="r.idx"
+                            class="bg-white rounded-3xl border shadow-soft overflow-hidden"
                             :class="r.isToday ? 'border-primary-300 ring-2 ring-primary-100' : 'border-primary-100'">
-                            <div class="flex items-center gap-2 px-4 py-3 bg-primary-50/70">
+                            <div @click="goDay(r.idx)" class="flex items-center gap-2 px-4 py-3 bg-primary-50/70 cursor-pointer active:bg-primary-100/60">
                                 <span class="shrink-0 bg-stone-800 text-white text-xs font-black px-2 py-1 rounded-lg">D{{ r.idx + 1 }}</span>
                                 <div class="flex-1 min-w-0 flex items-baseline gap-2">
                                     <span class="text-sm font-black text-stone-800 shrink-0">{{ r.date }}</span>
@@ -533,14 +533,16 @@
                                 </div>
                                 <div v-else-if="r.noLodging" class="bg-red-50 text-red-500 rounded-lg px-2.5 py-1.5 text-xs font-bold">⚠️ 這晚還沒有住宿</div>
                                 <div v-if="r.total" class="pt-2 border-t border-stone-100 space-y-1.5">
-                                    <div v-for="it in r.items" :key="it.id" class="flex items-center gap-2 text-sm">
+                                    <div v-for="it in (openGroups['ov-' + r.idx] ? r.allItems : r.items)" :key="it.id" class="flex items-center gap-2 text-sm">
                                         <span class="w-5 text-center text-sm shrink-0">{{ it.emoji }}</span>
                                         <span class="w-11 shrink-0 text-xs font-mono font-bold text-stone-400">{{ it.time || '--:--' }}</span>
-                                        <span class="font-bold text-stone-700 truncate">{{ it.name }}</span>
+                                        <span class="font-bold text-stone-700 truncate min-w-0">{{ it.name }}</span>
+                                        <span v-if="it.reserved" class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">已預約</span>
                                     </div>
-                                    <div class="flex items-center justify-between text-[11px] font-bold text-stone-400 pt-0.5">
-                                        <span>{{ r.more > 0 ? '…還有 ' + r.more + ' 項' : '' }}</span>
-                                        <span>共 {{ r.total }} 項<span v-if="r.reserved" class="ml-2 text-green-600">✓ 已預約 {{ r.reserved }}</span></span>
+                                    <div class="flex items-center justify-between gap-2 pt-1">
+                                        <button v-if="r.more > 0" @click.stop="toggleGroup('ov-' + r.idx)" class="text-xs font-bold px-3 py-1.5 rounded-full bg-stone-100 text-stone-500">{{ openGroups['ov-' + r.idx] ? '收合 ▴' : '展開全部 ' + r.total + ' 項 ▾' }}</button>
+                                        <span v-else class="text-[11px] font-bold text-stone-400">共 {{ r.total }} 項<span v-if="r.reserved" class="ml-2 text-green-600">✓ 已預約 {{ r.reserved }}</span></span>
+                                        <button @click.stop="goDay(r.idx)" class="text-xs font-bold px-3 py-1.5 rounded-full bg-primary-50 text-primary-600">前往當天 ›</button>
                                     </div>
                                 </div>
                                 <div v-else class="pt-1 text-xs font-bold text-stone-300">還沒安排行程</div>
@@ -568,6 +570,31 @@
                                     class="bg-primary-500 text-white px-3 rounded-lg text-xs font-bold shrink-0">完成</button>
                             </div>
                         </div>
+                    </div>
+
+                    <div v-if="dayBookings.events.length || dayBookings.tonight || dayBookings.noLodging" class="bg-white rounded-lg border border-primary-100 shadow-sm overflow-hidden">
+                        <div class="px-3.5 py-2 bg-primary-50/70 text-[11px] font-black text-primary-600">📌 今日預訂（從「預訂」自動帶入）</div>
+                        <div v-for="e in dayBookings.events" :key="e.key" @click="openBookingModal(e.type, e.ref)"
+                            class="flex items-center gap-2.5 px-3.5 py-2.5 border-t border-stone-100 cursor-pointer active:bg-stone-50">
+                            <span class="text-lg shrink-0 w-6 text-center">{{ e.emoji }}</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-black text-stone-800 truncate">{{ e.title }}</div>
+                                <div class="text-[11px] font-bold text-stone-400 truncate">{{ e.extra }}<span v-if="e.sub"> ・ {{ e.sub }}</span></div>
+                            </div>
+                            <a v-if="e.map" :href="e.map" target="_blank" rel="noopener" @click.stop
+                                class="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-primary-50 text-primary-600"><i class="ph-bold ph-navigation-arrow"></i>地圖</a>
+                        </div>
+                        <div v-if="dayBookings.tonight" @click="openBookingModal('lodging', dayBookings.tonight)"
+                            class="flex items-center gap-2.5 px-3.5 py-2.5 border-t border-stone-100 cursor-pointer active:bg-stone-50">
+                            <span class="text-lg shrink-0 w-6 text-center">🌙</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-black text-stone-800 truncate">今晚住 {{ dayBookings.tonight.name || '住宿' }}</div>
+                                <div v-if="dayBookings.tonight.city" class="text-[11px] font-bold text-stone-400 truncate">{{ dayBookings.tonight.city }}</div>
+                            </div>
+                            <a v-if="lodgingMapUrl(dayBookings.tonight)" :href="lodgingMapUrl(dayBookings.tonight)" target="_blank" rel="noopener" @click.stop
+                                class="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-primary-50 text-primary-600"><i class="ph-bold ph-navigation-arrow"></i>地圖</a>
+                        </div>
+                        <div v-if="dayBookings.noLodging" class="px-3.5 py-2.5 border-t border-stone-100 bg-red-50 text-red-500 text-xs font-bold">⚠️ 這晚還沒有住宿</div>
                     </div>
 
                     <!-- Timeline Items -->
@@ -2372,7 +2399,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=52"></script>
+    <script type="module" src="./app.js?v=53"></script>
 
     <script>
         setTimeout(() => {
