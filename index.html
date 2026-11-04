@@ -1202,67 +1202,52 @@
                     <!-- 機票 -->
                     <div v-if="bookingTab === 'flights'" class="space-y-4">
                         <div v-if="!bookings.flights.length" class="text-sm text-stone-400 text-center py-6">還沒有航班資訊</div>
-                        <div v-for="o in flightOrders" :key="o.key" class="bg-white rounded-3xl border border-stone-100 shadow-soft overflow-hidden">
-                            <div v-if="o.legs.length > 1" class="px-5 pt-3 pb-1 text-[11px] font-black text-primary-500">🔗 同一張訂單・共 {{ o.legs.length }} 段</div>
+                        <div v-for="o in flightOrders" :key="o.key" class="bg-white rounded-2xl border border-stone-100 shadow-soft overflow-hidden">
+                            <div v-if="o.legs.length > 1" class="px-4 pt-3 text-[12px] font-black text-primary-600">🔗 同一張訂單・共 {{ o.legs.length }} 段（來回／轉機）</div>
                             <div v-for="(b, li) in o.legs" :key="b.id" @click="openBookingModal('flights', b)"
-                                class="cursor-pointer active:bg-stone-50 transition" :class="li > 0 ? 'border-t-2 border-dashed border-stone-100' : ''">
-                                <div class="bg-gradient-to-br from-primary-50 to-primary-100/60 px-5 pt-4 pb-3 flex items-start justify-between gap-3">
-                                    <div class="min-w-0">
-                                        <div class="text-xs font-bold text-stone-500 truncate">{{ b.airline || '航空公司' }}</div>
-                                        <div class="text-3xl font-black text-stone-800 tracking-widest font-mono mt-0.5">{{ b.flightNumber || '航班號' }}</div>
-                                    </div>
-                                    <div class="shrink-0 text-right">
-                                        <span v-if="b.legLabel" class="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/80 text-primary-600">{{ b.legLabel }}</span>
-                                        <div class="text-sm font-black text-stone-700 mt-1">{{ fmtMD(b.date) }}</div>
-                                        <div v-if="flightDayDiff(b) > 0" class="text-[11px] font-bold text-red-400">{{ fmtMD(flightEndDate(b)) }} 抵達 +{{ flightDayDiff(b) }}</div>
-                                    </div>
+                                class="px-4 py-4 cursor-pointer active:bg-stone-50 transition" :class="li > 0 ? 'border-t border-dashed border-stone-200' : ''">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span v-if="b.legLabel" class="text-[12px] font-black px-2 py-0.5 rounded-full bg-primary-50 text-primary-600">{{ b.legLabel }}</span>
+                                    <span class="text-sm font-black text-stone-700">{{ fmtMD(b.date) || '日期未填' }}</span>
+                                    <span v-if="flightDayDiff(b) > 0" class="text-[12px] font-bold text-red-400">跨日抵達 {{ fmtMD(flightEndDate(b)) }}</span>
                                 </div>
-                            <div class="px-5 py-4">
-                                <div class="flex items-start gap-2">
-                                    <div class="w-[5.5rem] shrink-0">
-                                        <div class="text-3xl font-black text-stone-800 leading-none uppercase">{{ b.startAirport || '---' }}</div>
-                                        <div class="text-xl font-black text-stone-700 font-mono mt-1.5">{{ b.startTime || '--:--' }}</div>
-                                        
-                                        <span v-if="b.startCity" class="inline-block mt-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600">{{ b.startCity }}</span>
+                                <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 gap-y-1">
+                                    <div class="text-[28px] leading-none font-black text-stone-800 font-mono">{{ b.startTime || '--:--' }}</div>
+                                    <div class="text-[12px] font-black text-primary-600 font-mono text-center min-h-[1rem]">{{ fmtDuration(flightDurationMin(b)) }}</div>
+                                    <div class="text-[28px] leading-none font-black text-stone-800 font-mono text-right">{{ b.endTime || '--:--' }}<span v-if="flightDayDiff(b) > 0" class="ml-1 text-sm font-black text-red-400 align-top">+{{ flightDayDiff(b) }}</span></div>
+
+                                    <div class="text-lg font-black text-stone-700 uppercase">{{ b.startAirport || '---' }}</div>
+                                    <div class="flex items-center gap-1 text-primary-500 w-24">
+                                        <div class="flex-1 border-t border-dashed border-stone-300"></div>
+                                        <i class="ph-fill ph-airplane rotate-90 text-lg"></i>
+                                        <div class="flex-1 border-t border-dashed border-stone-300"></div>
                                     </div>
-                                    <div class="flex-1 min-w-0 pt-1 text-center">
-                                        <div class="text-[11px] font-black text-primary-500 font-mono h-4 leading-4">{{ fmtDuration(flightDurationMin(b)) }}</div>
-                                        <div class="flex items-center gap-1 mt-0.5">
-                                            <div class="flex-1 border-t border-dashed border-stone-300"></div>
-                                            <i class="ph-fill ph-airplane text-primary-500 text-lg rotate-90"></i>
-                                            <div class="flex-1 border-t border-dashed border-stone-300"></div>
-                                        </div>
-                                        <div class="text-[10px] font-bold text-red-400 mt-0.5 h-3 leading-3">{{ flightDayDiff(b) > 0 ? '跨日抵達' : '' }}</div>
-                                    </div>
-                                    <div class="w-[5.5rem] shrink-0 text-right">
-                                        <div class="text-3xl font-black text-stone-800 leading-none uppercase">{{ b.endAirport || '---' }}</div>
-                                        <div class="text-xl font-black text-stone-700 font-mono mt-1.5">{{ b.endTime || '--:--' }}</div>
-                                        
-                                        <span v-if="b.endCity" class="inline-block mt-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{{ b.endCity }}</span>
-                                    </div>
+                                    <div class="text-lg font-black text-stone-700 uppercase text-right">{{ b.endAirport || '---' }}</div>
+
+                                    <div class="text-sm font-bold text-stone-400 truncate">{{ [b.startCity, b.startTerminal].filter(Boolean).join('・') }}</div>
+                                    <div></div>
+                                    <div class="text-sm font-bold text-stone-400 truncate text-right">{{ [b.endCity, b.endTerminal].filter(Boolean).join('・') }}</div>
                                 </div>
-                            </div>
-                            <div class="px-5 pb-3">
-                                    <button @click.stop="toggleGroup('f-' + b.id)" class="w-full flex items-center justify-between text-xs font-bold text-stone-400 py-1.5">
-                                        <span>航廈・行李</span>
-                                        <i class="ph-bold" :class="openGroups['f-' + b.id] ? 'ph-caret-up' : 'ph-caret-down'"></i>
-                                    </button>
-                                    <div v-show="openGroups['f-' + b.id]" class="grid grid-cols-3 gap-px bg-stone-200/70 rounded-2xl overflow-hidden mt-1">
-                                        <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">航廈</div><div class="text-sm font-black text-stone-700">{{ b.startTerminal || '-' }} → {{ b.endTerminal || '-' }}</div></div>
-                                        <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">手提行李</div><div class="text-sm font-black text-stone-700">{{ fmtKg(b.carryOn) }}</div></div>
-                                        <div class="bg-stone-50 py-2 text-center"><div class="text-[10px] font-bold text-stone-400">托運行李</div><div class="text-sm font-black text-stone-700">{{ b.checkedBag ? fmtKg(b.checkedBag) : (b.baggage || '-') }}</div></div>
-                                    </div>
+                                <div v-if="b.airline || b.flightNumber || b.carryOn || b.checkedBag || b.baggage" class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-bold text-stone-500">
+                                    <span v-if="b.airline || b.flightNumber">✈ {{ [b.airline, b.flightNumber].filter(Boolean).join(' ') }}</span>
+                                    <span v-if="b.carryOn">🎒 手提 {{ fmtKg(b.carryOn) }}</span>
+                                    <span v-if="b.checkedBag || b.baggage">🧳 托運 {{ b.checkedBag ? fmtKg(b.checkedBag) : b.baggage }}</span>
                                 </div>
-                            <div v-if="b.note" class="px-5 pb-4 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap">{{ b.note }}</div>
-                            
+                                <div v-if="b.note" class="mt-2 text-sm text-stone-500 leading-relaxed whitespace-pre-wrap">{{ b.note }}</div>
                             </div>
                             <button @click="addFlightLeg(o)"
-                                class="w-full py-2.5 text-xs font-bold text-primary-500 border-t border-stone-100 hover:bg-primary-50/50 transition flex items-center justify-center gap-1">
+                                class="w-full py-2.5 text-sm font-bold text-primary-600 border-t border-stone-100 hover:bg-primary-50/50 transition flex items-center justify-center gap-1">
                                 <i class="ph-bold ph-plus"></i> 新增回程／下一段（同一張訂單）</button>
-                            <div v-if="o.price || o.purchasedDate || o.purchasedVia" @click="openBookingModal('flights', o.priceLeg)"
-                                class="px-5 py-3 border-t border-stone-100 flex items-center justify-between gap-3 bg-stone-50/50 cursor-pointer">
-                                <div><div class="text-[10px] font-bold text-stone-400">{{ o.legs.length > 1 ? '來回含稅總金額' : '含稅總金額' }}</div><div class="text-lg font-black text-stone-800">{{ o.price }}</div></div>
-                                <span class="text-[11px] text-stone-400 text-right">購買 {{ o.purchasedDate }}<span v-if="o.purchasedVia"> · {{ o.purchasedVia }}</span></span>
+                            <div v-if="o.priceText || o.purchasedDate || o.purchasedVia" @click="openBookingModal('flights', o.priceLeg)"
+                                class="px-4 py-3 border-t border-stone-100 bg-stone-50/60 flex items-center justify-between gap-3 cursor-pointer">
+                                <div>
+                                    <div class="text-[12px] font-bold text-stone-400">{{ o.legs.length > 1 ? '來回含稅總金額' : '含稅總金額' }}</div>
+                                    <div class="text-xl font-black text-stone-800 font-mono">{{ o.priceText || '—' }}</div>
+                                </div>
+                                <div class="text-right text-sm text-stone-400">
+                                    <div v-if="isBooked(o.priceLeg)" class="text-green-600 font-bold">✓ 已記帳</div>
+                                    <div>購買<span v-if="o.purchasedDate"> {{ o.purchasedDate }}</span><span v-if="o.purchasedVia"> · {{ o.purchasedVia }}</span></div>
+                                </div>
                             </div>
                         </div>
                         <button @click="openBookingModal('flights')"
@@ -1330,9 +1315,9 @@
                                     <i class="ph-bold ph-navigation-arrow"></i>地圖</a>
                             </div>
                             <div v-if="b.note" class="text-xs text-stone-500 leading-relaxed whitespace-pre-wrap px-1">{{ b.note }}</div>
-                            <div v-if="b.price || b.purchasedDate || b.purchasedVia" class="border-t border-primary-100/70 pt-3 flex items-center justify-between gap-3">
-                                <span class="text-xl font-black text-stone-800 font-mono">{{ b.price }}</span>
-                                <span class="text-xs text-stone-400 text-right">購買<span v-if="b.purchasedDate"> {{ b.purchasedDate }}</span><span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
+                            <div v-if="fmtPrice(b) || b.purchasedDate || b.purchasedVia" class="border-t border-primary-100/70 pt-3 flex items-center justify-between gap-3">
+                                <span class="text-xl font-black text-stone-800 font-mono">{{ fmtPrice(b) }}</span>
+                                <span class="text-sm text-stone-400 text-right"><span v-if="isBooked(b)" class="text-green-600 font-bold mr-2">✓ 已記帳</span>購買<span v-if="b.purchasedDate"> {{ b.purchasedDate }}</span><span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
                             </div>
                         </div>
                         <button @click="openBookingModal('lodging')"
@@ -1363,6 +1348,9 @@
                             class="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 cursor-pointer active:bg-stone-50">
                             <div class="font-bold text-stone-800">{{ b.title || '未命名憑證' }}</div>
                             <div v-if="b.validDate" class="text-xs text-stone-500 mt-1">使用日期 {{ b.validDate }}</div>
+                            <div v-if="b.note" class="mt-2 text-sm text-stone-500 leading-relaxed whitespace-pre-wrap break-words" :class="openGroups['v-' + b.id] ? '' : 'line-clamp-3'">{{ b.note }}</div>
+                            <button v-if="textHasMore(b.note)" @click.stop="toggleGroup('v-' + b.id)" class="mt-1 text-[12px] font-bold text-primary-600">{{ openGroups['v-' + b.id] ? '收合 ▴' : '展開全部 ▾' }}</button>
+                            <div v-if="fmtPrice(b)" class="mt-2 text-sm font-black text-stone-700 font-mono">{{ fmtPrice(b) }}</div>
                             <a v-if="b.link" :href="normUrl(b.link)" target="_blank" rel="noopener" @click.stop
                                 class="mt-2 inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-primary-50 text-primary-600">
                                 <i class="ph-bold ph-link"></i> 開啟連結</a>
@@ -2179,14 +2167,24 @@
                         </template>
 
                         <!-- 共用欄位：價格、購買日期/管道、備註 -->
-                        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-stone-50">
+                        <div class="pt-1 border-t border-stone-50 space-y-3">
                             <div>
-                                <div class="text-[10px] text-stone-500 mb-1 pl-1">{{ bookingModal.type === 'flights' ? '含稅總金額（來回票填一次）' : '價格' }}</div>
-                                <input v-model="bookingModal.draft.price" placeholder="例如 NT$4,633"
-                                    class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                                <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">{{ bookingModal.type === 'flights' ? '含稅總金額（來回票只填一次）' : '價格' }}</div>
+                                <div class="flex gap-2">
+                                    <input v-model.number="bookingModal.draft.priceAmount" type="number" inputmode="decimal" placeholder="金額"
+                                        class="flex-1 min-w-0 bg-stone-50 border-none rounded-xl text-base font-black text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 font-mono">
+                                    <div class="flex bg-stone-50 rounded-xl border border-stone-200 p-0.5 shrink-0">
+                                        <button type="button" @click="bookingModal.draft.priceCurrency = 'foreign'"
+                                            class="px-3 rounded-lg text-sm font-bold transition-colors"
+                                            :class="bookingModal.draft.priceCurrency !== 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">{{ currencyLabel }}</button>
+                                        <button type="button" @click="bookingModal.draft.priceCurrency = 'TWD'"
+                                            class="px-3 rounded-lg text-sm font-bold transition-colors"
+                                            :class="bookingModal.draft.priceCurrency === 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">TWD</button>
+                                    </div>
+                                </div>
                             </div>
                             <div>
-                                <div class="text-[10px] text-stone-500 mb-1 pl-1">購買日期</div>
+                                <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">購買日期</div>
                                 <input v-model="bookingModal.draft.purchasedDate" type="date"
                                     class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                             </div>
@@ -2207,6 +2205,60 @@
                                 <i class="ph-bold ph-check"></i> {{ bookingModal.mode === 'edit' ? '儲存' : '新增' }}
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- ===== 預訂存檔後：要不要同時記一筆帳 ===== -->
+        <transition name="sheet">
+            <div v-if="expPrompt.show" class="sheet-host absolute inset-x-0 top-0 z-[75] flex items-end justify-center">
+                <div class="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" @click="skipExpPrompt"></div>
+                <div class="sheet-panel relative z-10 w-full bg-white rounded-t-[2rem] shadow-2xl max-h-[88%] overflow-y-auto hide-scroll px-5 pt-4 space-y-3"
+                    style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom))">
+                    <div class="w-10 h-1 bg-stone-200 rounded-full mx-auto mb-1"></div>
+                    <h3 class="text-lg font-black text-stone-800">要同時記一筆帳嗎？</h3>
+                    <div class="text-sm text-stone-500 leading-relaxed">這筆預訂有填金額，可以直接記到「記帳」。日期是購買日，出發前買的會歸在明細的「出發前（預購）」。</div>
+                    <template v-if="expPrompt.draft">
+                        <div>
+                            <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">項目</div>
+                            <input v-model="expPrompt.draft.item" class="w-full bg-stone-50 border-none rounded-xl text-base font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                        </div>
+                        <div class="grid grid-cols-[1fr_auto] gap-2 items-end">
+                            <div>
+                                <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">金額（{{ expPrompt.draft.currency === 'TWD' ? 'TWD' : currencyLabel }}）</div>
+                                <input v-model.number="expPrompt.draft.amount" type="number" inputmode="decimal" class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-lg font-black text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 font-mono">
+                            </div>
+                            <div class="flex bg-stone-50 rounded-xl border border-stone-200 p-0.5">
+                                <button type="button" @click="expPrompt.draft.currency = 'foreign'" class="px-3 py-2 rounded-lg text-sm font-bold transition-colors" :class="expPrompt.draft.currency !== 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">{{ currencyLabel }}</button>
+                                <button type="button" @click="expPrompt.draft.currency = 'TWD'" class="px-3 py-2 rounded-lg text-sm font-bold transition-colors" :class="expPrompt.draft.currency === 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">TWD</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">日期</div>
+                            <input v-model="expPrompt.draft.date" type="date" class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                        </div>
+                        <div>
+                            <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">誰付錢</div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="p in participants" :key="p" type="button" @click="expPrompt.draft.payer = p"
+                                    class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
+                                    :class="expPrompt.draft.payer === p ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">{{ p }}</button>
+                            </div>
+                        </div>
+                        <div v-if="participants.length === 2">
+                            <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">這筆是誰的消費</div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button type="button" @click="expPrompt.draft.splitWith = []" class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
+                                    :class="isSharedAll(expPrompt.draft) ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">👫 雙人共同</button>
+                                <button v-for="p in participants" :key="p" type="button" @click="expPrompt.draft.splitWith = [p]" class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
+                                    :class="isPersonalOf(expPrompt.draft, p) ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">👤 {{ p }} 個人</button>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="flex gap-3 pt-2">
+                        <button @click="skipExpPrompt" class="flex-1 py-3 rounded-2xl bg-stone-100 text-stone-600 font-bold active:scale-[0.98] transition">不用了</button>
+                        <button @click="confirmExpPrompt" class="flex-1 py-3 rounded-2xl bg-primary-500 text-white font-black active:scale-[0.98] transition">記一筆帳</button>
                     </div>
                 </div>
             </div>
@@ -2399,7 +2451,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=53"></script>
+    <script type="module" src="./app.js?v=54"></script>
 
     <script>
         setTimeout(() => {
