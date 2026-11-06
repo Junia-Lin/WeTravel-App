@@ -598,19 +598,17 @@
                     </div>
 
                     <!-- Timeline Items -->
-                    <div class="relative pl-6 border-l-2 border-dashed border-stone-200 space-y-6">
+                    <div class="relative pl-12 border-l-2 border-dashed border-stone-200 space-y-6">
                         <template v-for="(item, idx) in currentDay.items" :key="item && item.id || idx">
-                            <!-- 通勤區塊：從上一站到這一站的交通方式與時間（可附路線備註） -->
-                            <div v-if="item && item.commuteMode && item.commuteMinutes"
-                                class="relative -my-2 flex items-center gap-1.5 text-stone-500 flex-wrap py-1">
-                                <div class="absolute -left-[25px] w-2 h-2 rounded-full bg-stone-300"></div>
-                                <span class="text-sm">{{ (commuteMeta(item.commuteMode) || {}).emoji }}</span>
-                                <span class="text-xs font-bold text-stone-600">{{ (commuteMeta(item.commuteMode) || {}).label }}・約 {{ item.commuteMinutes }} 分</span>
-                                <span v-if="item.commuteNote" class="text-xs font-medium text-stone-400">・{{ item.commuteNote }}</span>
-                            </div>
                             <div v-if="item" class="relative group">
-                                <div class="absolute -left-[31px] top-5 w-4 h-4 rounded-full border-[3px] border-stone-50 shadow-sm z-10 transition-colors duration-300"
+                                <div class="absolute -left-[55px] top-5 w-4 h-4 rounded-full border-[3px] border-stone-50 shadow-sm z-10 transition-colors duration-300"
                                     :class="getDotColor(item.type)"></div>
+                                <div v-if="idx > 0 && item.commuteMode" class="absolute -left-[55px] w-4 -top-8 flex justify-center z-10 pointer-events-none">
+                                    <div class="shrink-0 flex flex-col items-center leading-tight bg-white border border-stone-200 rounded-full px-1.5 py-1 shadow-sm">
+                                        <span class="text-base leading-none">{{ (commuteMeta(item.commuteMode) || {}).emoji }}</span>
+                                        <span v-if="item.commuteMinutes" class="text-[12px] font-black text-stone-600 font-mono leading-none mt-0.5">{{ item.commuteMinutes }}分</span>
+                                    </div>
+                                </div>
 
                                 <!-- 行程卡（點卡片開彈窗編輯） -->
                                 <div @click="toggleGroup('i-' + item.id)"
@@ -636,6 +634,11 @@
                                                 class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-0.5">
                                                 <i class="ph-fill ph-check-circle"></i>已預約
                                             </span>
+                                        </div>
+
+                                        <div v-if="commuteLine(item, idx)" class="flex items-center gap-1.5 text-xs font-bold text-stone-500">
+                                            <span class="shrink-0">{{ (commuteMeta(item.commuteMode) || {}).emoji }}</span>
+                                            <span class="flex-1 min-w-0" :class="openGroups['i-' + item.id] ? 'break-words' : 'truncate'">{{ commuteLine(item, idx) }}</span>
                                         </div>
 
                                         <div v-if="itemLocationLabel(item) || itemNavTarget(item)"
@@ -752,7 +755,8 @@
                     class="view-pane p-5 pb-32 space-y-4 w-full">
 
                     <!-- 子分頁：記帳／明細 -->
-                    <div class="flex bg-stone-100 p-1 rounded-2xl">
+                    <div :class="moneyTab === 'input' ? 'sticky top-0 z-20 -mx-5 -mt-5 px-5 pt-3 pb-2 bg-[#fdfbf7]' : ''">
+                        <div class="flex bg-stone-100 p-1 rounded-2xl">
                         <button @click="moneyTab = 'input'"
                             class="flex-1 py-2.5 rounded-xl text-sm font-black transition-colors flex items-center justify-center gap-1.5"
                             :class="moneyTab === 'input' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">
@@ -761,6 +765,7 @@
                             class="flex-1 py-2.5 rounded-xl text-sm font-black transition-colors flex items-center justify-center gap-1.5"
                             :class="moneyTab === 'detail' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">
                             <i class="ph-bold ph-list-bullets"></i> 明細</button>
+                    </div>
                     </div>
 
                     <!-- ===== 記帳（只負責輸入） ===== -->
@@ -2451,7 +2456,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=54"></script>
+    <script type="module" src="./app.js?v=55"></script>
 
     <script>
         setTimeout(() => {
