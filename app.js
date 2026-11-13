@@ -438,6 +438,7 @@ createApp({
                 itemModal.mode = 'add'; itemModal.targetId = null;
                 itemModal.draft = { id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', placeId: null, note: '', reserved: false, commuteMode: '', commuteMinutes: '', commuteNote: '' };
             }
+            showCommutePanel.value = false;
             itemModal.show = true;
             if (!item) nextTick(() => autoFocus('.js-item-activity'));
         };
@@ -1007,6 +1008,21 @@ createApp({
             if (item.commuteNote) parts.push(item.commuteNote);
             return parts.join('・');
         };
+
+        // 機票每一段的名稱與顏色：去程＝綠、回程＝琥珀、轉機＝藍…，一眼分得出來。兩段的訂單沒標籤時，自動當作去程／回程
+        const legName = (o, li) => {
+            const b = o.legs[li]; if (b.legLabel) return b.legLabel;
+            if (o.legs.length === 2) return li === 0 ? '去程' : '回程';
+            return o.legs.length > 2 ? `第 ${li + 1} 段` : '';
+        };
+        const legTone = (name) => ({
+            '去程': { bar: 'border-l-primary-400', head: 'bg-primary-50 text-primary-700' },
+            '回程': { bar: 'border-l-amber-400', head: 'bg-amber-50 text-amber-700' },
+            '轉機': { bar: 'border-l-sky-400', head: 'bg-sky-50 text-sky-700' },
+            '國內線': { bar: 'border-l-violet-400', head: 'bg-violet-50 text-violet-700' },
+        }[name] || { bar: 'border-l-stone-300', head: 'bg-stone-100 text-stone-600' });
+
+        const showCommutePanel = ref(false);   // 新增行程：交通面板展開／收起
 
         const toggleWeatherEdit = () => { isWeatherEditing.value = !isWeatherEditing.value; if (isWeatherEditing.value) { nextTick(() => weatherInputRef.value?.focus()); } };
         const updateWeatherLocation = () => { isWeatherEditing.value = false; if (weather.value.location) { fetchWeather(weather.value.location); } };
@@ -1607,7 +1623,7 @@ createApp({
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
             CURRENCY_LIST, showCustomCurrency, isCustomCurrency, currencySelectValue, customCurrencyValue, onCurrencySelect, applyCustomCurrency, tripDateRange,
-            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, UTC_OFFSETS, utcLabel, normUrl, noteParts, itemHasMore, insertPin, dayBookings, fmtPrice, isBooked, textHasMore, expPrompt, confirmExpPrompt, skipExpPrompt, commuteLine, showOverview, goDay, tripOverview, itemEmoji,
+            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, UTC_OFFSETS, utcLabel, normUrl, noteParts, itemHasMore, insertPin, dayBookings, fmtPrice, isBooked, textHasMore, expPrompt, confirmExpPrompt, skipExpPrompt, commuteLine, legName, legTone, showCommutePanel, showOverview, goDay, tripOverview, itemEmoji,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
