@@ -73,21 +73,23 @@ createApp({
         const BOOKING_TYPES = [
             { slug: 'flights', label: '機票', emoji: '✈️' },
             { slug: 'lodging', label: '住宿', emoji: '🏨' },
-            { slug: 'cars', label: '租車', emoji: '🚗' },
+            { slug: 'cars', label: '交通', emoji: '🚆' },
+            { slug: 'restaurants', label: '餐廳', emoji: '🍽️' },
             { slug: 'vouchers', label: '憑證', emoji: '🎫' },
         ];
-        const bookings = reactive({ flights: [], lodging: [], cars: [], vouchers: [] });
+        const bookings = reactive({ flights: [], lodging: [], cars: [], restaurants: [], vouchers: [] });
         const bookingTab = ref('flights');
         const bookingModal = reactive({ show: false, type: 'flights', mode: 'add', targetId: null, draft: null });
         const emptyBookingDraftBase = (type) => {
             if (type === 'flights') return { id: generateId(), airline: '', flightNumber: '', legLabel: '', orderId: '', date: '', startAirport: '', startCity: '', startTime: '09:00', startTerminal: '', endDate: '', endAirport: '', endCity: '', endTime: '11:00', endTerminal: '', startTz: '', endTz: '', baggage: '', carryOn: '', checkedBag: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             if (type === 'lodging') return { id: generateId(), name: '', city: '', mapLink: '', checkIn: '', checkInTime: '15:00', checkOut: '', checkOutTime: '11:00', address: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
-            if (type === 'cars') return { id: generateId(), company: '', pickupLocation: '', pickupDate: '', dropoffLocation: '', dropoffDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'cars') return { id: generateId(), title: '', date: '', time: '09:00', from: '', to: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
+            if (type === 'restaurants') return { id: generateId(), name: '', city: '', mapLink: '', date: '', time: '18:00', people: '', address: '', price: '', purchasedDate: '', purchasedVia: '', note: '' };
             return { id: generateId(), title: '', link: '', validDate: '', price: '', purchasedDate: '', purchasedVia: '', note: '' }; // vouchers
         };
         const openBookingModal = (type, item = null) => {
             bookingModal.type = type;
-            if (item) { bookingModal.mode = 'edit'; bookingModal.targetId = item.id; bookingModal.draft = JSON.parse(JSON.stringify(item)); const d0 = bookingModal.draft; if ((d0.priceAmount === undefined || d0.priceAmount === '') && d0.price) { const pp = parsePriceText(d0.price); if (pp) { d0.priceAmount = pp.amount; d0.priceCurrency = pp.currency; } } if (!d0.priceCurrency) d0.priceCurrency = (type === 'flights') ? 'TWD' : 'foreign'; if (d0.priceAmount === undefined) d0.priceAmount = ''; }
+            if (item) { bookingModal.mode = 'edit'; bookingModal.targetId = item.id; bookingModal.draft = JSON.parse(JSON.stringify(item)); const d0 = bookingModal.draft; if ((d0.priceAmount === undefined || d0.priceAmount === '') && d0.price) { const pp = parsePriceText(d0.price); if (pp) { d0.priceAmount = pp.amount; d0.priceCurrency = pp.currency; } } if (!d0.priceCurrency) d0.priceCurrency = (type === 'flights') ? 'TWD' : 'foreign'; if (d0.priceAmount === undefined) d0.priceAmount = ''; if (type === 'cars') { if (!d0.title && d0.company) d0.title = d0.company; if (!d0.date && d0.pickupDate) { d0.date = String(d0.pickupDate).slice(0, 10); d0.time = String(d0.pickupDate).slice(11, 16) || '09:00'; } if (!d0.from && d0.pickupLocation) d0.from = d0.pickupLocation; if (!d0.to && d0.dropoffLocation) d0.to = d0.dropoffLocation; } }
             else { bookingModal.mode = 'add'; bookingModal.targetId = null; bookingModal.draft = emptyBookingDraft(type); }
             bookingModal.show = true;
         };
@@ -858,16 +860,16 @@ createApp({
                 const items = (day.items || []).filter(Boolean);
                 const reserved = items.filter(it => it.reserved).length;
                 totalItems += items.length; totalReserved += reserved;
-                const flights = fd ? bookings.flights.filter(f => f.date === fd).sort(byTime).map(f => ({
+                const flights = fd ? bookings.flights.filter(f => f.date === fd && !f.itinAdded).sort(byTime).map(f => ({
                     id: f.id, route: `${f.startAirport || '?'} ${f.startTime || ''} → ${f.endAirport || '?'} ${f.endTime || ''}`.replace(/\s+/g, ' '),
                     label: f.legLabel, no: f.flightNumber, plus: flightDayDiff(f) })) : [];
                 const arrivals = fd ? bookings.flights.filter(f => f.date && f.date !== fd && flightEndDate(f) === fd).map(f => ({
                     id: f.id, route: `抵達 ${f.endAirport || '?'} ${f.endTime || ''}`.trim(), label: f.legLabel })) : [];
                 const night = (fd && i < last) ? (bookings.lodging.find(b => b.checkIn && b.checkOut && b.checkIn <= fd && fd < b.checkOut) || null) : null;
-                const checkouts = fd ? bookings.lodging.filter(b => b.checkOut === fd) : [];
+                const checkouts = fd ? bookings.lodging.filter(b => b.checkOut === fd && !b.itinAdded) : [];
                 return {
                     idx: i, date: day.date || day.shortDate || '', title: day.title || '', isToday: !!fd && fd === today,
-                    flights, arrivals, night, noLodging: !!fd && i < last && !night, checkouts,
+                    flights, arrivals, night: (night && night.checkIn === fd && night.itinAdded) ? null : night, noLodging: !!fd && i < last && !night, checkouts,
                     items: items.slice(0, 3).map(it => ({ id: it.id, time: it.time, name: it.activity || '未命名行程', emoji: itemEmoji(it.type), reserved: !!it.reserved })),
                     allItems: items.map(it => ({ id: it.id, time: it.time, name: it.activity || '未命名行程', emoji: itemEmoji(it.type), reserved: !!it.reserved })),
                     more: Math.max(0, items.length - 3), total: items.length, reserved
@@ -941,7 +943,7 @@ createApp({
             });
             events.sort((x, y) => (x.time || '99:99').localeCompare(y.time || '99:99'));
             const night = idx < last ? (bookings.lodging.find(b => b.checkIn && b.checkOut && b.checkIn <= fd && fd < b.checkOut) || null) : null;
-            return { events, tonight: (night && night.checkIn !== fd) ? night : null, noLodging: idx < last && !night && bookings.lodging.length > 0 };
+            return { events: events.filter(e => !(e.ref && e.ref.itinAdded && /^(fd|li|lo)/.test(e.key))), tonight: (night && night.checkIn !== fd) ? night : null, noLodging: idx < last && !night && bookings.lodging.length > 0 };
         });
 
         // ---- 預訂價格：數字＋幣別，顯示時一律帶貨幣符號；有填金額時詢問要不要同時記帳 ----
@@ -961,7 +963,45 @@ createApp({
         const textHasMore = (t) => { const n = String(t || ''); return n.split('\n').length > 3 || n.length > 60; };
         const emptyBookingDraft = (type) => ({ ...emptyBookingDraftBase(type), priceAmount: '', priceCurrency: type === 'flights' ? 'TWD' : 'foreign', expenseId: '', expenseAsked: false });
         const isBooked = (b) => !!b && !!b.expenseId && expenses.value.some(e => e.id === b.expenseId);
-        const expPrompt = reactive({ show: false, type: '', id: '', draft: null });
+        const expPrompt = reactive({ show: false, type: '', id: '', draft: null, itin: [], doItin: true, doExp: true });
+        // 舊版「租車」資料（company／pickupDate…）也能正常顯示
+        const carView = (b) => ({
+            title: b.title || b.company || '', date: b.date || (b.pickupDate ? String(b.pickupDate).slice(0, 10) : ''),
+            time: b.time || (b.pickupDate ? String(b.pickupDate).slice(11, 16) : ''), from: b.from || b.pickupLocation || '', to: b.to || b.dropoffLocation || ''
+        });
+        const sortedCars = computed(() => [...bookings.cars].sort((x, y) => ((carView(x).date || '9999') + (carView(x).time || '')).localeCompare((carView(y).date || '9999') + (carView(y).time || ''))));
+        const sortedRestaurants = computed(() => [...bookings.restaurants].sort((x, y) => ((x.date || '9999') + (x.time || '')).localeCompare((y.date || '9999') + (y.time || ''))));
+        const restaurantMapUrl = (b) => {
+            if (b.mapLink && isUrl(b.mapLink)) return b.mapLink;
+            const q = [b.name, b.city, b.address].filter(Boolean).join(' ');
+            return q ? mapsUrl(q) : '';
+        };
+        const dayIdxOfDate = (date) => date ? days.value.findIndex(d => d.fullDate === date) : -1;
+        const makeItineraryItem = (o) => ({ id: generateId(), time: '', type: 'spot', activity: '', location: '', link: '', placeId: null, note: '', reserved: true, commuteMode: '', commuteMinutes: '', commuteNote: '', ...o });
+        // 把預訂轉成「可加入當天行程」的項目；日期不在旅程內就不提供
+        const bookingItineraryItems = (type, b) => {
+            const out = [];
+            const push = (date, o) => { const i = dayIdxOfDate(date); if (i !== -1) out.push({ dayIdx: i, item: makeItineraryItem(o) }); };
+            if (type === 'flights') {
+                const plus = flightDayDiff(b);
+                push(b.date, {
+                    time: b.startTime || '09:00', type: 'transport',
+                    activity: `✈ ${[b.airline, b.flightNumber].filter(Boolean).join(' ')} ${b.startAirport || '?'} → ${b.endAirport || '?'}`.replace(/\s+/g, ' ').trim(),
+                    location: b.startAirport ? `${b.startAirport} 機場` : '',
+                    note: [`抵達 ${b.endTime || '--:--'}${plus > 0 ? ' (+' + plus + ')' : ''}`, b.startTerminal ? `出發航廈 ${b.startTerminal}` : '', b.endTerminal ? `抵達航廈 ${b.endTerminal}` : ''].filter(Boolean).join('・')
+                });
+            } else if (type === 'lodging') {
+                const link = lodgingMapUrl(b);
+                push(b.checkIn, { time: b.checkInTime || '15:00', type: 'accommodation', activity: `入住 ${b.name || '住宿'}`, location: b.name || '', link, note: b.address || '' });
+                push(b.checkOut, { time: b.checkOutTime || '11:00', type: 'accommodation', activity: `退房 ${b.name || '住宿'}`, location: b.name || '', link, note: '' });
+            } else if (type === 'cars') {
+                const v = carView(b);
+                push(v.date, { time: v.time || '09:00', type: 'transport', activity: v.title || '交通', location: v.from || '', note: [v.from && v.to ? `${v.from} → ${v.to}` : '', b.note].filter(Boolean).join('\n') });
+            } else if (type === 'restaurants') {
+                push(b.date, { time: b.time || '18:00', type: 'food', activity: b.name || '餐廳', location: b.name || '', link: restaurantMapUrl(b), note: [b.people ? `${b.people} 人` : '', b.note].filter(Boolean).join('・') });
+            }
+            return out;
+        };
         const bookingExpenseName = (type, b) => {
             if (type === 'flights') {
                 const legs = b.orderId ? bookings.flights.filter(l => l.orderId === b.orderId) : [b];
@@ -970,33 +1010,46 @@ createApp({
                 return `機票 ${route}`;
             }
             if (type === 'lodging') return `住宿 ${b.name || ''}`.trim();
-            if (type === 'cars') return `租車 ${b.company || ''}`.trim();
+            if (type === 'cars') return `交通 ${carView(b).title || ''}`.trim();
+            if (type === 'restaurants') return `餐廳 ${b.name || ''}`.trim();
             return `憑證 ${b.title || ''}`.trim();
         };
         const maybeAskExpense = (type, b) => {
-            if (!(Number(b.priceAmount) > 0) || isBooked(b) || b.expenseAsked || !participants.value.length) return;
-            expPrompt.type = type; expPrompt.id = b.id;
-            expPrompt.draft = {
+            const itin = (type === 'vouchers' || b.itinAsked) ? [] : bookingItineraryItems(type, b);
+            const canExp = Number(b.priceAmount) > 0 && !isBooked(b) && !b.expenseAsked && participants.value.length > 0;
+            if (!itin.length && !canExp) return;
+            expPrompt.type = type; expPrompt.id = b.id; expPrompt.itin = itin; expPrompt.doItin = true; expPrompt.doExp = true;
+            expPrompt.draft = canExp ? {
                 item: bookingExpenseName(type, b), amount: Number(b.priceAmount), currency: b.priceCurrency === 'TWD' ? 'TWD' : 'foreign',
                 date: b.purchasedDate || localDateStr(), payer: participants.value[0] || '', splitWith: [], paymentMethod: 'credit',
-                category: ({ flights: 'flight', lodging: 'lodging', cars: 'transport', vouchers: 'ticket' })[type] || 'other'
-            };
+                category: ({ flights: 'flight', lodging: 'lodging', cars: 'transport', restaurants: 'food', vouchers: 'ticket' })[type] || 'other'
+            } : null;
             expPrompt.show = true;
         };
         const confirmExpPrompt = () => {
+            const b = bookings[expPrompt.type] && bookings[expPrompt.type].find(x => x.id === expPrompt.id);
             const d = expPrompt.draft;
-            if (!d || !d.item || !(Number(d.amount) > 0)) { showToast('請確認項目與金額', { icon: 'ph-bold ph-warning' }); return; }
-            const id = generateId();
-            expenses.value.unshift({ id, item: d.item, amount: Number(d.amount), payer: d.payer, category: d.category, paymentMethod: d.paymentMethod,
-                splitWith: (d.splitWith && d.splitWith.length) ? [...d.splitWith] : [], currency: d.currency, transportType: '', date: d.date });
-            const b = bookings[expPrompt.type].find(x => x.id === expPrompt.id);
-            if (b) { b.expenseId = id; b.expenseAsked = true; }
+            if (d && expPrompt.doExp && (!d.item || !(Number(d.amount) > 0))) { showToast('請確認記帳的項目與金額', { icon: 'ph-bold ph-warning' }); return; }
+            const done = [];
+            if (d && expPrompt.doExp) {
+                const id = generateId();
+                expenses.value.unshift({ id, item: d.item, amount: Number(d.amount), payer: d.payer, category: d.category, paymentMethod: d.paymentMethod,
+                    splitWith: (d.splitWith && d.splitWith.length) ? [...d.splitWith] : [], currency: d.currency, transportType: '', date: d.date });
+                if (b) b.expenseId = id;
+                done.push('記帳');
+            }
+            if (expPrompt.doItin && expPrompt.itin.length) {
+                expPrompt.itin.forEach(({ dayIdx, item }) => { const day = days.value[dayIdx]; if (day) { day.items.push({ ...item }); sortItemsByTime(day.items); } });
+                if (b) b.itinAdded = true;
+                done.push('行程');
+            }
+            if (b) { b.expenseAsked = true; b.itinAsked = true; }
             expPrompt.show = false;
-            showToast('已記到記帳', { icon: 'ph-bold ph-check-circle' });
+            if (done.length) showToast(`已加入${done.join('、')}`, { icon: 'ph-bold ph-check-circle' });
         };
         const skipExpPrompt = () => {
             const b = bookings[expPrompt.type] && bookings[expPrompt.type].find(x => x.id === expPrompt.id);
-            if (b) b.expenseAsked = true;
+            if (b) { b.expenseAsked = true; b.itinAsked = true; }
             expPrompt.show = false;
         };
 
@@ -1107,7 +1160,7 @@ createApp({
             newExpense.value.payer = '';
             customCategories.value = [];
             prepTasks.value = [];
-            bookings.flights = []; bookings.lodging = []; bookings.cars = []; bookings.vouchers = [];
+            bookings.flights = []; bookings.lodging = []; bookings.cars = []; bookings.restaurants = []; bookings.vouchers = [];
             isRateLoading.value = false;
             nextTick(() => ignoreRemoteUpdate = false);
         };
@@ -1243,7 +1296,7 @@ createApp({
             savedLocations.value = [];
             customCategories.value = [];
             prepTasks.value = [];
-            bookings.flights = []; bookings.lodging = []; bookings.cars = []; bookings.vouchers = [];
+            bookings.flights = []; bookings.lodging = []; bookings.cars = []; bookings.restaurants = []; bookings.vouchers = [];
             checklist.value = seedChecklist();
             exchangeRate.value = setup.value.rate;
             // 成員已在 setup modal 收好（createNewTrip 開窗時已重置過），此處不可清空
@@ -1377,6 +1430,7 @@ createApp({
                     bookings.lodging = b.lodging || [];
                     bookings.cars = b.cars || [];
                     bookings.vouchers = b.vouchers || [];
+                    bookings.restaurants = b.restaurants || [];
                     // 舊版航班資訊存在每天的 day.flight 裡，只在第一次遇到時搬進「預訂」，搬完清掉 day.flight 並標記，避免重複搬
                     if (!data.flightsMigrated) {
                         days.value.forEach(day => {
@@ -1623,7 +1677,7 @@ createApp({
             checklistProgress, checklistByCategory, seedDefaultChecklist, resetChecklist, toggleCatExclusive,
             LOC_TYPES, locFilterType, locFilterArea, locAreas, locFilterActive, filteredLocations, setItemPlace,
             CURRENCY_LIST, showCustomCurrency, isCustomCurrency, currencySelectValue, customCurrencyValue, onCurrencySelect, applyCustomCurrency, tripDateRange,
-            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, UTC_OFFSETS, utcLabel, normUrl, noteParts, itemHasMore, insertPin, dayBookings, fmtPrice, isBooked, textHasMore, expPrompt, confirmExpPrompt, skipExpPrompt, commuteLine, legName, legTone, showCommutePanel, showOverview, goDay, tripOverview, itemEmoji,
+            isSharedAll, isPersonalOf, splitCount, splitTag, perPersonText, lodgingMapUrl, flightOrders, addFlightLeg, fmtKg, mergeTemplateChecklist, lodgingSummary, UTC_OFFSETS, utcLabel, normUrl, noteParts, itemHasMore, insertPin, dayBookings, fmtPrice, isBooked, textHasMore, expPrompt, confirmExpPrompt, skipExpPrompt, commuteLine, legName, legTone, showCommutePanel, carView, sortedCars, sortedRestaurants, restaurantMapUrl, showOverview, goDay, tripOverview, itemEmoji,
             importantChecklistByCategory, packingChecklistByCategory, importantProgress, packingProgress,
             checkModal, openCheckModal, saveCheckModal, deleteCheckFromModal, isCheckNameInvalid,
             CHECKLIST_CATEGORIES: CHECKLIST_CATEGORIES.map(c => c.slug === 'docs' ? { ...c, label: '重要物品' } : c), LUGGAGE_META,
