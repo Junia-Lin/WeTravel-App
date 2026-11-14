@@ -494,7 +494,7 @@
                     <div v-if="showOverview" class="space-y-4">
                         <div class="flex items-center justify-between gap-2">
                             <h2 class="text-xl font-black text-stone-800">📋 行程總覽</h2>
-                            <span class="text-xs font-bold text-stone-400">共 {{ tripOverview.totalItems }} 個行程・已預約 {{ tripOverview.totalReserved }}</span>
+                            
                         </div>
                         <div v-for="r in tripOverview.rows" :key="r.idx"
                             class="bg-white rounded-3xl border shadow-soft overflow-hidden"
@@ -533,17 +533,13 @@
                                 </div>
                                 <div v-else-if="r.noLodging" class="bg-red-50 text-red-500 rounded-lg px-2.5 py-1.5 text-xs font-bold">⚠️ 這晚還沒有住宿</div>
                                 <div v-if="r.total" class="pt-2 border-t border-stone-100 space-y-1.5">
-                                    <div v-for="it in (openGroups['ov-' + r.idx] ? r.allItems : r.items)" :key="it.id" class="flex items-center gap-2 text-sm">
+                                    <div v-for="it in r.allItems" :key="it.id" class="flex items-center gap-2 text-sm">
                                         <span class="w-5 text-center text-sm shrink-0">{{ it.emoji }}</span>
                                         <span class="w-11 shrink-0 text-xs font-mono font-bold text-stone-400">{{ it.time || '--:--' }}</span>
                                         <span class="font-bold text-stone-700 truncate min-w-0">{{ it.name }}</span>
                                         <span v-if="it.reserved" class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">已預約</span>
                                     </div>
-                                    <div class="flex items-center justify-between gap-2 pt-1">
-                                        <button v-if="r.more > 0" @click.stop="toggleGroup('ov-' + r.idx)" class="text-xs font-bold px-3 py-1.5 rounded-full bg-stone-100 text-stone-500">{{ openGroups['ov-' + r.idx] ? '收合 ▴' : '展開全部 ' + r.total + ' 項 ▾' }}</button>
-                                        <span v-else class="text-[11px] font-bold text-stone-400">共 {{ r.total }} 項<span v-if="r.reserved" class="ml-2 text-green-600">✓ 已預約 {{ r.reserved }}</span></span>
-                                        <button @click.stop="goDay(r.idx)" class="text-xs font-bold px-3 py-1.5 rounded-full bg-primary-50 text-primary-600">前往當天 ›</button>
-                                    </div>
+                                    
                                 </div>
                                 <div v-else class="pt-1 text-xs font-bold text-stone-300">還沒安排行程</div>
                             </div>
@@ -611,8 +607,7 @@
                                 </div>
 
                                 <!-- 行程卡（點卡片開彈窗編輯） -->
-                                <div @click="toggleGroup('i-' + item.id)"
-                                    class="bg-white rounded-lg shadow-sm border border-stone-100 border-l-4 transition-all duration-200 relative cursor-pointer active:bg-stone-50 hover:shadow-md"
+                                <div class="bg-white rounded-lg shadow-sm border border-stone-100 border-l-4 transition-all duration-200 relative"
                                     :class="typeAccent(item.type)">
 
                                     <div class="p-3.5 pr-11 space-y-1.5">
@@ -629,7 +624,7 @@
                                                 <span v-else-if="item.type==='accommodation'">🏨</span>
                                                 <span v-else>📍</span>
                                             </span>
-                                            <span class="font-bold text-stone-800 text-base" :class="openGroups['i-' + item.id] ? 'break-words' : 'truncate'">{{ item.activity || '未命名行程' }}</span>
+                                            <span class="font-bold text-stone-800 text-base" style="overflow-wrap:anywhere">{{ item.activity || '未命名行程' }}</span>
                                             <span v-if="item.reserved"
                                                 class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-0.5">
                                                 <i class="ph-fill ph-check-circle"></i>已預約
@@ -638,14 +633,14 @@
 
                                         <div v-if="commuteLine(item, idx)" class="flex items-center gap-1.5 text-xs font-bold text-stone-500">
                                             <span class="shrink-0">{{ (commuteMeta(item.commuteMode) || {}).emoji }}</span>
-                                            <span class="flex-1 min-w-0" :class="openGroups['i-' + item.id] ? 'break-words' : 'truncate'">{{ commuteLine(item, idx) }}</span>
+                                            <span class="flex-1 min-w-0" style="overflow-wrap:anywhere">{{ commuteLine(item, idx) }}</span>
                                         </div>
 
                                         <div v-if="itemLocationLabel(item) || itemNavTarget(item)"
                                             class="flex items-center gap-1">
                                             <i class="text-xs shrink-0"
                                                 :class="item.placeId ? 'ph-fill ph-map-pin text-primary-400' : 'ph-bold ph-map-pin text-stone-300'"></i>
-                                            <span class="flex-1 min-w-0 text-xs font-bold" :class="[item.placeId ? 'text-primary-600' : 'text-stone-500', openGroups['i-' + item.id] ? 'break-words' : 'truncate']">{{ itemLocationLabel(item) }}</span>
+                                            <span class="flex-1 min-w-0 text-xs font-bold" :class="item.placeId ? 'text-primary-600' : 'text-stone-500'" style="overflow-wrap:anywhere">{{ itemLocationLabel(item) }}</span>
                                             <a v-if="itemNavTarget(item)" :href="getExternalMapLink(itemNavTarget(item))" target="_blank" rel="noopener" @click.stop
                                                 class="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-colors bg-primary-50 text-primary-600 hover:bg-primary-100">
                                                 <i class="ph-bold ph-navigation-arrow"></i>地圖</a>
@@ -653,12 +648,9 @@
 
                                         <div v-if="item.note" class="flex items-start gap-1.5">
                                             <i class="ph-bold ph-notebook text-stone-300 text-xs mt-0.5 shrink-0"></i>
-                                            <div class="flex-1 min-w-0 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap break-words" :class="openGroups['i-' + item.id] ? '' : 'line-clamp-3'"><template v-for="(p, pi) in noteParts(item)" :key="pi"><a v-if="p.href" :href="p.href" target="_blank" rel="noopener" @click.stop class="font-bold text-primary-600 underline decoration-dotted underline-offset-2 break-all">{{ p.text }}</a><span v-else>{{ p.text }}</span></template></div>
+                                            <div class="flex-1 min-w-0 text-xs text-stone-500 leading-relaxed whitespace-pre-wrap break-words"><template v-for="(p, pi) in noteParts(item)" :key="pi"><a v-if="p.href" :href="p.href" target="_blank" rel="noopener" @click.stop class="font-bold text-primary-600 underline decoration-dotted underline-offset-2 break-all">{{ p.text }}</a><span v-else>{{ p.text }}</span></template></div>
                                         </div>
-                                        <div v-if="itemHasMore(item)" class="flex items-center justify-center gap-1 text-[11px] font-bold text-stone-400 pt-0.5">
-                                            <span>{{ openGroups['i-' + item.id] ? '收合' : '展開全部' }}</span>
-                                            <i class="ph-bold" :class="openGroups['i-' + item.id] ? 'ph-caret-up' : 'ph-caret-down'"></i>
-                                        </div>
+                                        
                                     </div>
 
                                     <button @click.stop="openItemModal(item)" aria-label="編輯"
@@ -859,40 +851,26 @@
 
                     <!-- ===== 明細（所有統計與紀錄都在這裡，只出現一次） ===== -->
                     <template v-else>
-                        <div class="bg-stone-800 text-white rounded-3xl p-5 shadow-xl shadow-stone-500/20 relative overflow-hidden">
-                            <img src="assets/kitty_money.png" class="absolute bottom-1 right-2 w-14 h-14 object-contain opacity-70 pointer-events-none z-0" alt="">
-                            <div class="relative z-10 flex justify-between items-start gap-3">
+                        <div class="bg-white rounded-3xl border border-primary-100 shadow-soft p-4">
+                            <div class="flex items-center justify-between gap-3 pb-3 border-b border-primary-100/70">
                                 <div class="min-w-0">
-                                    <div class="text-teal-100 text-xs font-bold tracking-widest uppercase mb-1">Total (TWD)</div>
-                                    <div class="text-4xl font-black font-mono tracking-tight">NT$ {{ Math.round(totalExpenseTWD).toLocaleString() }}</div>
-                                    <div v-if="totalExpenseForeign > 0"
-                                        class="text-sm font-medium text-teal-100 mt-2 flex items-center gap-1 bg-white/10 w-fit px-2 py-1 rounded-lg backdrop-blur-sm">
-                                        <i class="ph-bold ph-map-pin"></i> 現地花費 {{ currencySymbol }} {{ totalExpenseForeign.toLocaleString() }}
-                                    </div>
+                                    <div class="text-base font-black text-stone-800">👥 成員花費</div>
+                                    <div class="text-[12px] font-bold text-stone-400 mt-0.5">實際負擔（均分後）・已付</div>
                                 </div>
-                                <div class="text-right shrink-0">
-                                    <label class="text-[10px] text-teal-200 block mb-1">匯率 1{{ currencyLabel }}≈NT$</label>
+                                <label class="flex items-center gap-1.5 bg-primary-50 rounded-full pl-3 pr-1.5 py-1.5 shrink-0">
+                                    <span class="text-[12px] font-black text-primary-700 whitespace-nowrap">1 {{ currencyLabel }} ≈ NT$</span>
                                     <input v-model.number="exchangeRate" @change="updateExchangeRate" type="number" step="0.001" inputmode="decimal"
-                                        class="w-16 text-right text-sm font-bold text-teal-900 bg-white/80 focus:bg-white rounded-lg px-2 py-1 shadow-sm outline-none focus:ring-2 focus:ring-white/70">
-                                </div>
+                                        class="w-16 text-center text-sm font-black text-stone-800 bg-white rounded-full px-1 py-1 outline-none focus:ring-2 focus:ring-primary-300">
+                                </label>
                             </div>
-                        </div>
-
-                        <!-- 每人花費（只在這裡出現一次） -->
-                        <div class="bg-white rounded-3xl border border-stone-100 shadow-soft p-4">
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-sm font-black text-stone-800">成員花費</span>
-                                <span class="text-[11px] text-stone-400">實際負擔（均分後）／已付</span>
-                            </div>
-                            <div v-for="p in participants" :key="p" class="flex items-center gap-2 py-2.5 border-t border-stone-50 first:border-t-0">
-                                <span class="font-bold text-stone-700 flex-1 min-w-0 truncate">{{ p }}</span>
+                            <div v-for="p in participants" :key="p" class="flex items-center gap-3 py-3 border-b border-stone-100 last:border-b-0">
+                                <span class="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-black flex items-center justify-center shrink-0">{{ p.slice(0, 1) }}</span>
+                                <span class="flex-1 min-w-0 truncate font-bold text-stone-700">{{ p }}</span>
                                 <div class="text-right shrink-0">
-                                    <div class="text-sm font-black text-primary-600 font-mono">NT${{ Math.round(owedByPerson[p] || 0).toLocaleString() }}</div>
-                                    <div class="text-[10px] text-stone-400 font-mono">已付 NT${{ Math.round(paidByPerson[p] || 0).toLocaleString() }}</div>
+                                    <div class="text-lg font-black text-stone-800 font-mono">NT${{ Math.round(owedByPerson[p] || 0).toLocaleString() }}</div>
+                                    <div class="text-[12px] font-bold text-stone-400 font-mono">已付 NT${{ Math.round(paidByPerson[p] || 0).toLocaleString() }}</div>
                                 </div>
-                                
                             </div>
-                            
                         </div>
 
                         <!-- 歸類方式 -->
@@ -1312,18 +1290,63 @@
                         </button>
                     </div>
 
-                    <!-- 租車 -->
+                    <!-- 交通 -->
                     <div v-if="bookingTab === 'cars'" class="space-y-3">
-                        <div v-if="!bookings.cars.length" class="text-sm text-stone-400 text-center py-6">還沒有租車資訊</div>
-                        <div v-for="b in bookings.cars" :key="b.id" @click="openBookingModal('cars', b)"
+                        <div v-if="!bookings.cars.length" class="text-sm text-stone-400 text-center py-6">還沒有交通預訂（高鐵、火車、巴士、租車…）</div>
+                        <div v-for="b in sortedCars" :key="b.id" @click="openBookingModal('cars', b)"
                             class="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 cursor-pointer active:bg-stone-50">
-                            <div class="font-bold text-stone-800">{{ b.company || '未命名租車公司' }}</div>
-                            <div class="text-xs text-stone-500 mt-1">取車 {{ b.pickupDate || '?' }} @ {{ b.pickupLocation || '?' }}</div>
-                            <div class="text-xs text-stone-500">還車 {{ b.dropoffDate || '?' }} @ {{ b.dropoffLocation || '?' }}</div>
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="text-lg font-black text-stone-800 break-words">{{ carView(b).title || '未命名交通' }}</div>
+                                    <div class="text-sm font-bold text-stone-400 mt-0.5">{{ fmtMD(carView(b).date) || '日期未填' }}<span v-if="carView(b).time"> {{ carView(b).time }}</span></div>
+                                </div>
+                                <span v-if="b.itinAdded" class="shrink-0 text-[12px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600">已排入行程</span>
+                            </div>
+                            <div v-if="carView(b).from || carView(b).to" class="mt-3 flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2 text-sm font-bold text-stone-600">
+                                <span class="min-w-0 flex-1 break-words">{{ carView(b).from || '?' }}</span>
+                                <i class="ph-bold ph-arrow-right text-stone-300 shrink-0"></i>
+                                <span class="min-w-0 flex-1 break-words text-right">{{ carView(b).to || '?' }}</span>
+                            </div>
+                            <div v-if="b.note" class="mt-2 text-sm text-stone-500 leading-relaxed whitespace-pre-wrap break-words">{{ b.note }}</div>
+                            <div v-if="fmtPrice(b) || b.purchasedDate || b.purchasedVia" class="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between gap-3">
+                                <span class="text-lg font-black text-stone-800 font-mono">{{ fmtPrice(b) }}</span>
+                                <span class="text-sm text-stone-400 text-right"><span v-if="isBooked(b)" class="text-green-600 font-bold mr-2">✓ 已記帳</span>購買<span v-if="b.purchasedDate"> {{ b.purchasedDate }}</span><span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
+                            </div>
                         </div>
                         <button @click="openBookingModal('cars')"
                             class="w-full py-3.5 border-2 border-dashed border-stone-300 rounded-2xl text-stone-500 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
-                            <i class="ph-bold ph-plus"></i> 新增租車
+                            <i class="ph-bold ph-plus"></i> 新增交通
+                        </button>
+                    </div>
+
+                    <!-- 餐廳 -->
+                    <div v-if="bookingTab === 'restaurants'" class="space-y-3">
+                        <div v-if="!bookings.restaurants.length" class="text-sm text-stone-400 text-center py-6">還沒有餐廳訂位</div>
+                        <div v-for="b in sortedRestaurants" :key="b.id" @click="openBookingModal('restaurants', b)"
+                            class="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 cursor-pointer active:bg-stone-50">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="text-lg font-black text-stone-800 break-words">🍽️ {{ b.name || '未命名餐廳' }}</div>
+                                    <div class="text-sm font-bold text-stone-400 mt-0.5">{{ fmtMD(b.date) || '日期未填' }}<span v-if="b.time"> {{ b.time }}</span><span v-if="b.people"> ・ {{ b.people }} 人</span></div>
+                                    <div v-if="b.city" class="text-sm font-bold text-stone-400">📍 {{ b.city }}</div>
+                                </div>
+                                <span v-if="b.itinAdded" class="shrink-0 text-[12px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600">已排入行程</span>
+                            </div>
+                            <div v-if="restaurantMapUrl(b)" class="mt-3 flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2">
+                                <i class="ph-fill ph-map-pin text-primary-500 text-xl shrink-0"></i>
+                                <span class="flex-1 min-w-0 text-sm font-bold text-stone-600 break-words">{{ b.address || '用名稱在地圖上搜尋' }}</span>
+                                <a :href="restaurantMapUrl(b)" target="_blank" rel="noopener" @click.stop
+                                    class="shrink-0 text-sm font-black px-3 py-1.5 rounded-full bg-primary-100 text-primary-600 flex items-center gap-1"><i class="ph-bold ph-navigation-arrow"></i>地圖</a>
+                            </div>
+                            <div v-if="b.note" class="mt-2 text-sm text-stone-500 leading-relaxed whitespace-pre-wrap break-words">{{ b.note }}</div>
+                            <div v-if="fmtPrice(b) || b.purchasedDate || b.purchasedVia" class="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between gap-3">
+                                <span class="text-lg font-black text-stone-800 font-mono">{{ fmtPrice(b) }}</span>
+                                <span class="text-sm text-stone-400 text-right"><span v-if="isBooked(b)" class="text-green-600 font-bold mr-2">✓ 已記帳</span>購買<span v-if="b.purchasedDate"> {{ b.purchasedDate }}</span><span v-if="b.purchasedVia"> · {{ b.purchasedVia }}</span></span>
+                            </div>
+                        </div>
+                        <button @click="openBookingModal('restaurants')"
+                            class="w-full py-3.5 border-2 border-dashed border-stone-300 rounded-2xl text-stone-500 hover:border-primary-400 hover:text-primary-600 transition flex items-center justify-center gap-2 font-bold">
+                            <i class="ph-bold ph-plus"></i> 新增餐廳訂位
                         </button>
                     </div>
 
@@ -2097,24 +2120,53 @@
                                 <i class="ph-bold ph-navigation-arrow"></i> 試試看地圖找不找得到</a>
                         </template>
 
-                        <!-- 租車 -->
+                        <!-- 交通 -->
                         <template v-if="bookingModal.type === 'cars'">
-                            <input v-model="bookingModal.draft.company" placeholder="租車公司"
+                            <input v-model="bookingModal.draft.title" placeholder="名稱（例：高鐵、HARUKA、租車）"
                                 class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <div class="text-[10px] text-stone-500 pl-1">取車</div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input v-model="bookingModal.draft.pickupDate" type="datetime-local"
-                                    class="bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                <input v-model="bookingModal.draft.pickupLocation" placeholder="取車地點"
-                                    class="bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            <div class="grid grid-cols-[1fr_auto] gap-2">
+                                <input v-model="bookingModal.draft.date" type="date" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                                <div class="flex items-center h-11 bg-stone-50 rounded-xl px-1">
+                                    <select :value="timePart(bookingModal.draft, 'time', 'h')" @change="setTimePart(bookingModal.draft, 'time', 'h', $event.target.value)"
+                                        class="w-10 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
+                                        <option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
+                                    </select>
+                                    <span class="text-stone-400 font-bold">:</span>
+                                    <select :value="timePart(bookingModal.draft, 'time', 'm')" @change="setTimePart(bookingModal.draft, 'time', 'm', $event.target.value)"
+                                        class="w-10 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
+                                        <option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="text-[10px] text-stone-500 pl-1">還車</div>
                             <div class="grid grid-cols-2 gap-2">
-                                <input v-model="bookingModal.draft.dropoffDate" type="datetime-local"
-                                    class="bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                <input v-model="bookingModal.draft.dropoffLocation" placeholder="還車地點"
-                                    class="bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                                <input v-model="bookingModal.draft.from" placeholder="出發地（選填）" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                                <input v-model="bookingModal.draft.to" placeholder="目的地（選填）" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                             </div>
+                        </template>
+
+                        <!-- 餐廳 -->
+                        <template v-if="bookingModal.type === 'restaurants'">
+                            <input v-model="bookingModal.draft.name" placeholder="餐廳名稱" class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            <div class="grid grid-cols-[1fr_auto] gap-2">
+                                <input v-model="bookingModal.draft.date" type="date" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                                <div class="flex items-center h-11 bg-stone-50 rounded-xl px-1">
+                                    <select :value="timePart(bookingModal.draft, 'time', 'h')" @change="setTimePart(bookingModal.draft, 'time', 'h', $event.target.value)"
+                                        class="w-10 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
+                                        <option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
+                                    </select>
+                                    <span class="text-stone-400 font-bold">:</span>
+                                    <select :value="timePart(bookingModal.draft, 'time', 'm')" @change="setTimePart(bookingModal.draft, 'time', 'm', $event.target.value)"
+                                        class="w-10 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
+                                        <option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input v-model="bookingModal.draft.people" type="number" inputmode="numeric" placeholder="人數" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                                <input v-model="bookingModal.draft.city" placeholder="城市（選填）" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            </div>
+                            <input v-model="bookingModal.draft.address" placeholder="地址（選填）" class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            <input v-model="bookingModal.draft.mapLink" placeholder="Google 地圖連結（選填，貼上最準）" class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                         </template>
 
                         <!-- 憑證 -->
@@ -2174,55 +2226,61 @@
             </div>
         </transition>
 
-        <!-- ===== 預訂存檔後：要不要同時記一筆帳 ===== -->
+        <!-- ===== 預訂儲存後：要不要加入當天行程、記帳 ===== -->
         <transition name="sheet">
             <div v-if="expPrompt.show" class="sheet-host absolute inset-x-0 top-0 z-[75] flex items-end justify-center">
                 <div class="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" @click="skipExpPrompt"></div>
                 <div class="sheet-panel relative z-10 w-full bg-white rounded-t-[2rem] shadow-2xl max-h-[88%] overflow-y-auto hide-scroll px-5 pt-4 space-y-3"
                     style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom))">
                     <div class="w-10 h-1 bg-stone-200 rounded-full mx-auto mb-1"></div>
-                    <h3 class="text-lg font-black text-stone-800">要同時記一筆帳嗎？</h3>
-                    <div class="text-sm text-stone-500 leading-relaxed">這筆預訂有填金額，可以直接記到「記帳」。日期是購買日，出發前買的會歸在明細的「出發前（預購）」。</div>
-                    <template v-if="expPrompt.draft">
-                        <div>
-                            <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">項目</div>
-                            <input v-model="expPrompt.draft.item" class="w-full bg-stone-50 border-none rounded-xl text-base font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                    <h3 class="text-lg font-black text-stone-800">預訂已儲存</h3>
+                    <div class="text-sm text-stone-500">要順便做這些嗎？（點一下可取消勾選）</div>
+
+                    <button v-if="expPrompt.itin.length" @click="expPrompt.doItin = !expPrompt.doItin"
+                        class="w-full text-left flex items-start gap-3 p-3 rounded-xl border-2 transition-colors"
+                        :class="expPrompt.doItin ? 'border-primary-300 bg-primary-50/60' : 'border-stone-100 bg-stone-50'">
+                        <span class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5 text-sm font-black"
+                            :class="expPrompt.doItin ? 'bg-primary-500 text-white' : 'bg-white border border-stone-300 text-transparent'">✓</span>
+                        <div class="min-w-0">
+                            <div class="text-base font-black text-stone-800">📅 加入當天行程</div>
+                            <div v-for="(x, xi) in expPrompt.itin" :key="xi" class="text-sm font-bold text-stone-500 break-words">D{{ x.dayIdx + 1 }}・{{ days[x.dayIdx].shortDate }}　{{ x.item.time }}　{{ x.item.activity }}</div>
                         </div>
-                        <div class="grid grid-cols-[1fr_auto] gap-2 items-end">
-                            <div>
-                                <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">金額（{{ expPrompt.draft.currency === 'TWD' ? 'TWD' : currencyLabel }}）</div>
-                                <input v-model.number="expPrompt.draft.amount" type="number" inputmode="decimal" class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-lg font-black text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 font-mono">
+                    </button>
+
+                    <div v-if="expPrompt.draft" class="rounded-xl border-2 p-3 space-y-3 transition-colors"
+                        :class="expPrompt.doExp ? 'border-primary-300 bg-primary-50/40' : 'border-stone-100 bg-stone-50'">
+                        <button @click="expPrompt.doExp = !expPrompt.doExp" class="w-full text-left flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 text-sm font-black"
+                                :class="expPrompt.doExp ? 'bg-primary-500 text-white' : 'bg-white border border-stone-300 text-transparent'">✓</span>
+                            <span class="text-base font-black text-stone-800">💰 記一筆帳</span>
+                        </button>
+                        <template v-if="expPrompt.doExp">
+                            <input v-model="expPrompt.draft.item" placeholder="項目" class="w-full bg-white border-none rounded-xl text-base font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
+                            <div class="grid grid-cols-[1fr_auto] gap-2 items-center">
+                                <input v-model.number="expPrompt.draft.amount" type="number" inputmode="decimal" placeholder="金額" class="w-full min-w-0 bg-white border-none rounded-xl text-lg font-black text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 font-mono">
+                                <div class="flex bg-white rounded-xl border border-stone-200 p-0.5">
+                                    <button type="button" @click="expPrompt.draft.currency = 'foreign'" class="px-3 py-2 rounded-lg text-sm font-bold transition-colors" :class="expPrompt.draft.currency !== 'TWD' ? 'bg-primary-50 text-primary-600' : 'text-stone-400'">{{ currencyLabel }}</button>
+                                    <button type="button" @click="expPrompt.draft.currency = 'TWD'" class="px-3 py-2 rounded-lg text-sm font-bold transition-colors" :class="expPrompt.draft.currency === 'TWD' ? 'bg-primary-50 text-primary-600' : 'text-stone-400'">TWD</button>
+                                </div>
                             </div>
-                            <div class="flex bg-stone-50 rounded-xl border border-stone-200 p-0.5">
-                                <button type="button" @click="expPrompt.draft.currency = 'foreign'" class="px-3 py-2 rounded-lg text-sm font-bold transition-colors" :class="expPrompt.draft.currency !== 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">{{ currencyLabel }}</button>
-                                <button type="button" @click="expPrompt.draft.currency = 'TWD'" class="px-3 py-2 rounded-lg text-sm font-bold transition-colors" :class="expPrompt.draft.currency === 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">TWD</button>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">日期</div>
-                            <input v-model="expPrompt.draft.date" type="date" class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                        </div>
-                        <div>
-                            <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">誰付錢</div>
+                            <input v-model="expPrompt.draft.date" type="date" class="w-full bg-white border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
                             <div class="flex flex-wrap gap-1.5">
                                 <button v-for="p in participants" :key="p" type="button" @click="expPrompt.draft.payer = p"
                                     class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
-                                    :class="expPrompt.draft.payer === p ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">{{ p }}</button>
+                                    :class="expPrompt.draft.payer === p ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-stone-500 border-stone-100'">{{ p }} 付</button>
                             </div>
-                        </div>
-                        <div v-if="participants.length === 2">
-                            <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">這筆是誰的消費</div>
-                            <div class="flex flex-wrap gap-1.5">
+                            <div v-if="participants.length === 2" class="flex flex-wrap gap-1.5">
                                 <button type="button" @click="expPrompt.draft.splitWith = []" class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
-                                    :class="isSharedAll(expPrompt.draft) ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">👫 雙人共同</button>
+                                    :class="isSharedAll(expPrompt.draft) ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-stone-500 border-stone-100'">👫 雙人共同</button>
                                 <button v-for="p in participants" :key="p" type="button" @click="expPrompt.draft.splitWith = [p]" class="px-4 py-2 rounded-xl text-sm font-bold border-2 transition-colors"
-                                    :class="isPersonalOf(expPrompt.draft, p) ? 'bg-primary-500 text-white border-primary-500' : 'bg-stone-50 text-stone-500 border-stone-100'">👤 {{ p }} 個人</button>
+                                    :class="isPersonalOf(expPrompt.draft, p) ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-stone-500 border-stone-100'">👤 {{ p }} 個人</button>
                             </div>
-                        </div>
-                    </template>
+                        </template>
+                    </div>
+
                     <div class="flex gap-3 pt-2">
-                        <button @click="skipExpPrompt" class="flex-1 py-3 rounded-2xl bg-stone-100 text-stone-600 font-bold active:scale-[0.98] transition">不用了</button>
-                        <button @click="confirmExpPrompt" class="flex-1 py-3 rounded-2xl bg-primary-500 text-white font-black active:scale-[0.98] transition">記一筆帳</button>
+                        <button @click="skipExpPrompt" class="flex-1 py-3 rounded-2xl bg-stone-100 text-stone-600 font-bold active:scale-[0.98] transition">略過</button>
+                        <button @click="confirmExpPrompt" class="flex-1 py-3 rounded-2xl bg-primary-500 text-white font-black active:scale-[0.98] transition">確定</button>
                     </div>
                 </div>
             </div>
@@ -2415,7 +2473,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=57"></script>
+    <script type="module" src="./app.js?v=58"></script>
 
     <script>
         setTimeout(() => {
