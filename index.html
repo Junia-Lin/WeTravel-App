@@ -1806,70 +1806,14 @@
             </div>
         </transition>
 
-        <!-- ===== 口袋名單編輯彈窗 ===== -->
+        <!-- ===== 口袋名單編輯彈窗（簡約滿版）===== -->
         <transition name="sheet">
             <div v-if="locModal.show" class="sheet-host absolute inset-x-0 top-0 z-[70] flex items-end justify-center">
-                <div class="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" @click="locModal.show = false"></div>
-                <div class="sheet-panel relative z-10 w-full bg-white rounded-t-[2rem] shadow-2xl max-h-[85%] overflow-y-auto hide-scroll"
-                    style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom))">
-                    <div class="sticky top-0 bg-white/95 backdrop-blur-sm px-5 pt-4 pb-3 border-b border-stone-100 z-10">
-                        <div class="w-10 h-1 bg-stone-200 rounded-full mx-auto mb-3"></div>
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-black text-stone-800">{{ locModal.mode === 'edit' ? '編輯地點' : '新增地點' }}</h3>
-                            <button @click="locModal.show = false" aria-label="取消並關閉"
-                                class="w-9 h-9 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center hover:bg-stone-200 transition">
-                                <i class="ph-bold ph-x"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div v-if="locModal.draft" class="p-5 space-y-4">
-                        <input v-model="locModal.draft.name"
-                            class="js-loc-name w-full font-bold text-lg text-stone-800 bg-stone-50 rounded-xl px-3 py-2.5 border-none focus:ring-2 focus:ring-primary-200 placeholder:text-stone-300"
-                            placeholder="地點名稱">
-                        <div>
-                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">類型</label>
-                            <div class="flex h-12 bg-stone-50 p-1 rounded-xl border border-stone-200 items-stretch">
-                                <button v-for="type in ['spot', 'food', 'shop', 'transport', 'accommodation']" :key="type"
-                                    @click="locModal.draft.type = type"
-                                    class="flex-1 rounded-lg flex items-center justify-center text-xl transition-colors"
-                                    :class="locModal.draft.type === type ? 'bg-white shadow-sm scale-100' : 'opacity-40 hover:opacity-100'">
-                                    <span v-if="type==='spot'">📍</span>
-                                    <span v-else-if="type==='food'">🍴</span>
-                                    <span v-else-if="type==='shop'">🛍️</span>
-                                    <span v-else-if="type==='transport'">🚇</span>
-                                    <span v-else-if="type==='accommodation'">🏨</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-stone-600 uppercase mb-1 block">區域（例如 浦東、外灘，可自己輸入）</label>
-                            <input v-model="locModal.draft.area" list="loc-area-list" placeholder="區域"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <datalist id="loc-area-list"><option v-for="a in locAreas" :key="a" :value="a"></option></datalist>
-                        </div>
-                        <div
-                            class="flex items-center gap-2 bg-stone-50 rounded-xl px-3 py-2.5 border border-transparent focus-within:border-primary-200">
-                            <i class="ph-fill ph-link text-stone-300 text-sm"></i>
-                            <input v-model="locModal.draft.link"
-                                class="flex-1 text-sm font-medium text-stone-600 bg-transparent border-none p-0 focus:ring-0 placeholder:text-stone-300"
-                                placeholder="輸入地點 或 貼上網址">
-                        </div>
-                        <textarea v-model="locModal.draft.note" rows="2"
-                            class="w-full text-sm text-stone-500 bg-stone-50 rounded-xl px-3 py-2.5 border-none focus:ring-2 focus:ring-primary-100 placeholder:text-stone-300 resize-none leading-relaxed"
-                            placeholder="備註..."></textarea>
-
-                        <div class="flex items-center justify-between pt-2 border-t border-stone-50">
-                            <button v-if="locModal.mode === 'edit'" @click="deleteLocFromModal"
-                                class="text-red-400 hover:text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                <i class="ph-bold ph-trash"></i> 刪除
-                            </button>
-                            <span v-else></span>
-                            <button @click="saveLocModal"
-                                class="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-md shadow-primary-200 hover:bg-primary-700 transition active:scale-95 flex items-center gap-2">
-                                <i class="ph-bold ph-check"></i> {{ locModal.mode === 'edit' ? '儲存' : '新增' }}
-                            </button>
-                        </div>
+                <div class="sheet-panel relative z-10 w-full h-full bg-[#f2f3f5] flex flex-col" style="padding-top: env(safe-area-inset-top)">
+                    <div class="shrink-0 flex items-center justify-between px-5 pt-3 pb-3"><button @click="locModal.show = false" aria-label="關閉" class="w-10 h-10 -ml-2 flex items-center justify-center text-stone-700 active:opacity-60"><i class="ph-bold ph-x text-2xl"></i></button><h3 class="text-lg font-black text-stone-900">口袋名單</h3><button @click="saveLocModal" class="text-[17px] font-bold text-primary-600 active:opacity-60 px-1">{{ locModal.mode === 'edit' ? '儲存' : '新增' }}</button></div>
+                    <div v-if="locModal.draft" class="flex-1 min-h-0 overflow-y-auto hide-scroll px-4 pb-16 space-y-4">
+                        <div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="locModal.draft.name" type="text" placeholder="地點名稱" class="js-loc-name w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none font-bold"></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex flex-wrap gap-2"><button v-for="t in LOC_TYPES" :key="t.slug" type="button" @click="locModal.draft.type = t.slug" class="px-3.5 py-1.5 rounded-full text-sm font-bold border transition-colors" :class="locModal.draft.type === t.slug ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-stone-500 border-stone-200'">{{ t.emoji }} {{ t.label }}</button></div></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="locModal.draft.area" list="loc-area-list" type="text" placeholder="區域（例如 浦東、外灘，可自己輸入）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none"><datalist id="loc-area-list"><option v-for="a in locAreas" :key="a" :value="a"></option></datalist></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="locModal.draft.link" type="text" placeholder="地圖連結，或輸入地點名稱" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6"><textarea v-model="locModal.draft.note" rows="4" placeholder="備註" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none resize-none leading-relaxed"></textarea></div></div></div>
+                        <button v-if="locModal.mode === 'edit'" @click="deleteLocFromModal" class="w-full py-3 text-[17px] font-bold text-red-500 active:opacity-60">刪除這個地點</button>
                     </div>
                 </div>
             </div>
@@ -1981,246 +1925,19 @@
             </div>
         </transition>
 
-        <!-- ===== 預訂編輯彈窗（機票/住宿/租車/憑證） ===== -->
+        <!-- ===== 預訂編輯彈窗（簡約滿版：只留提示文字與細線，參考 DAILY TRIP）===== -->
         <transition name="sheet">
             <div v-if="bookingModal.show" class="sheet-host absolute inset-x-0 top-0 z-[70] flex items-end justify-center">
-                <div class="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" @click="bookingModal.show = false"></div>
-                <div class="sheet-panel relative z-10 w-full bg-white rounded-t-[2rem] shadow-2xl max-h-[85%] overflow-y-auto hide-scroll"
-                    style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom))">
-                    <div class="sticky top-0 bg-white/95 backdrop-blur-sm px-5 pt-4 pb-3 border-b border-stone-100 z-10">
-                        <div class="w-10 h-1 bg-stone-200 rounded-full mx-auto mb-3"></div>
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-black text-stone-800">{{ bookingModal.mode === 'edit' ? '編輯' : '新增' }}{{ (BOOKING_TYPES.find(t => t.slug === bookingModal.type) || {}).label }}</h3>
-                            <button @click="bookingModal.show = false" aria-label="取消並關閉"
-                                class="w-9 h-9 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center hover:bg-stone-200 transition">
-                                <i class="ph-bold ph-x"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div v-if="bookingModal.draft" class="p-5 space-y-3">
-                        <!-- 機票 -->
-                        <template v-if="bookingModal.type === 'flights'">
-                            <div class="flex gap-2">
-                                <input v-model="bookingModal.draft.airline" placeholder="航空公司"
-                                    class="flex-1 min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                <input v-model="bookingModal.draft.flightNumber" placeholder="航班號"
-                                    class="w-28 shrink-0 min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 uppercase">
-                            </div>
-                            <select v-model="bookingModal.draft.legLabel"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
-                                <option value="">航段標籤（不標示）</option>
-                                <option value="去程">去程</option>
-                                <option value="回程">回程</option>
-                                <option value="轉機">轉機</option>
-                                <option value="國內線">國內線</option>
-                            </select>
-                            <div v-if="bookingModal.draft.orderId" class="flex items-center justify-between gap-2 bg-primary-50/70 rounded-xl px-3 py-2">
-                                <span class="text-xs font-bold text-primary-600">🔗 同一張訂單的一段（價格、購買資訊填一次就好）</span>
-                                <button @click="bookingModal.draft.orderId = ''" class="shrink-0 text-[11px] font-bold text-stone-500 underline">拆成獨立一張</button>
-                            </div>
-
-                            <div v-for="f in [['date','startTime','startAirport','startCity','startTerminal','出發'],['endDate','endTime','endAirport','endCity','endTerminal','抵達']]" :key="f[5]"
-                                class="rounded-2xl border border-stone-100 p-3 space-y-2">
-                                <div class="text-xs font-black text-stone-500">{{ f[5] }}</div>
-                                <input v-model="bookingModal.draft[f[0]]" type="date"
-                                    class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div class="flex items-center gap-1 h-11 bg-stone-50 rounded-xl px-1.5">
-                                        <select :value="timePart(bookingModal.draft, f[1], 'h')"
-                                            @change="setTimePart(bookingModal.draft, f[1], 'h', $event.target.value)"
-                                            class="flex-1 min-w-0 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
-                                            <option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
-                                        </select>
-                                        <span class="text-stone-400 font-bold">:</span>
-                                        <select :value="timePart(bookingModal.draft, f[1], 'm')"
-                                            @change="setTimePart(bookingModal.draft, f[1], 'm', $event.target.value)"
-                                            class="flex-1 min-w-0 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
-                                            <option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
-                                        </select>
-                                    </div>
-                                    <input v-model="bookingModal.draft[f[4]]" placeholder="航廈 (T1)"
-                                        class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 uppercase">
-                                </div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <input v-model="bookingModal.draft[f[2]]" placeholder="機場代碼 (TPE)"
-                                        class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 uppercase">
-                                    <input v-model="bookingModal.draft[f[3]]" placeholder="城市 (台北)"
-                                        class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                </div>
-                            </div>
-                            <div class="text-[11px] text-stone-400 leading-relaxed px-1">抵達日期沒填的話，系統會依時間自動判斷是否隔天；兩地時區不同時，請選出發地與抵達地的 UTC 時區，才能算出正確的飛行時間。</div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <div class="text-[10px] text-stone-500 mb-1 pl-1">出發地時區</div>
-                                    <select v-model.number="bookingModal.draft.startTz"
-                                        class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
-                                        <option value="">未選</option>
-                                        <option v-for="o in UTC_OFFSETS" :key="o" :value="o">{{ utcLabel(o) }}</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <div class="text-[10px] text-stone-500 mb-1 pl-1">抵達地時區</div>
-                                    <select v-model.number="bookingModal.draft.endTz"
-                                        class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 appearance-none">
-                                        <option value="">未選</option>
-                                        <option v-for="o in UTC_OFFSETS" :key="o" :value="o">{{ utcLabel(o) }}</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div v-if="flightDurationMin(bookingModal.draft)" class="text-sm font-black text-primary-600 px-1">✈️ 飛行時間約 {{ fmtDuration(flightDurationMin(bookingModal.draft)) }}</div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="relative">
-                                    <input v-model="bookingModal.draft.carryOn" inputmode="decimal" placeholder="手提行李"
-                                        class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 pl-3 pr-9 focus:ring-2 focus:ring-primary-200">
-                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400 pointer-events-none">kg</span>
-                                </div>
-                                <div class="relative">
-                                    <input v-model="bookingModal.draft.checkedBag" inputmode="decimal" placeholder="托運行李"
-                                        class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 pl-3 pr-9 focus:ring-2 focus:ring-primary-200">
-                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400 pointer-events-none">kg</span>
-                                </div>
-                            </div>
-                        </template>
-
-                        <!-- 住宿 -->
-                        <template v-if="bookingModal.type === 'lodging'">
-                            <input v-model="bookingModal.draft.name" placeholder="住宿名稱"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <input v-model="bookingModal.draft.city" placeholder="城市（例如 上海）"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div v-for="f in [['checkIn','checkInTime','入住'],['checkOut','checkOutTime','退房']]" :key="f[2]" class="space-y-2">
-                                    <div class="text-xs font-black text-stone-500 pl-1">{{ f[2] }}</div>
-                                    <input v-model="bookingModal.draft[f[0]]" type="date"
-                                        class="w-full min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-2 focus:ring-2 focus:ring-primary-200">
-                                    <div class="flex items-center gap-1 h-11 bg-stone-50 rounded-xl px-1.5">
-                                        <select :value="timePart(bookingModal.draft, f[1], 'h')"
-                                            @change="setTimePart(bookingModal.draft, f[1], 'h', $event.target.value)"
-                                            class="flex-1 min-w-0 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
-                                            <option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
-                                        </select>
-                                        <span class="text-stone-400 font-bold">:</span>
-                                        <select :value="timePart(bookingModal.draft, f[1], 'm')"
-                                            @change="setTimePart(bookingModal.draft, f[1], 'm', $event.target.value)"
-                                            class="flex-1 min-w-0 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
-                                            <option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-if="nightsOf(bookingModal.draft)" class="text-sm font-black text-primary-600 px-1">🌙 共 {{ nightsOf(bookingModal.draft) }} 晚</div>
-                            <input v-model="bookingModal.draft.address" placeholder="地址（選填）"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <input v-model="bookingModal.draft.mapLink" placeholder="Google 地圖連結（選填，貼上最準）"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <div class="text-[11px] text-stone-400 leading-relaxed px-1">沒貼連結時，會用「名稱＋城市＋地址」去 Google 地圖搜尋，所以名稱和城市寫得越完整越容易找到。</div>
-                            <a v-if="lodgingMapUrl(bookingModal.draft)" :href="lodgingMapUrl(bookingModal.draft)" target="_blank"
-                                class="inline-flex items-center gap-1 text-xs font-bold text-primary-600 px-1">
-                                <i class="ph-bold ph-navigation-arrow"></i> 試試看地圖找不找得到</a>
-                        </template>
-
-                        <!-- 交通 -->
-                        <template v-if="bookingModal.type === 'cars'">
-                            <input v-model="bookingModal.draft.title" placeholder="名稱（例：高鐵、HARUKA、租車）"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <div class="grid grid-cols-[1fr_auto] gap-2">
-                                <input v-model="bookingModal.draft.date" type="date" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                <div class="flex items-center h-11 bg-stone-50 rounded-xl px-1">
-                                    <select :value="timePart(bookingModal.draft, 'time', 'h')" @change="setTimePart(bookingModal.draft, 'time', 'h', $event.target.value)"
-                                        class="w-10 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
-                                        <option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
-                                    </select>
-                                    <span class="text-stone-400 font-bold">:</span>
-                                    <select :value="timePart(bookingModal.draft, 'time', 'm')" @change="setTimePart(bookingModal.draft, 'time', 'm', $event.target.value)"
-                                        class="w-10 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
-                                        <option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input v-model="bookingModal.draft.from" placeholder="出發地（選填）" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                <input v-model="bookingModal.draft.to" placeholder="目的地（選填）" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            </div>
-                        </template>
-
-                        <!-- 餐廳 -->
-                        <template v-if="bookingModal.type === 'restaurants'">
-                            <input v-model="bookingModal.draft.name" placeholder="餐廳名稱" class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <div class="grid grid-cols-[1fr_auto] gap-2">
-                                <input v-model="bookingModal.draft.date" type="date" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                <div class="flex items-center h-11 bg-stone-50 rounded-xl px-1">
-                                    <select :value="timePart(bookingModal.draft, 'time', 'h')" @change="setTimePart(bookingModal.draft, 'time', 'h', $event.target.value)"
-                                        class="w-10 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
-                                        <option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
-                                    </select>
-                                    <span class="text-stone-400 font-bold">:</span>
-                                    <select :value="timePart(bookingModal.draft, 'time', 'm')" @change="setTimePart(bookingModal.draft, 'time', 'm', $event.target.value)"
-                                        class="w-10 bg-transparent text-base font-bold text-stone-700 text-center focus:outline-none appearance-none font-mono">
-                                        <option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input v-model="bookingModal.draft.people" type="number" inputmode="numeric" placeholder="人數" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                                <input v-model="bookingModal.draft.city" placeholder="城市（選填）" class="min-w-0 bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            </div>
-                            <input v-model="bookingModal.draft.address" placeholder="地址（選填）" class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <input v-model="bookingModal.draft.mapLink" placeholder="Google 地圖連結（選填，貼上最準）" class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                        </template>
-
-                        <!-- 憑證 -->
-                        <template v-if="bookingModal.type === 'vouchers'">
-                            <input v-model="bookingModal.draft.title" placeholder="憑證名稱（門票/租借券…）"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            <div>
-                                <div class="text-[10px] text-stone-500 mb-1 pl-1">使用日期</div>
-                                <input v-model="bookingModal.draft.validDate" type="date"
-                                    class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            </div>
-                            <input v-model="bookingModal.draft.link" type="url" inputmode="url" placeholder="連結（電子票券、訂單頁、QR 圖檔網址…）"
-                                class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                        </template>
-
-                        <!-- 共用欄位：價格、購買日期/管道、備註 -->
-                        <div class="pt-1 border-t border-stone-50 space-y-3">
-                            <div>
-                                <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">{{ bookingModal.type === 'flights' ? '含稅總金額（來回票只填一次）' : '價格' }}</div>
-                                <div class="flex gap-2">
-                                    <input v-model.number="bookingModal.draft.priceAmount" type="number" inputmode="decimal" placeholder="金額"
-                                        class="flex-1 min-w-0 bg-stone-50 border-none rounded-xl text-base font-black text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200 font-mono">
-                                    <div class="flex bg-stone-50 rounded-xl border border-stone-200 p-0.5 shrink-0">
-                                        <button type="button" @click="bookingModal.draft.priceCurrency = 'foreign'"
-                                            class="px-3 rounded-lg text-sm font-bold transition-colors"
-                                            :class="bookingModal.draft.priceCurrency !== 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">{{ currencyLabel }}</button>
-                                        <button type="button" @click="bookingModal.draft.priceCurrency = 'TWD'"
-                                            class="px-3 rounded-lg text-sm font-bold transition-colors"
-                                            :class="bookingModal.draft.priceCurrency === 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">TWD</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="text-[12px] font-bold text-stone-500 mb-1 pl-1">購買日期</div>
-                                <input v-model="bookingModal.draft.purchasedDate" type="date"
-                                    class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                            </div>
-                        </div>
-                        <input v-model="bookingModal.draft.purchasedVia" placeholder="購買管道（例如：官網、代理）"
-                            class="w-full bg-stone-50 border-none rounded-xl text-sm font-bold text-stone-700 py-2.5 px-3 focus:ring-2 focus:ring-primary-200">
-                        <textarea v-model="bookingModal.draft.note" rows="2" placeholder="備註（訂位代號、登機門、座位…）"
-                            class="w-full text-sm text-stone-600 bg-stone-50 rounded-xl px-3 py-2.5 border-none focus:ring-2 focus:ring-primary-100 placeholder:text-stone-300 resize-none leading-relaxed"></textarea>
-
-                        <div class="flex items-center justify-between pt-2 border-t border-stone-50">
-                            <button v-if="bookingModal.mode === 'edit'" @click="deleteBookingModal"
-                                class="text-red-400 hover:text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                <i class="ph-bold ph-trash"></i> 刪除
-                            </button>
-                            <span v-else></span>
-                            <button @click="saveBookingModal"
-                                class="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-md shadow-primary-200 hover:bg-primary-700 transition active:scale-95 flex items-center gap-2">
-                                <i class="ph-bold ph-check"></i> {{ bookingModal.mode === 'edit' ? '儲存' : '新增' }}
-                            </button>
-                        </div>
+                <div class="sheet-panel relative z-10 w-full h-full bg-[#f2f3f5] flex flex-col" style="padding-top: env(safe-area-inset-top)">
+                    <div class="shrink-0 flex items-center justify-between px-5 pt-3 pb-3"><button @click="bookingModal.show = false" aria-label="關閉" class="w-10 h-10 -ml-2 flex items-center justify-center text-stone-700 active:opacity-60"><i class="ph-bold ph-x text-2xl"></i></button><h3 class="text-lg font-black text-stone-900">{{ (BOOKING_TYPES.find(t => t.slug === bookingModal.type) || {}).label }}</h3><button @click="saveBookingModal" class="text-[17px] font-bold text-primary-600 active:opacity-60 px-1">{{ bookingModal.mode === 'edit' ? '儲存' : '新增' }}</button></div>
+                    <div v-if="bookingModal.draft" class="flex-1 min-h-0 overflow-y-auto hide-scroll px-4 pb-16 space-y-4">
+                        <template v-if="bookingModal.type === 'flights'"><div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6 grid grid-cols-2 gap-x-6"><div class="py-4 border-b border-stone-200"><input v-model="bookingModal.draft.airline" type="text" placeholder="航空公司" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.flightNumber" type="text" placeholder="航班號" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none uppercase"></div></div><div class="pl-6"><div class="py-4 pr-6"><select v-model="bookingModal.draft.legLabel" class="w-full min-w-0 bg-transparent text-[17px] focus:outline-none appearance-none" :class="bookingModal.draft.legLabel ? 'text-stone-800' : 'text-stone-400'"><option value="">航段（去程／回程／轉機）</option><option value="去程">去程</option><option value="回程">回程</option><option value="轉機">轉機</option><option value="國內線">國內線</option></select></div></div></div><div v-if="bookingModal.draft.orderId" class="flex items-center justify-between gap-3 px-3"><span class="text-[13px] font-bold text-primary-600">🔗 同一張訂單的一段（價格、購買資訊填一次就好）</span><button type="button" @click="bookingModal.draft.orderId = ''" class="shrink-0 text-[13px] font-bold text-stone-500 underline">拆成獨立一張</button></div><div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">出發日期</span><input v-model="bookingModal.draft.date" type="date" class="bg-transparent text-[17px] text-stone-800 text-right focus:outline-none min-w-0"></div></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">出發時間</span><div class="flex items-center"><select :value="timePart(bookingModal.draft, 'startTime', 'h')" @change="setTimePart(bookingModal.draft, 'startTime', 'h', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select><span class="font-bold text-stone-500">:</span><select :value="timePart(bookingModal.draft, 'startTime', 'm')" @change="setTimePart(bookingModal.draft, 'startTime', 'm', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select></div></div></div></div><div class="pl-6 grid grid-cols-2 gap-x-6"><div class="py-4 border-b border-stone-200"><input v-model="bookingModal.draft.startAirport" type="text" placeholder="機場代碼（TPE）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none uppercase"></div><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.startCity" type="text" placeholder="城市（台北）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.startTerminal" type="text" placeholder="航廈（T1）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none uppercase"></div></div><div class="pl-6"><div class="py-4 pr-6"><select v-model.number="bookingModal.draft.startTz" class="w-full min-w-0 bg-transparent text-[17px] focus:outline-none appearance-none" :class="(bookingModal.draft.startTz === '' || bookingModal.draft.startTz == null) ? 'text-stone-400' : 'text-stone-800'"><option value="">出發地時區（UTC）</option><option v-for="o in UTC_OFFSETS" :key="o" :value="o">{{ utcLabel(o) }}</option></select></div></div></div><div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">抵達日期</span><input v-model="bookingModal.draft.endDate" type="date" class="bg-transparent text-[17px] text-stone-800 text-right focus:outline-none min-w-0"></div></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">抵達時間</span><div class="flex items-center"><select :value="timePart(bookingModal.draft, 'endTime', 'h')" @change="setTimePart(bookingModal.draft, 'endTime', 'h', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select><span class="font-bold text-stone-500">:</span><select :value="timePart(bookingModal.draft, 'endTime', 'm')" @change="setTimePart(bookingModal.draft, 'endTime', 'm', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select></div></div></div></div><div class="pl-6 grid grid-cols-2 gap-x-6"><div class="py-4 border-b border-stone-200"><input v-model="bookingModal.draft.endAirport" type="text" placeholder="機場代碼（TPE）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none uppercase"></div><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.endCity" type="text" placeholder="城市（台北）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.endTerminal" type="text" placeholder="航廈（T1）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none uppercase"></div></div><div class="pl-6"><div class="py-4 pr-6"><select v-model.number="bookingModal.draft.endTz" class="w-full min-w-0 bg-transparent text-[17px] focus:outline-none appearance-none" :class="(bookingModal.draft.endTz === '' || bookingModal.draft.endTz == null) ? 'text-stone-400' : 'text-stone-800'"><option value="">抵達地時區（UTC）</option><option v-for="o in UTC_OFFSETS" :key="o" :value="o">{{ utcLabel(o) }}</option></select></div></div></div><div v-if="flightDurationMin(bookingModal.draft)" class="px-2 text-sm font-black text-primary-600">✈️ 飛行時間約 {{ fmtDuration(flightDurationMin(bookingModal.draft)) }}</div><div class="px-2 text-[12px] leading-relaxed text-stone-400">抵達日期沒填的話，會依時間自動判斷是否隔天；兩地時區不同，請選兩地的 UTC 時區，才能算出正確的飛行時間。</div><div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6 grid grid-cols-2 gap-x-6"><div class="py-4"><div class="flex items-center gap-2"><input v-model="bookingModal.draft.carryOn" type="text" inputmode="decimal" placeholder="手提行李" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "><span class="text-[15px] text-stone-400 shrink-0">kg</span></div></div><div class="py-4 pr-6"><div class="flex items-center gap-2"><input v-model="bookingModal.draft.checkedBag" type="text" inputmode="decimal" placeholder="托運行李" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "><span class="text-[15px] text-stone-400 shrink-0">kg</span></div></div></div></div></template>
+                        <template v-if="bookingModal.type === 'lodging'"><div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.name" type="text" placeholder="住宿名稱" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.city" type="text" placeholder="城市（例如 上海）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.address" type="text" placeholder="地址（選填）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6"><input v-model="bookingModal.draft.mapLink" type="url" placeholder="Google 地圖連結（選填，貼上最準）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div></div><div class="px-2 text-[12px] leading-relaxed text-stone-400">沒貼連結時，會用「名稱＋城市＋地址」去 Google 地圖搜尋，所以名稱和城市寫得越完整越容易找到。<a v-if="lodgingMapUrl(bookingModal.draft)" :href="lodgingMapUrl(bookingModal.draft)" target="_blank" class="ml-1 font-bold text-primary-600">試試看地圖找不找得到 ›</a></div><div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">入住日期</span><input v-model="bookingModal.draft.checkIn" type="date" class="bg-transparent text-[17px] text-stone-800 text-right focus:outline-none min-w-0"></div></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">入住時間</span><div class="flex items-center"><select :value="timePart(bookingModal.draft, 'checkInTime', 'h')" @change="setTimePart(bookingModal.draft, 'checkInTime', 'h', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select><span class="font-bold text-stone-500">:</span><select :value="timePart(bookingModal.draft, 'checkInTime', 'm')" @change="setTimePart(bookingModal.draft, 'checkInTime', 'm', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select></div></div></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">退房日期</span><input v-model="bookingModal.draft.checkOut" type="date" class="bg-transparent text-[17px] text-stone-800 text-right focus:outline-none min-w-0"></div></div></div><div class="pl-6"><div class="py-4 pr-6"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">退房時間</span><div class="flex items-center"><select :value="timePart(bookingModal.draft, 'checkOutTime', 'h')" @change="setTimePart(bookingModal.draft, 'checkOutTime', 'h', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select><span class="font-bold text-stone-500">:</span><select :value="timePart(bookingModal.draft, 'checkOutTime', 'm')" @change="setTimePart(bookingModal.draft, 'checkOutTime', 'm', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select></div></div></div></div></div><div v-if="nightsOf(bookingModal.draft)" class="px-2 text-sm font-black text-primary-600">🌙 共 {{ nightsOf(bookingModal.draft) }} 晚</div></template>
+                        <template v-if="bookingModal.type === 'cars'"><div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.title" type="text" placeholder="名稱（例：高鐵、HARUKA、租車）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6 grid grid-cols-2 gap-x-6"><div class="py-4 border-b border-stone-200"><input v-model="bookingModal.draft.from" type="text" placeholder="出發地" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.to" type="text" placeholder="目的地" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">日期</span><input v-model="bookingModal.draft.date" type="date" class="bg-transparent text-[17px] text-stone-800 text-right focus:outline-none min-w-0"></div></div></div><div class="pl-6"><div class="py-4 pr-6"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">時間</span><div class="flex items-center"><select :value="timePart(bookingModal.draft, 'time', 'h')" @change="setTimePart(bookingModal.draft, 'time', 'h', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select><span class="font-bold text-stone-500">:</span><select :value="timePart(bookingModal.draft, 'time', 'm')" @change="setTimePart(bookingModal.draft, 'time', 'm', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select></div></div></div></div></div></template>
+                        <template v-if="bookingModal.type === 'restaurants'"><div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.name" type="text" placeholder="餐廳名稱" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6 grid grid-cols-2 gap-x-6"><div class="py-4 border-b border-stone-200"><input v-model="bookingModal.draft.people" type="number" inputmode="numeric" placeholder="人數" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.city" type="text" placeholder="城市（選填）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.address" type="text" placeholder="地址（選填）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.mapLink" type="url" placeholder="Google 地圖連結（選填）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">日期</span><input v-model="bookingModal.draft.date" type="date" class="bg-transparent text-[17px] text-stone-800 text-right focus:outline-none min-w-0"></div></div></div><div class="pl-6"><div class="py-4 pr-6"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">時間</span><div class="flex items-center"><select :value="timePart(bookingModal.draft, 'time', 'h')" @change="setTimePart(bookingModal.draft, 'time', 'h', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 24" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select><span class="font-bold text-stone-500">:</span><select :value="timePart(bookingModal.draft, 'time', 'm')" @change="setTimePart(bookingModal.draft, 'time', 'm', $event.target.value)" class="bg-transparent text-[17px] text-stone-800 text-center focus:outline-none appearance-none font-mono w-9"><option v-for="n in 60" :key="n" :value="String(n-1).padStart(2,'0')">{{ String(n-1).padStart(2,'0') }}</option></select></div></div></div></div></div></template>
+                        <template v-if="bookingModal.type === 'vouchers'"><div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.title" type="text" placeholder="憑證名稱（門票、租借券…）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">使用日期</span><input v-model="bookingModal.draft.validDate" type="date" class="bg-transparent text-[17px] text-stone-800 text-right focus:outline-none min-w-0"></div></div></div><div class="pl-6"><div class="py-4 pr-6"><input v-model="bookingModal.draft.link" type="url" placeholder="連結（電子票券、訂單頁、QR 圖檔網址…）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div></div></template>
+                        <div class="bg-white rounded-3xl overflow-hidden"><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center gap-3"><input v-model.number="bookingModal.draft.priceAmount" type="number" inputmode="decimal" :placeholder="bookingModal.type === 'flights' ? '含稅總金額（來回票只填一次）' : '價格'" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none flex-1 font-mono"><div class="flex bg-stone-100 rounded-full p-0.5 shrink-0"><button type="button" @click="bookingModal.draft.priceCurrency = 'foreign'" class="px-3 py-1 rounded-full text-sm font-bold transition-colors" :class="bookingModal.draft.priceCurrency !== 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">{{ currencyLabel }}</button><button type="button" @click="bookingModal.draft.priceCurrency = 'TWD'" class="px-3 py-1 rounded-full text-sm font-bold transition-colors" :class="bookingModal.draft.priceCurrency === 'TWD' ? 'bg-white shadow-sm text-primary-600' : 'text-stone-400'">TWD</button></div></div></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><div class="flex items-center justify-between gap-3"><span class="text-[17px] text-stone-400 shrink-0">購買日期</span><input v-model="bookingModal.draft.purchasedDate" type="date" class="bg-transparent text-[17px] text-stone-800 text-right focus:outline-none min-w-0"></div></div></div><div class="pl-6"><div class="py-4 pr-6 border-b border-stone-200"><input v-model="bookingModal.draft.purchasedVia" type="text" placeholder="購買管道（例如：官網、代理）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none "></div></div><div class="pl-6"><div class="py-4 pr-6"><textarea v-model="bookingModal.draft.note" rows="4" placeholder="備註（訂位代號、注意事項…）" class="w-full min-w-0 bg-transparent text-[17px] text-stone-800 placeholder:text-stone-400 focus:outline-none resize-none leading-relaxed"></textarea></div></div></div>
+                        <button v-if="bookingModal.mode === 'edit'" @click="deleteBookingModal" class="w-full py-3 text-[17px] font-bold text-red-500 active:opacity-60">刪除這筆預訂</button>
                     </div>
                 </div>
             </div>
@@ -2473,7 +2190,7 @@
         })();
     </script>
 
-    <script type="module" src="./app.js?v=58"></script>
+    <script type="module" src="./app.js?v=59"></script>
 
     <script>
         setTimeout(() => {
